@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 const PAGES = [
-  { lien: 'Évaluer ma situation', titre: 'Évaluer ma situation' },
-  { lien: 'Mes aides', titre: 'Mes aides' },
-  { lien: 'Préparer mon budget', titre: 'Préparer mon budget' },
-  { lien: 'Ressources', titre: 'Ressources' },
+  { lien: 'Évaluer ma situation', titre: /Évaluez votre situation/ },
+  { lien: 'Mes aides', titre: /Les aides auxquelles vous avez droit/ },
+  { lien: 'Préparer mon budget', titre: /Préparez votre budget/ },
+  { lien: 'Ressources', titre: /Guides et sources utiles/ },
   { lien: 'À propos', titre: 'À propos' },
   { lien: 'Accueil', titre: /Comprendre pour agir ensemble/ },
 ];

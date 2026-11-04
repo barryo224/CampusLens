@@ -1,0 +1,122 @@
+import { test, expect } from '@playwright/test';
+
+async function remplirBudgetDeReference(page) {
+  const champs = {
+    'Job étudiant (net)': '600',
+    'Aide de la famille': '250',
+    'Loyer charges comprises': '637',
+    Alimentation: '200',
+    Transport: '30',
+    'Téléphone et internet': '20',
+    'Santé et mutuelle': '15',
+    'Autres dépenses': '50',
+  };
+  for (const [libelle, valeur] of Object.entries(champs)) {
+    await page.getByLabel(libelle).fill(valeur);
+  }
+}
+
+test('E2E-01 : Accueil → Évaluer → saisie → « Voir les aides pour moi » → aides du bon profil', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page
+    .getByRole('region', { name: /Comprendre pour agir ensemble/ })
+    .getByRole('link', { name: /Évaluer ma situation/ })
+    .click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Évaluez votre situation');
+
+  await remplirBudgetDeReference(page);
+  await expect(page.getByTestId('reste')).toContainText('126');
+  await expect(page.getByText('Budget en difficulté : des aides existent')).toBeVisible();
+
+  // On coche « boursier » : l'arrivée sur Mes aides doit être filtrée sur ce profil.
+  await page.getByLabel('Je suis boursier CROUS').check();
+  await page.getByRole('link', { name: /Voir les aides pour moi/ }).click();
+
+  await expect(page).toHaveURL(/\/aides\?profil=boursier/);
+  await expect(page.getByRole('radio', { name: /Étudiant boursier/ })).toBeChecked();
+  await expect(page.getByText('Vous en bénéficiez')).toBeVisible(); // badge propre au profil boursier
+});
+
+test('E2E-02 : aucune requête réseau ne contient les montants saisis', async ({ page }) => {
+  const requetes = [];
+  page.on('request', (r) =>
+    requetes.push({ url: r.url(), methode: r.method(), corps: r.postData() }),
+  );
+
+  await page.goto('/evaluer');
+  await expect(page.getByLabel('Job étudiant (net)')).toBeVisible();
+  const avant = requetes.length;
+
+  await remplirBudgetDeReference(page);
+  await page.getByLabel('Je suis boursier CROUS').check();
+  await page.getByText('Étudiant international hors UE').click(); // clic sur l'étiquette, comme un utilisateur
+  await expect(page.getByTestId('reste')).not.toBeEmpty();
+
+  // Saisir et recalculer ne déclenche AUCUNE requête…
+  expect(requetes.length).toBe(avant);
+  // …et rien de ce qui est parti ne contient un montant ni n'écrit quoi que ce soit.
+  for (const r of requetes.filter((x) => x.url.includes('/api/'))) {
+    expect(r.methode).toBe('GET');
+    expect(r.corps).toBeNull();
+    for (const montant of ['637', '600', '250', '200']) {
+      expect(r.url, r.url).not.toContain(montant);
+    }
+  }
+});
+
+test('E2E-04 : formulaire de contact → message envoyé et confirmation affichée', async ({
+  page,
+}) => {
+  // On intercepte l'envoi pour ne pas polluer la base ni consommer la limite d'envois ;
+  // le vrai POST /api/contact est couvert par les tests d'API (API-07 à API-09).
+  let corps = null;
+  await page.route('**/api/contact', async (route) => {
+    corps = route.request().postDataJSON();
+    await route.fulfill({ status: 201, json: { message: 'Message envoyé. Merci !' } });
+  });
+
+  await page.goto('/contact');
+  await page.getByLabel('Objet').fill('Question sur la bourse');
+  await page.getByLabel('Votre adresse e-mail').fill('etudiant@exemple.fr');
+  await page.getByLabel('Message').fill('Bonjour, comment demander la bourse ?');
+  await page.getByRole('button', { name: 'Envoyer' }).click();
+
+  await expect(page.getByRole('status')).toContainText('Message envoyé');
+  expect(corps).toEqual({
+    objet: 'Question sur la bourse',
+    email: 'etudiant@exemple.fr',
+    message: 'Bonjour, comment demander la bourse ?',
+    siteWeb: '',
+  });
+});
+
+test('le bilan PDF se télécharge', async ({ page }) => {
+  await page.goto('/evaluer');
+  await remplirBudgetDeReference(page);
+  const telechargement = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }).click();
+  const fichier = await telechargement;
+  expect(fichier.suggestedFilename()).toBe('bilan-campuslens.pdf');
+});
+
+test('les 6 pages se chargent sans erreur de console', async ({ page }) => {
+  const erreurs = [];
+  page.on('console', (m) => m.type() === 'error' && erreurs.push(m.text()));
+  page.on('pageerror', (e) => erreurs.push(e.message));
+  for (const chemin of [
+    '/',
+    '/evaluer',
+    '/aides',
+    '/budget',
+    '/ressources',
+    '/a-propos',
+    '/contact',
+    '/mentions-legales',
+  ]) {
+    await page.goto(chemin);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  }
+  expect(erreurs).toEqual([]);
+});

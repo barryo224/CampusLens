@@ -352,11 +352,12 @@ a {
   font-weight: 800;
   margin-bottom: 14px;
 }
-.carte h3 {
+:where(.carte) h3 {
   font-size: 1.0625rem;
   margin-bottom: 6px;
 }
-.carte p {
+/* :where() = spécificité nulle : les classes précises (.resultat-montant, .rappel…) l'emportent. */
+:where(.carte) p {
   color: var(--texte-doux);
   font-size: 0.9375rem;
 }
@@ -546,4 +547,449 @@ a {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ───── Simulateur ───── */
+.titre-carte {
+  font-size: 1.125rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+.simulateur {
+  align-items: start;
+}
+.champ {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.champ label,
+.groupe legend {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--texte-doux);
+}
+.champ input {
+  font: inherit;
+  padding: 12px 14px;
+  border: 1px solid #b9c4c9;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--texte);
+  width: 100%;
+}
+.groupe {
+  border: 0;
+  padding: 0;
+  margin: 0 0 16px;
+  display: grid;
+  gap: 8px;
+}
+.groupe-ligne {
+  grid-template-columns: 1fr 1fr;
+}
+.groupe-ligne legend {
+  grid-column: 1 / -1;
+}
+.choix {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid #b9c4c9;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  background: #fff;
+}
+.choix input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.choix-actif {
+  background: var(--primaire-clair);
+  border-color: var(--primaire);
+  color: var(--primaire);
+}
+.choix:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.case {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  font-weight: 600;
+}
+.case input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primaire);
+}
+.rappel {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--orange-fond);
+  color: var(--orange);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.total,
+.ligne-frais {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--fond);
+  margin: 8px 0 0;
+}
+.total {
+  font-weight: 800;
+}
+.resultat {
+  margin-top: 16px;
+  text-align: center;
+}
+.resultat .titre-carte {
+  text-align: left;
+}
+.resultat-etiquette {
+  color: var(--texte-doux);
+  font-weight: 600;
+}
+.jauge {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+}
+.resultat-montant {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.resultat-niveau {
+  font-weight: 800;
+  margin: 6px 0 12px;
+}
+.texte-rouge {
+  color: var(--rouge);
+}
+.texte-orange {
+  color: var(--orange);
+}
+.texte-vert {
+  color: var(--vert);
+}
+.resultat-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.reco-liste {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0;
+}
+.reco {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 18px;
+}
+.reco a {
+  font-weight: 700;
+}
+@media (max-width: 900px) {
+  .groupe-ligne {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ───── Mes aides ───── */
+.onglets {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--bordure);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.onglets [role='tab'] {
+  font: inherit;
+  font-weight: 600;
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 12px 16px;
+  color: var(--texte-doux);
+  cursor: pointer;
+}
+.onglets [aria-selected='true'] {
+  color: var(--primaire);
+  border-bottom-color: var(--primaire);
+  font-weight: 800;
+}
+.aides-page {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.filtres select,
+.champ select {
+  font: inherit;
+  padding: 12px 14px;
+  border: 1px solid #b9c4c9;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--texte);
+}
+.compteur {
+  background: var(--primaire-clair);
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+.liste-aides {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.aide {
+  display: grid;
+  grid-template-columns: 44px 1fr auto auto;
+  gap: 8px 16px;
+  align-items: center;
+  padding: 18px 0;
+  border-top: 1px solid var(--bordure);
+}
+.aide-initiales {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--primaire-clair);
+  color: var(--primaire);
+  font-weight: 800;
+}
+.aide h3 {
+  font-size: 1rem;
+}
+.aide-organisme {
+  color: var(--texte-doux);
+  font-weight: 500;
+}
+.aide p {
+  color: var(--texte-doux);
+  font-size: 0.9375rem;
+}
+.demarche {
+  grid-column: 2 / -1;
+  background: var(--fond);
+  border-radius: 12px;
+  padding: 16px;
+}
+.demarche h4 {
+  margin: 0 0 6px;
+}
+.tableau-defilant {
+  overflow-x: auto;
+}
+.tableau {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tableau th,
+.tableau td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--bordure);
+  vertical-align: top;
+}
+.tableau thead th {
+  background: var(--fond);
+}
+
+/* ───── Budget ───── */
+.pastilles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+.pastille {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--bordure);
+  background: #fff;
+  color: var(--texte);
+  cursor: pointer;
+}
+.pastille-active {
+  background: var(--primaire);
+  border-color: var(--primaire);
+  color: #fff;
+}
+.indicateurs {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.indicateur-nom {
+  font-weight: 600;
+  color: var(--texte);
+}
+.indicateur-valeur {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--texte);
+  margin: 6px 0;
+}
+.postes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.poste {
+  display: grid;
+  grid-template-columns: 220px 1fr 80px minmax(200px, 300px);
+  gap: 16px;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--bordure);
+}
+.poste-nom {
+  font-weight: 600;
+}
+.poste-montant {
+  text-align: right;
+}
+.poste-astuce {
+  background: var(--primaire-clair);
+  color: var(--primaire);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.barre {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: #eef1f3;
+  overflow: hidden;
+}
+.barre span {
+  display: block;
+  height: 100%;
+  background: var(--primaire);
+  border-radius: 6px;
+}
+.budget-bas {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+  align-items: stretch;
+}
+.appel {
+  background: var(--sidebar);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: space-between;
+}
+.appel p {
+  color: #e3f0f2;
+}
+.bouton-clair {
+  background: #fff;
+  color: var(--primaire);
+  border-color: #fff;
+}
+.bouton-clair:hover {
+  background: var(--primaire-clair);
+}
+@media (max-width: 900px) {
+  .aides-page,
+  .budget-bas {
+    grid-template-columns: 1fr;
+  }
+  .aide {
+    grid-template-columns: 44px 1fr;
+  }
+  .aide .badge,
+  .aide > button {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .poste {
+    grid-template-columns: 1fr auto;
+  }
+  .poste .barre,
+  .poste-astuce {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ───── Ressources, contact, texte long ───── */
+.barre-recherche {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.badge-rouge-clair {
+  background: var(--rouge-fond);
+  color: var(--rouge);
+  margin-left: 8px;
+}
+.champ textarea {
+  font: inherit;
+  padding: 12px 14px;
+  border: 1px solid #b9c4c9;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--texte);
+  width: 100%;
+  resize: vertical;
+}
+.piege {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.message-succes {
+  border-color: #a6d8bd;
+  background: var(--vert-fond);
+  color: #064d2e;
+  margin-bottom: 16px;
+}
+.message-erreur {
+  margin-bottom: 16px;
+}
+.texte-long {
+  max-width: 760px;
+}
+.texte-long h2 {
+  font-size: 1.125rem;
+  margin: 24px 0 8px;
+}
+.texte-long h2:first-child {
+  margin-top: 0;
+}
+.texte-long p {
+  margin-bottom: 10px;
+  color: var(--texte);
 }
