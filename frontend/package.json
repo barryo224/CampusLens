@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --coverage.include='src/lib/**'"
   },
   "dependencies": {
     "react": "^19.3.1",
@@ -20,6 +21,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
     "@vitejs/plugin-react": "^6.2.1",
+    "@vitest/coverage-v8": "^5.1.0",
     "jsdom": "^30.1.3",
     "vite": "^8.3.5",
     "vitest": "^5.1.0"
