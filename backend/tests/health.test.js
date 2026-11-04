@@ -3,7 +3,7 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 
 describe('API de base', () => {
-  const app = createApp({ corsOrigin: 'http://localhost:5173' });
+  const app = createApp({ prisma: {}, corsOrigin: 'http://localhost:5173' });
 
   it('GET /api/health répond 200 { status: "ok" }', async () => {
     const res = await request(app).get('/api/health');
