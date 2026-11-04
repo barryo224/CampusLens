@@ -41,6 +41,7 @@ describe('Base de données et seed', () => {
     expect(await get('cvec', 'aucun', null)).toBe(105);
     expect(await get('seuil_fragile', 'aucun', null)).toBe(150);
     expect(await get('heures_travail_max', 'aucun', 'intl')).toBe(964);
+    expect(await get('seuil_part_loyer', 'aucun', null)).toBe(40);
   });
 
   it('chaque aide a une éligibilité pour chacun des 3 profils', async () => {

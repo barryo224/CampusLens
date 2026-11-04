@@ -113,6 +113,15 @@ export const PARAMETRES = [
     unite: '€',
     source: 'reglages',
   },
+  // Part du loyer dans les revenus (en %) au-delà de laquelle on recommande de comparer les villes.
+  {
+    cle: 'seuil_part_loyer',
+    niveau: 'aucun',
+    profil: null,
+    valeur: 40,
+    unite: '%',
+    source: 'reglages',
+  },
   {
     cle: 'heures_travail_max',
     niveau: 'aucun',
@@ -129,6 +138,7 @@ const UNIVERSEL = ['fr_ue', 'boursier', 'intl'];
 export const AIDES = [
   {
     slug: 'bourse-criteres-sociaux',
+    miseEnAvant: true,
     nom: 'Bourse sur critères sociaux',
     organisme: 'CROUS',
     description:
@@ -146,6 +156,7 @@ export const AIDES = [
   },
   {
     slug: 'aide-logement-apl-als',
+    miseEnAvant: true,
     nom: 'Aide au logement (APL / ALS)',
     organisme: 'CAF',
     description:
@@ -163,6 +174,7 @@ export const AIDES = [
   },
   {
     slug: 'garantie-visale',
+    miseEnAvant: true,
     nom: 'Garantie Visale',
     organisme: 'Action Logement',
     description: 'Une caution gratuite qui remplace le garant auprès du propriétaire.',
@@ -194,6 +206,7 @@ export const AIDES = [
   },
   {
     slug: 'aide-specifique-ponctuelle',
+    miseEnAvant: true,
     nom: 'Aide spécifique ponctuelle',
     organisme: 'CROUS',
     description:

@@ -53,17 +53,26 @@ export function routesPubliques(prisma) {
 
   // GET /api/aides?profil=&categorie=
   r.get('/aides', async (req, res) => {
-    const { profil: codeProfil, categorie } = valider(
+    const {
+      profil: codeProfil,
+      categorie,
+      miseEnAvant,
+    } = valider(
       z.object({
         profil: codeSchema.optional(),
         categorie: z.enum(CATEGORIES_AIDE).optional(),
+        miseEnAvant: z.enum(['true', 'false']).optional(),
       }),
       req.query,
     );
     const profil = codeProfil ? await trouverProfil(prisma, codeProfil) : null;
 
     const aides = await prisma.aide.findMany({
-      where: { active: true, ...(categorie && { categorie }) },
+      where: {
+        active: true,
+        ...(categorie && { categorie }),
+        ...(miseEnAvant && { miseEnAvant: miseEnAvant === 'true' }),
+      },
       include: {
         source: true,
         eligibilites: {
@@ -92,6 +101,7 @@ export function routesPubliques(prisma) {
             frequence: a.frequence,
             commentDemander: a.commentDemander,
             lienDemarche: a.lienDemarche,
+            miseEnAvant: a.miseEnAvant,
             calculableOpenfisca: Boolean(a.codeOpenfisca),
             // Avec ?profil= : l'éligibilité de CE profil ; sinon les trois.
             ...(profil ? { eligibilite: eligibilites[0] ?? null } : { eligibilites }),

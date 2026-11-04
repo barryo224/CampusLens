@@ -31,6 +31,14 @@ describe('API publique : lecture', () => {
     expect(logement.body.every((a) => a.categorie === 'logement')).toBe(true);
   });
 
+  it('API-01 ter : ?miseEnAvant=true ne renvoie que les aides mises en avant (accueil)', async () => {
+    const res = await request(app).get('/api/aides?miseEnAvant=true');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(4);
+    expect(res.body.every((a) => a.miseEnAvant)).toBe(true);
+    expect((await request(app).get('/api/aides?miseEnAvant=peut-etre')).status).toBe(400);
+  });
+
   it('API-02 : profil inconnu → 400 avec message clair', async () => {
     const res = await request(app).get('/api/aides?profil=inconnu');
     expect(res.status).toBe(400);

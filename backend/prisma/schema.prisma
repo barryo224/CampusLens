@@ -164,6 +164,7 @@ model Aide {
   sourceId        Int           @map("source_id")
   verifieLe       DateTime?     @map("verifie_le")
   active          Boolean       @default(true)
+  miseEnAvant     Boolean       @default(false) @map("mise_en_avant") // bloc « aides à connaître » de l'accueil
 
   source        Source         @relation(fields: [sourceId], references: [id])
   eligibilites  Eligibilite[]

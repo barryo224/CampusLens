@@ -38,5 +38,10 @@ export default [
       'react/prop-types': 'off',
     },
   },
+  {
+    // Les tests Playwright exécutent du code dans le navigateur (page.evaluate).
+    files: ['e2e/**/*.js'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
   prettier,
 ];
