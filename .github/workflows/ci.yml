@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  qualite-et-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint (ESLint)
+        run: npm run lint
+      - name: Format (Prettier)
+        run: npm run format:check
+      - name: Tests backend et frontend
+        run: npm test
+      - name: Audit de sécurité
+        run: npm audit --audit-level=high
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: qualite-et-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox
+      - name: Tests de bout en bout
+        run: npm run test:e2e
+        env:
+          CORS_ORIGIN: http://localhost:5173
