@@ -5,3 +5,4 @@ documents
 package-lock.json
 playwright-report
 test-results
+backend/src/generated

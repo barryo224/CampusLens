@@ -7,6 +7,20 @@ on:
 jobs:
   qualite-et-tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: campuslens
+          POSTGRES_PASSWORD: campuslens
+          POSTGRES_DB: campuslens_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U campuslens"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://campuslens:campuslens@localhost:5432/campuslens_test
+      TEST_DATABASE_URL: postgresql://campuslens:campuslens@localhost:5432/campuslens_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -14,6 +28,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Client Prisma
+        run: npm run db:generate
       - name: Lint (ESLint)
         run: npm run lint
       - name: Format (Prettier)

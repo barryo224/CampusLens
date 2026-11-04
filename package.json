@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "workspaces": [
     "frontend",
@@ -19,7 +19,8 @@
     "format:check": "prettier --check .",
     "test": "npm run test -w backend && npm run test -w frontend",
     "test:e2e": "npm run test -w e2e",
-    "check": "npm run lint && npm run format:check && npm run test"
+    "check": "npm run lint && npm run format:check && npm run test",
+    "db:generate": "npm run db:generate -w backend"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

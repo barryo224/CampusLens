@@ -1,0 +1,363 @@
+// Schéma CampusLens : 16 tables en trois familles (spécification, section 5).
+//  - Données de référence : source, annee_universitaire, profil, parametre, aide,
+//    eligibilite, poste_rentree, ville, logement_crous, association, ressource
+//  - Traçabilité : synchronisation, historique_valeur, changement_detecte
+//  - Administration : administrateur, message_contact
+// Aucune table ne stocke de simulation : le budget de l'étudiant reste dans son navigateur.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────── Énumérations ─────────────
+
+enum TypeSource {
+  api
+  jeu_ouvert
+  moteur_calcul
+  page_web
+  pdf
+}
+
+enum StatutSource {
+  ok
+  a_verifier
+  erreur
+}
+
+enum NiveauEtudes {
+  licence
+  master
+  aucun // la valeur ne dépend pas du niveau
+}
+
+enum CategorieAide {
+  logement
+  etudes
+  urgence
+  alimentation
+}
+
+enum StatutEligibilite {
+  oui
+  sous_conditions
+  non
+}
+
+enum StatutLien {
+  ok
+  deplace
+  casse
+}
+
+enum StatutSynchronisation {
+  succes
+  aucun_changement
+  en_attente_validation
+  echec
+}
+
+enum StatutChangement {
+  a_valider
+  valide
+  rejete
+}
+
+enum RoleAdmin {
+  admin
+  relecteur
+}
+
+// ───────────── 1. Données de référence ─────────────
+
+/// Chaque origine de données (site, API, document).
+model Source {
+  id                Int          @id @default(autoincrement())
+  nom               String
+  organisme         String
+  url               String
+  type              TypeSource
+  frequenceHeures   Int          @map("frequence_heures")
+  empreinte         String? // hash du dernier contenu lu
+  dernierControle   DateTime?    @map("dernier_controle")
+  dernierChangement DateTime?    @map("dernier_changement")
+  statut            StatutSource @default(a_verifier)
+  licence           String?
+
+  parametres          Parametre[]
+  aides               Aide[]
+  postesRentree       PosteRentree[]
+  villes              Ville[]
+  logementsCrous      LogementCrous[]
+  associations        Association[]
+  ressources          Ressource[]
+  synchronisations    Synchronisation[]
+  changementsDetectes ChangementDetecte[]
+
+  @@map("source")
+}
+
+model AnneeUniversitaire {
+  id        Int      @id @default(autoincrement())
+  libelle   String   @unique // « 2026-2027 »
+  dateDebut DateTime @map("date_debut") @db.Date
+  dateFin   DateTime @map("date_fin") @db.Date
+  enCours   Boolean  @default(false) @map("en_cours") // une seule année « en cours »
+
+  parametres    Parametre[]
+  postesRentree PosteRentree[]
+
+  @@map("annee_universitaire")
+}
+
+model Profil {
+  id      Int    @id @default(autoincrement())
+  code    String @unique // fr_ue, boursier, intl
+  libelle String
+
+  parametres   Parametre[]
+  eligibilites Eligibilite[]
+
+  @@map("profil")
+}
+
+/// Tous les montants et seuils utilisés dans les calculs.
+/// profilId vide = valeur nationale (tous profils). Unicité : voir la migration
+/// (index NULLS NOT DISTINCT), que Prisma ne sait pas exprimer.
+model Parametre {
+  id        Int          @id @default(autoincrement())
+  cle       String // droits_inscription, cvec, seuil_fragile, heures_travail_max…
+  niveau    NiveauEtudes @default(aucun)
+  profilId  Int?         @map("profil_id")
+  anneeId   Int          @map("annee_id")
+  valeur    Decimal      @db.Decimal(12, 2)
+  unite     String // €, € / an, heures / an
+  sourceId  Int          @map("source_id")
+  verifieLe DateTime?    @map("verifie_le")
+
+  profil Profil?            @relation(fields: [profilId], references: [id])
+  annee  AnneeUniversitaire @relation(fields: [anneeId], references: [id])
+  source Source             @relation(fields: [sourceId], references: [id])
+
+  @@index([cle, anneeId])
+  @@map("parametre")
+}
+
+model Aide {
+  id              Int           @id @default(autoincrement())
+  slug            String        @unique
+  nom             String
+  organisme       String
+  description     String
+  categorie       CategorieAide
+  frequence       String // mensuelle, ponctuelle…
+  commentDemander String        @map("comment_demander")
+  lienDemarche    String?       @map("lien_demarche")
+  codeOpenfisca   String?       @map("code_openfisca") // si calculable par OpenFisca
+  sourceId        Int           @map("source_id")
+  verifieLe       DateTime?     @map("verifie_le")
+  active          Boolean       @default(true)
+
+  source        Source         @relation(fields: [sourceId], references: [id])
+  eligibilites  Eligibilite[]
+  postesRentree PosteRentree[]
+
+  @@map("aide")
+}
+
+/// Une ligne par couple (aide, profil) : produit « Vous y avez droit ».
+model Eligibilite {
+  aideId    Int               @map("aide_id")
+  profilId  Int               @map("profil_id")
+  statut    StatutEligibilite
+  precision String? // texte court affiché dans le badge
+
+  aide   Aide   @relation(fields: [aideId], references: [id], onDelete: Cascade)
+  profil Profil @relation(fields: [profilId], references: [id])
+
+  @@id([aideId, profilId])
+  @@map("eligibilite")
+}
+
+model PosteRentree {
+  id        Int       @id @default(autoincrement())
+  anneeId   Int       @map("annee_id")
+  nom       String // dépôt de garantie, matériel…
+  montant   Decimal   @db.Decimal(12, 2)
+  astuce    String? // « Avance Loca-Pass ou FSL »
+  aideId    Int?      @map("aide_id") // l'aide qui allège ce poste
+  sourceId  Int       @map("source_id")
+  verifieLe DateTime? @map("verifie_le")
+
+  annee  AnneeUniversitaire @relation(fields: [anneeId], references: [id])
+  aide   Aide?              @relation(fields: [aideId], references: [id])
+  source Source             @relation(fields: [sourceId], references: [id])
+
+  @@map("poste_rentree")
+}
+
+model Ville {
+  id                  Int       @id @default(autoincrement())
+  codeInsee           String    @unique @map("code_insee")
+  nom                 String
+  region              String
+  loyerM2Appartement  Decimal?  @map("loyer_m2_appartement") @db.Decimal(8, 2) // carte des loyers, €/m²
+  loyerStudioEstime   Decimal?  @map("loyer_studio_estime") @db.Decimal(8, 2) // loyer au m² × surface type
+  nbLogementsCrous    Int?      @map("nb_logements_crous")
+  abonnementTransport Decimal?  @map("abonnement_transport") @db.Decimal(8, 2)
+  sourceId            Int       @map("source_id")
+  verifieLe           DateTime? @map("verifie_le")
+
+  source         Source          @relation(fields: [sourceId], references: [id])
+  logementsCrous LogementCrous[]
+  associations   Association[]
+
+  @@map("ville")
+}
+
+model LogementCrous {
+  id           Int       @id @default(autoincrement())
+  villeId      Int       @map("ville_id")
+  nomResidence String    @map("nom_residence")
+  adresse      String?
+  typeLogement String?   @map("type_logement")
+  loyerMin     Decimal?  @map("loyer_min") @db.Decimal(8, 2)
+  loyerMax     Decimal?  @map("loyer_max") @db.Decimal(8, 2)
+  sourceId     Int       @map("source_id")
+  verifieLe    DateTime? @map("verifie_le")
+
+  ville  Ville  @relation(fields: [villeId], references: [id])
+  source Source @relation(fields: [sourceId], references: [id])
+
+  @@map("logement_crous")
+}
+
+model Association {
+  id          Int       @id @default(autoincrement())
+  nom         String
+  description String
+  lien        String?
+  villeId     Int?      @map("ville_id") // vide si nationale
+  sourceId    Int       @map("source_id")
+  verifieLe   DateTime? @map("verifie_le")
+
+  ville  Ville? @relation(fields: [villeId], references: [id])
+  source Source @relation(fields: [sourceId], references: [id])
+
+  @@map("association")
+}
+
+/// Documents et démarches de la page Ressources (on pointe vers l'officiel, on ne copie pas).
+model Ressource {
+  id         Int        @id @default(autoincrement())
+  titre      String
+  type       String // démarche, rapport, texte officiel…
+  categorie  String // aides, cout_de_la_vie, effectifs, reglementation…
+  organisme  String
+  annee      String? // « 2026 » ou « Dernière éd. »
+  url        String
+  empreinte  String?
+  statutLien StatutLien @default(ok) @map("statut_lien")
+  sourceId   Int        @map("source_id")
+  verifieLe  DateTime?  @map("verifie_le")
+
+  source Source @relation(fields: [sourceId], references: [id])
+
+  @@map("ressource")
+}
+
+// ───────────── 2. Traçabilité ─────────────
+
+/// Un passage de robot.
+model Synchronisation {
+  id            Int                   @id @default(autoincrement())
+  sourceId      Int                   @map("source_id")
+  debut         DateTime              @default(now())
+  fin           DateTime?
+  statut        StatutSynchronisation
+  nbChangements Int                   @default(0) @map("nb_changements")
+  messageErreur String?               @map("message_erreur")
+
+  source              Source              @relation(fields: [sourceId], references: [id])
+  historique          HistoriqueValeur[]
+  changementsDetectes ChangementDetecte[]
+
+  @@index([sourceId, debut])
+  @@map("synchronisation")
+}
+
+/// Chaque modification de donnée : permet d'afficher « mis à jour le… » et d'annuler une erreur.
+model HistoriqueValeur {
+  id                Int      @id @default(autoincrement())
+  tableCible        String   @map("table_cible")
+  ligneId           String   @map("ligne_id") // texte : clé simple ou composée
+  champ             String
+  ancienneValeur    String?  @map("ancienne_valeur")
+  nouvelleValeur    String?  @map("nouvelle_valeur")
+  synchronisationId Int?     @map("synchronisation_id") // vide si modif manuelle/restauration
+  changeLe          DateTime @default(now()) @map("change_le")
+
+  synchronisation Synchronisation? @relation(fields: [synchronisationId], references: [id])
+
+  @@index([tableCible, ligneId])
+  @@map("historique_valeur")
+}
+
+/// Modification trouvée sur une page web ou un PDF (niveau 3), en attente de validation.
+model ChangementDetecte {
+  id                Int              @id @default(autoincrement())
+  sourceId          Int              @map("source_id")
+  synchronisationId Int              @map("synchronisation_id")
+  resume            String
+  ancienneEmpreinte String?          @map("ancienne_empreinte")
+  nouvelleEmpreinte String           @map("nouvelle_empreinte")
+  // Cible et valeur proposée : à la validation, l'admin applique cette valeur.
+  // (Ajout par rapport à la spécification, nécessaire pour SYN-06.)
+  tableCible        String?          @map("table_cible")
+  ligneId           String?          @map("ligne_id")
+  champ             String?
+  valeurProposee    String?          @map("valeur_proposee")
+  statut            StatutChangement @default(a_valider)
+  traiteParId       Int?             @map("traite_par_id")
+  traiteLe          DateTime?        @map("traite_le")
+
+  source          Source          @relation(fields: [sourceId], references: [id])
+  synchronisation Synchronisation @relation(fields: [synchronisationId], references: [id])
+  traitePar       Administrateur? @relation(fields: [traiteParId], references: [id])
+
+  @@map("changement_detecte")
+}
+
+// ───────────── 3. Administration ─────────────
+
+model Administrateur {
+  id                Int       @id @default(autoincrement())
+  email             String    @unique
+  motDePasseHash    String    @map("mot_de_passe_hash") // bcrypt
+  role              RoleAdmin @default(relecteur)
+  derniereConnexion DateTime? @map("derniere_connexion")
+
+  changementsTraites ChangementDetecte[]
+
+  @@map("administrateur")
+}
+
+/// Seule table alimentée par le public. Suppression automatique à supprimer_apres (RGPD).
+model MessageContact {
+  id             Int      @id @default(autoincrement())
+  objet          String
+  message        String
+  email          String
+  creeLe         DateTime @default(now()) @map("cree_le")
+  supprimerApres DateTime @map("supprimer_apres")
+
+  @@index([supprimerApres])
+  @@map("message_contact")
+}
