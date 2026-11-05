@@ -37,16 +37,18 @@ test.describe('E2E-05 : espace administration', () => {
 
     // 2. Connexion à l'espace admin (non lié depuis la navigation publique).
     await page.goto('/admin');
-    await expect(
-      page.getByRole('navigation', { name: 'Navigation principale' }).getByText(/admin/i),
-    ).toHaveCount(0);
+    // L'admin a sa propre mise en page : le menu du site public n'y apparaît pas.
+    await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toHaveCount(0);
     await page.getByLabel('Adresse e-mail').fill(ADMIN.email);
     await page.getByLabel('Mot de passe').fill('mauvais-mot-de-passe');
     await page.getByRole('button', { name: 'Se connecter' }).click();
     await expect(page.getByRole('alert')).toContainText('Identifiants incorrects');
     await page.getByLabel('Mot de passe').fill(ADMIN.motDePasse);
     await page.getByRole('button', { name: 'Se connecter' }).click();
-    await expect(page.getByText(/Connecté :/)).toContainText(ADMIN.email);
+    await expect(page.getByText(`${ADMIN.email} (admin)`)).toBeVisible();
+    await expect(
+      page.getByRole('navigation', { name: 'Sections de l’administration' }),
+    ).toBeVisible();
 
     // 3. Le changement détecté est listé, avec la valeur proposée ; on le valide.
     const carte = page.getByRole('listitem').filter({ hasText: 'Test E2E' });
@@ -55,7 +57,8 @@ test.describe('E2E-05 : espace administration', () => {
     await expect(carte).toHaveCount(0);
 
     // 4. La modification apparaît dans l'historique, avec l'ancienne et la nouvelle valeur.
-    await page.getByRole('tab', { name: 'Historique' }).click();
+    await page.getByRole('link', { name: 'Historique' }).click();
+    await expect(page).toHaveURL(/\/admin\/historique$/);
     const historique = page.getByRole('table', { name: 'Dernières modifications de données' });
     await expect(historique.getByRole('row').nth(1)).toContainText(String(donnees.valeurInitiale));
     await expect(historique.getByRole('row').nth(1)).toContainText(String(donnees.valeurProposee));
@@ -64,7 +67,18 @@ test.describe('E2E-05 : espace administration', () => {
     await page.goto('/budget');
     await expect(cartes).toContainText(`${donnees.valeurProposee}`);
 
-    // 6. Déconnexion : l'accès est refusé ensuite.
+    // 6. L'admin reste utilisable : section dans l'adresse, rechargement, sortie vers le site puis retour.
+    await page.goto('/admin/sources');
+    await expect(page.getByRole('table', { name: 'État des sources de données' })).toBeVisible();
+    await page.reload(); // la section est conservée, on reste connecté
+    await expect(page.getByRole('table', { name: 'État des sources de données' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toHaveCount(0);
+    await page.getByRole('link', { name: 'Voir le site' }).click();
+    await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toBeVisible();
+    await page.goBack(); // retour à l'admin : toujours connecté, sans ressaisir le mot de passe
+    await expect(page.getByRole('table', { name: 'État des sources de données' })).toBeVisible();
+
+    // 7. Déconnexion : l'accès est refusé ensuite.
     await page.goto('/admin');
     await page.getByRole('button', { name: 'Se déconnecter' }).click();
     await expect(page.getByRole('heading', { name: 'Connexion' })).toBeVisible();
@@ -90,7 +104,8 @@ test.describe('Espace administration : messages de contact', () => {
     await page.getByLabel('Adresse e-mail').fill(ADMIN.email);
     await page.getByLabel('Mot de passe').fill(ADMIN.motDePasse);
     await page.getByRole('button', { name: 'Se connecter' }).click();
-    await page.getByRole('tab', { name: 'Messages' }).click();
+    await page.getByRole('link', { name: 'Messages' }).click();
+    await expect(page).toHaveURL(/\/admin\/messages$/);
 
     const carte = page.getByRole('listitem').filter({ hasText: donnees.objet });
     await expect(carte).toContainText('e2e-etudiant@exemple.fr');

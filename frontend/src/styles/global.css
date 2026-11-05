@@ -1103,3 +1103,95 @@ a {
   color: var(--texte-doux);
   font-size: 0.9375rem;
 }
+
+/* ───── Administration : mise en page indépendante du site public ───── */
+.admin-barre {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+  padding: 12px 28px;
+  background: var(--sidebar);
+  color: #fff;
+}
+.admin-barre :focus-visible {
+  outline-color: #fff;
+}
+.admin-marque {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 1.125rem;
+}
+.admin-marque small {
+  display: block;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: #d3e6ea;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.admin-nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.admin-nav a {
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}
+.admin-nav a:hover {
+  background: var(--sidebar-hover);
+}
+.admin-nav a[aria-current='page'] {
+  background: var(--sidebar-actif);
+  font-weight: 800;
+}
+.admin-droite {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.admin-qui {
+  font-size: 0.875rem;
+  color: #d3e6ea;
+}
+.admin-contenu {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 28px 56px;
+}
+@media (max-width: 900px) {
+  .admin-barre {
+    padding: 12px 16px;
+  }
+  .admin-droite {
+    margin-left: 0;
+  }
+  .admin-contenu {
+    padding: 20px 16px 40px;
+  }
+}
+.admin-barre .bouton {
+  padding: 8px 14px;
+  font-size: 0.9375rem;
+}
+@media (min-width: 901px) {
+  .admin-barre {
+    flex-wrap: nowrap;
+  }
+  .admin-qui {
+    white-space: nowrap;
+  }
+}

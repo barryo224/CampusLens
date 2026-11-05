@@ -8,12 +8,27 @@ import Ressources from './pages/Ressources.jsx';
 import APropos from './pages/APropos.jsx';
 import Contact from './pages/Contact.jsx';
 import MentionsLegales from './pages/MentionsLegales.jsx';
-import Admin from './pages/Admin.jsx';
+import AdminLayout, {
+  PageChangements,
+  PageSources,
+  PageHistorique,
+  PageMessages,
+  AccueilAdmin,
+} from './pages/Admin.jsx';
 import Bientot from './pages/Bientot.jsx';
 
 export default function App() {
   return (
     <Routes>
+      {/* Espace administration : sa propre mise en page, sans le menu du site public. */}
+      <Route path="admin" element={<AdminLayout />}>
+        <Route index element={<AccueilAdmin />} />
+        <Route path="changements" element={<PageChangements />} />
+        <Route path="sources" element={<PageSources />} />
+        <Route path="historique" element={<PageHistorique />} />
+        <Route path="messages" element={<PageMessages />} />
+        <Route path="*" element={<AccueilAdmin />} />
+      </Route>
       <Route element={<Layout />}>
         <Route index element={<Accueil />} />
         <Route path="evaluer" element={<Evaluer />} />
@@ -23,7 +38,6 @@ export default function App() {
         <Route path="a-propos" element={<APropos />} />
         <Route path="contact" element={<Contact />} />
         <Route path="mentions-legales" element={<MentionsLegales />} />
-        <Route path="admin" element={<Admin />} />
         <Route path="*" element={<Bientot titre="Page introuvable" />} />
       </Route>
     </Routes>

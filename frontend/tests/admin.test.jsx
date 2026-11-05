@@ -139,20 +139,131 @@ const connecte = (role = 'admin', extra = {}) =>
   });
 
 describe('Espace administration', () => {
-  it('non connecté (401) → formulaire de connexion, et aucun lien vers /admin dans la navigation publique', async () => {
+  it('non connecté (401) → formulaire de connexion, sans le menu du site public', async () => {
     simulerApi({ '/admin/me': { __status: 401, corps: { error: 'Authentification requise.' } } });
     rendreApp('/admin');
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     expect(
-      within(screen.getByRole('navigation', { name: 'Navigation principale' })).queryByText(
-        /admin/i,
-      ),
+      screen.queryByRole('navigation', { name: 'Sections de l’administration' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Navigation principale' }),
     ).not.toBeInTheDocument();
     expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
       'content',
       'noindex, nofollow',
     );
+  });
+
+  it('le site public ne contient aucun lien vers l’administration', async () => {
+    simulerApi({ '/aides': [] });
+    rendreApp('/');
+    expect(document.querySelector('a[href^="/admin"]')).toBeNull();
+  });
+
+  it('l’espace admin a sa propre mise en page : pas de menu public, mais un lien « Voir le site »', async () => {
+    connecte();
+    rendreApp('/admin');
+    await screen.findByRole('navigation', { name: 'Sections de l’administration' });
+    expect(
+      screen.queryByRole('navigation', { name: 'Navigation principale' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Évaluer ma situation' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Voir le site' })).toHaveAttribute('href', '/');
+    expect(screen.getByText(/admin@campuslens.test \(admin\)/)).toBeInTheDocument();
+  });
+
+  it('/admin ouvre « À valider » ; chaque section a sa propre adresse (conservée au rechargement)', async () => {
+    connecte();
+    rendreApp('/admin');
+    const nav = await screen.findByRole('navigation', { name: 'Sections de l’administration' });
+    // Après la redirection automatique de /admin vers /admin/changements :
+    await vi.waitFor(() =>
+      expect(within(nav).getByRole('link', { name: 'À valider' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      ),
+    );
+    expect(within(nav).getByRole('link', { name: 'État des sources' })).toHaveAttribute(
+      'href',
+      '/admin/sources',
+    );
+    expect(within(nav).getByRole('link', { name: 'Historique' })).toHaveAttribute(
+      'href',
+      '/admin/historique',
+    );
+    expect(within(nav).getByRole('link', { name: 'Messages' })).toHaveAttribute(
+      'href',
+      '/admin/messages',
+    );
+    cleanup();
+
+    // Ouvrir directement /admin/sources (comme après un rechargement de la page) affiche cette section.
+    connecte();
+    rendreApp('/admin/sources');
+    expect(
+      await screen.findByRole('table', { name: 'État des sources de données' }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', { name: 'Sections de l’administration' })).getByRole(
+        'link',
+        { name: 'État des sources' },
+      ),
+    ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('naviguer entre les sections ne déconnecte pas et ne refait pas de connexion', async () => {
+    const mock = connecte();
+    rendreApp('/admin');
+    await userEvent.click(await screen.findByRole('link', { name: 'État des sources' }));
+    await screen.findByRole('table', { name: 'État des sources de données' });
+    await userEvent.click(screen.getByRole('link', { name: 'Historique' }));
+    await screen.findByRole('table', { name: 'Dernières modifications de données' });
+    await userEvent.click(screen.getByRole('link', { name: 'À valider' }));
+    await screen.findByRole('heading', { name: /Droits d’inscription nationaux/ });
+    expect(screen.queryByRole('heading', { name: 'Connexion' })).not.toBeInTheDocument();
+    expect(mock.mock.calls.filter(([u]) => u === '/api/admin/me')).toHaveLength(1); // une seule vérification de session
+  });
+
+  it('adresse inconnue dans /admin → retour à « À valider »', async () => {
+    connecte();
+    rendreApp('/admin/nimporte-quoi');
+    expect(
+      await screen.findByRole('heading', { name: /Droits d’inscription nationaux/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('non connecté sur /admin/sources : connexion, puis on arrive directement sur cette section', async () => {
+    let connecteMaintenant = false;
+    const mock = simulerApi({
+      '/admin/me': () =>
+        connecteMaintenant ? { email: 'admin@campuslens.test', role: 'admin' } : { __status: 401 },
+      '/admin/login': () => {
+        connecteMaintenant = true;
+        return { email: 'admin@campuslens.test', role: 'admin' };
+      },
+      '/admin/sources': SOURCES,
+    });
+    rendreApp('/admin/sources');
+    await userEvent.type(await screen.findByLabelText('Adresse e-mail'), 'admin@campuslens.test');
+    await userEvent.type(screen.getByLabelText('Mot de passe'), 'un-mot-de-passe');
+    await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
+    expect(
+      await screen.findByRole('table', { name: 'État des sources de données' }),
+    ).toBeInTheDocument();
+    expect(mock.mock.calls.some(([u]) => u === '/api/admin/login')).toBe(true);
+  });
+
+  it('« Voir le site » mène au site public (menu public), et on peut revenir à l’admin sans se reconnecter', async () => {
+    connecte('admin', { '/aides': [] });
+    rendreApp('/admin/sources');
+    await userEvent.click(await screen.findByRole('link', { name: 'Voir le site' }));
+    expect(
+      await screen.findByRole('navigation', { name: 'Navigation principale' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Sections de l’administration' }),
+    ).not.toBeInTheDocument();
   });
 
   it('connexion : envoie e-mail et mot de passe, puis affiche le tableau de bord', async () => {
@@ -165,7 +276,10 @@ describe('Espace administration', () => {
     await userEvent.type(await screen.findByLabelText('Adresse e-mail'), 'admin@campuslens.test');
     await userEvent.type(screen.getByLabelText('Mot de passe'), 'un-mot-de-passe');
     await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
-    expect(await screen.findByText(/Connecté :/)).toHaveTextContent('admin@campuslens.test');
+    expect(await screen.findByText(/admin@campuslens.test \(admin\)/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'Sections de l’administration' }),
+    ).toBeInTheDocument();
     const appel = mock.mock.calls.find(([u]) => u === '/api/admin/login');
     expect(appel[1].method).toBe('POST');
     expect(JSON.parse(appel[1].body)).toEqual({
@@ -277,7 +391,7 @@ describe('Espace administration', () => {
       '/admin/sources/2/synchroniser': { statut: 'succes', nbChangements: 3 },
     });
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('tab', { name: 'État des sources' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'État des sources' }));
     const tableau = await screen.findByRole('table', { name: 'État des sources de données' });
     const ligne = (nom) =>
       within(tableau)
@@ -304,10 +418,10 @@ describe('Espace administration', () => {
   it('le rôle « relecteur » ne voit ni « Lancer » ni « Annuler »', async () => {
     connecte('relecteur');
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('tab', { name: 'État des sources' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'État des sources' }));
     await screen.findByRole('table');
     expect(screen.queryByRole('button', { name: /Lancer/ })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Historique' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Historique' }));
     await screen.findByRole('table', { name: 'Dernières modifications de données' });
     expect(screen.queryByRole('button', { name: /Annuler/ })).not.toBeInTheDocument();
   });
@@ -315,7 +429,7 @@ describe('Espace administration', () => {
   it('historique : annuler une modification (admin) restaure la valeur', async () => {
     const mock = connecte('admin', { '/admin/historique/9/annuler': { restauree: '254' } });
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('tab', { name: 'Historique' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'Historique' }));
     const tableau = await screen.findByRole('table', {
       name: 'Dernières modifications de données',
     });
@@ -329,7 +443,7 @@ describe('Espace administration', () => {
   it('onglet Messages : liste les messages avec expéditeur, dates et lien pour répondre', async () => {
     connecte();
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
     const carte = (await screen.findByRole('heading', { name: 'Question sur la bourse' })).closest(
       'li',
     );
@@ -350,7 +464,7 @@ describe('Espace administration', () => {
   it('un message contenant du code HTML est affiché comme du texte, jamais interprété', async () => {
     connecte();
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
     const texte = await screen.findByText(/<script>alert\(1\)<\/script> Le lien est cassé\./);
     expect(texte.tagName).toBe('P');
     expect(document.querySelector('script[src], .message-texte script')).toBeNull();
@@ -367,7 +481,7 @@ describe('Espace administration', () => {
     });
     const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(true);
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
     await userEvent.click(
       await screen.findByRole('button', { name: /^Supprimer.*Question sur la bourse/ }),
     );
@@ -388,7 +502,7 @@ describe('Espace administration', () => {
     const mock = connecte();
     const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
     await userEvent.click(
       await screen.findByRole('button', { name: /^Supprimer.*Question sur la bourse/ }),
     );
@@ -399,7 +513,7 @@ describe('Espace administration', () => {
   it('aucun message : le dit clairement ; erreur de suppression : message, pas de plantage', async () => {
     connecte('admin', { '/admin/messages': [] });
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
     expect(await screen.findByText(/Aucun message reçu/)).toBeInTheDocument();
     cleanup();
 
@@ -408,7 +522,7 @@ describe('Espace administration', () => {
     });
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
     await userEvent.click(
       await screen.findByRole('button', { name: /^Supprimer.*Question sur la bourse/ }),
     );
@@ -416,11 +530,22 @@ describe('Espace administration', () => {
     window.confirm.mockRestore?.();
   });
 
+  it('un relecteur qui ouvre /admin/messages à la main est ramené à « À valider »', async () => {
+    connecte('relecteur');
+    rendreApp('/admin/messages');
+    expect(
+      await screen.findByRole('heading', { name: /Droits d’inscription nationaux/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Question sur la bourse' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('le rôle « relecteur » ne voit pas l’onglet Messages (données personnelles)', async () => {
     connecte('relecteur');
     rendreApp('/admin');
-    await screen.findByRole('tab', { name: 'Historique' });
-    expect(screen.queryByRole('tab', { name: 'Messages' })).not.toBeInTheDocument();
+    await screen.findByRole('link', { name: 'Historique' });
+    expect(screen.queryByRole('link', { name: 'Messages' })).not.toBeInTheDocument();
   });
 
   it('déconnexion : retour au formulaire de connexion', async () => {
@@ -454,13 +579,13 @@ describe('Espace administration', () => {
     const b = rendreApp('/admin');
     await screen.findByLabelText('Droits d’inscription (master)');
     expect(await violationsAxe(b.container)).toEqual([]);
-    await userEvent.click(screen.getByRole('tab', { name: 'État des sources' }));
+    await userEvent.click(screen.getByRole('link', { name: 'État des sources' }));
     await screen.findByRole('table');
     expect(await violationsAxe(b.container)).toEqual([]);
-    await userEvent.click(screen.getByRole('tab', { name: 'Historique' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Historique' }));
     await screen.findByRole('table', { name: 'Dernières modifications de données' });
     expect(await violationsAxe(b.container)).toEqual([]);
-    await userEvent.click(screen.getByRole('tab', { name: 'Messages' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Messages' }));
     await screen.findByRole('heading', { name: 'Question sur la bourse' });
     expect(await violationsAxe(b.container)).toEqual([]);
   });

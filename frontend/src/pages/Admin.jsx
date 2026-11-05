@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link, NavLink, Navigate, Outlet, useOutletContext } from 'react-router-dom';
+import Logo from '../components/Logo.jsx';
 import MessageErreur from '../components/MessageErreur.jsx';
 import { get, post, supprimer, ErreurApi } from '../lib/api.js';
 import { useApi } from '../lib/useApi.js';
@@ -469,17 +471,34 @@ function Messages() {
   );
 }
 
-const ONGLETS = [
-  { code: 'changements', libelle: 'À valider' },
-  { code: 'sources', libelle: 'État des sources' },
-  { code: 'historique', libelle: 'Historique' },
-  { code: 'messages', libelle: 'Messages', roleRequis: 'admin' }, // données personnelles : admin seulement
+// Sections de l'administration : chacune a sa propre adresse (/admin/sources…), donc elle est conservée
+// quand on recharge la page ou qu'on revient en arrière.
+const SECTIONS = [
+  { chemin: 'changements', libelle: 'À valider' },
+  { chemin: 'sources', libelle: 'État des sources' },
+  { chemin: 'historique', libelle: 'Historique' },
+  { chemin: 'messages', libelle: 'Messages', roleRequis: 'admin' }, // données personnelles : admin seulement
 ];
 
-export default function Admin() {
+/** Pages des sections (affichées dans la mise en page d'administration). */
+export const PageChangements = () => <Changements />;
+export const PageSources = () => <Sources role={useOutletContext().admin.role} />;
+export const PageHistorique = () => <Historique role={useOutletContext().admin.role} />;
+export function PageMessages() {
+  const { admin } = useOutletContext();
+  // Un « relecteur » qui tape l'adresse à la main est ramené à une page qu'il peut voir.
+  if (admin.role !== 'admin') return <Navigate to="/admin/changements" replace />;
+  return <Messages />;
+}
+export const AccueilAdmin = () => <Navigate to="/admin/changements" replace />;
+
+/**
+ * Mise en page de l'espace administration : ELLE REMPLACE celle du site public (pas de menu public ici).
+ * Un lien « Voir le site » permet d'en sortir volontairement ; la session reste ouverte.
+ */
+export default function AdminLayout() {
   usePageTitre('Espace administration');
   const [admin, setAdmin] = useState(undefined); // undefined = on vérifie ; null = non connecté
-  const [onglet, setOnglet] = useState('changements');
   const [erreur, setErreur] = useState(null);
 
   useEffect(() => {
@@ -513,53 +532,60 @@ export default function Admin() {
   }
 
   return (
-    <>
-      <header className="page-titre">
-        <h1>Espace administration</h1>
-        <p>
-          Validez les changements détectés sur les sources officielles et surveillez l’état des
-          robots.
-        </p>
-      </header>
-      {admin === undefined && (
-        <p className="message" role="status">
-          Vérification de la session…
-        </p>
-      )}
-      {erreur && <MessageErreur erreur={erreur} />}
-      {admin === null && <Connexion surConnecte={setAdmin} />}
-      {admin && (
-        <>
-          <p className="barre-admin">
-            Connecté : <strong>{admin.email}</strong> ({admin.role})
-            <button type="button" className="bouton bouton-secondaire" onClick={deconnecter}>
+    <div className="admin-app">
+      <a className="lien-evitement" href="#contenu-admin">
+        Aller au contenu
+      </a>
+      <header className="admin-barre">
+        <Link to="/admin" className="admin-marque" aria-label="Administration CampusLens">
+          <Logo taille={34} />
+          <span>
+            CampusLens <small>Administration</small>
+          </span>
+        </Link>
+        {admin && (
+          <nav aria-label="Sections de l’administration" className="admin-nav">
+            {SECTIONS.filter((o) => !o.roleRequis || o.roleRequis === admin.role).map((o) => (
+              <NavLink key={o.chemin} to={`/admin/${o.chemin}`}>
+                {o.libelle}
+              </NavLink>
+            ))}
+          </nav>
+        )}
+        <div className="admin-droite">
+          {admin && (
+            <span className="admin-qui">
+              {admin.email} ({admin.role})
+            </span>
+          )}
+          <Link to="/" className="bouton bouton-clair">
+            Voir le site
+          </Link>
+          {admin && (
+            <button type="button" className="bouton bouton-clair" onClick={deconnecter}>
               Se déconnecter
             </button>
+          )}
+        </div>
+      </header>
+
+      <main id="contenu-admin" className="admin-contenu" tabIndex={-1}>
+        <header className="page-titre">
+          <h1>Espace administration</h1>
+          <p>
+            Validez les changements détectés sur les sources officielles et surveillez l’état des
+            robots.
           </p>
-          <div role="tablist" aria-label="Sections de l’administration" className="onglets">
-            {ONGLETS.filter((o) => !o.roleRequis || o.roleRequis === admin.role).map((o) => (
-              <button
-                key={o.code}
-                type="button"
-                role="tab"
-                id={`adm-${o.code}`}
-                aria-selected={onglet === o.code}
-                aria-controls="adm-panneau"
-                tabIndex={onglet === o.code ? 0 : -1}
-                onClick={() => setOnglet(o.code)}
-              >
-                {o.libelle}
-              </button>
-            ))}
-          </div>
-          <div id="adm-panneau" role="tabpanel" aria-labelledby={`adm-${onglet}`}>
-            {onglet === 'changements' && <Changements />}
-            {onglet === 'sources' && <Sources role={admin.role} />}
-            {onglet === 'historique' && <Historique role={admin.role} />}
-            {onglet === 'messages' && admin.role === 'admin' && <Messages />}
-          </div>
-        </>
-      )}
-    </>
+        </header>
+        {admin === undefined && (
+          <p className="message" role="status">
+            Vérification de la session…
+          </p>
+        )}
+        {erreur && <MessageErreur erreur={erreur} />}
+        {admin === null && <Connexion surConnecte={setAdmin} />}
+        {admin && <Outlet context={{ admin }} />}
+      </main>
+    </div>
   );
 }
