@@ -178,6 +178,7 @@ const MODELES_VERIFIES = [
   ['aide', 'aide'],
   ['posteRentree', 'poste_rentree'],
   ['association', 'association'],
+  ['tarifTransport', 'tarif_transport'],
 ];
 
 /** La page source a changé : les données vérifiées qui en dépendent repassent en « vérification en cours ». */

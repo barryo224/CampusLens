@@ -168,7 +168,8 @@ describe('Base de données et seed', () => {
     const cles = (await prisma.source.findMany({ where: { cle: { not: null } } }))
       .map((s) => s.cle)
       .sort();
-    expect(cles).toEqual(
+    // Robots de données + veilles des pages vérifiées à la main (aides, visa) + 25 réseaux de transport.
+    expect(cles.filter((c) => !c.startsWith('veille_transport_'))).toEqual(
       [
         'cvec',
         'droits',
@@ -187,6 +188,7 @@ describe('Base de données et seed', () => {
         'veille_visa',
       ].sort(),
     );
+    expect(cles.filter((c) => c.startsWith('veille_transport_'))).toHaveLength(25);
     const droits = await prisma.source.findUniqueOrThrow({ where: { cle: 'droits' } });
     expect(droits.url).toContain('service-public.fr');
   });

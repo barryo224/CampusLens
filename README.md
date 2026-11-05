@@ -90,6 +90,14 @@ faire disparaître **honnêtement** :
   la source officielle indiquée, comparer, puis « J'ai vérifié ». Les pages officielles correspondantes sont surveillées chaque jour par un robot (« veille ») : la vérification reste valable tant que la page ne change pas ; si elle change, la mention « vérification en cours » revient et une alerte apparaît dans « À valider ». Dans tous les cas, une vérification expire au bout de 180 jours ;
 - réglages propres à CampusLens (seuils, surface d'un studio) : validés d'office, ce sont des choix éditoriaux.
 
+## Abonnements de transport
+
+Les prix sont relevés sur la page officielle de chaque réseau (fichier `backend/src/seed/donnees.js`, une ligne par ville ou
+par réseau). Pour 25 réseaux dont la page affiche lisiblement les prix, un robot relit la page **chaque jour** : si l'un des prix
+que nous avons enregistrés disparaît (le réseau a changé son tarif), les tarifs du réseau repassent en « vérification en cours »
+et une alerte apparaît dans « À valider ». Les autres réseaux (page bloquée aux robots ou chargée par script) se revérifient à
+la main tous les 90 jours. Les prix changent à des dates variables (juillet, août, septembre, janvier…), d'où la veille quotidienne.
+
 ## Espace administration
 
 Page non publique : `/admin`. Créer un compte :

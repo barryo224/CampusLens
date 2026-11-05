@@ -260,6 +260,13 @@ describe('Maintenance et planification', () => {
       expect(par.veille_apl).toBe('aucun_changement'); // première lecture = référence
       expect(journal.log).toHaveBeenCalled();
 
+      // Les pages de transport (simulées ici sans aucun prix) échouent proprement, sans rien casser.
+      expect(par.veille_transport_toulouse).toBe('echec');
+      await prisma.source.updateMany({
+        where: { cle: { startsWith: 'veille_transport_' } },
+        data: { dernierControle: new Date(), statut: 'ok' },
+      });
+
       // Deuxième passage immédiat : plus rien n'est « dû » (aucun appel réseau).
       const f2 = fausseSource({});
       expect(await passageDesRobots(prisma, { fetchImpl: f2, journal })).toEqual([]);

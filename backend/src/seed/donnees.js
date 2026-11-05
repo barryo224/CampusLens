@@ -133,46 +133,52 @@ export const SOURCES = {
     frequenceHeures: 24 * 90,
   },
   transportMarseille: {
+    cle: 'veille_transport_marseille', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs RTM (Marseille)',
     organisme: 'RTM',
     url: 'https://www.rtm.fr/tarifs',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportLyon: {
+    cle: 'veille_transport_lyon', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs TCL (Lyon)',
     organisme: 'TCL / SYTRAL Mobilités',
     url: 'https://www.tcl.fr/tickets-abonnements/titres-et-tarifs/18-25-ans-12-mois',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportToulouse: {
+    cle: 'veille_transport_toulouse', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Tisséo (Toulouse)',
     organisme: 'Tisséo',
     url: 'https://eboutique.tisseo.fr/fr/produits/annuel-niveau-3-etudiants-20-25ans',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportNantes: {
+    cle: 'veille_transport_nantes', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Naolib (Nantes)',
     organisme: 'Naolib',
     url: 'https://naolib.fr/fr/tarifs/transports-en-commun/formule-illimitee-26',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportRennes: {
+    cle: 'veille_transport_rennes', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs STAR (Rennes)',
     organisme: 'STAR',
     url: 'https://www.star.fr/titres-et-tarifs/trouver-mon-tarif/forfait-etudiant-12-mois',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportDijon: {
+    cle: 'veille_transport_dijon', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Divia (Dijon)',
     organisme: 'Divia Mobilités',
     url: 'https://www.divia.fr/titres-et-tarifs/trouver-et-acheter-mon-titre',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportNice: {
     nom: 'Tarifs Lignes d’Azur (Nice)',
@@ -189,11 +195,12 @@ export const SOURCES = {
     frequenceHeures: 24 * 90,
   },
   transportAngers: {
+    cle: 'veille_transport_angers', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs irigo (Angers)',
     organisme: 'irigo',
     url: 'https://www.irigo.fr/tarifs/choisir-son-titre/abonnements',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportTours: {
     nom: 'Tarifs Fil Bleu (Tours)',
@@ -203,18 +210,20 @@ export const SOURCES = {
     frequenceHeures: 24 * 90,
   },
   transportCaen: {
+    cle: 'veille_transport_caen', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Twisto (Caen)',
     organisme: 'Twisto',
     url: 'https://www.twisto.fr/tarifs/tickets-et-abonnements',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportNancy: {
+    cle: 'veille_transport_nancy', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Stan (Nancy)',
     organisme: 'Stan',
     url: 'https://www.reseau-stan.com/titres-tarifs/tous-les-titres',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportMetz: {
     nom: 'Tarifs Le Met’ (Metz)',
@@ -231,25 +240,28 @@ export const SOURCES = {
     frequenceHeures: 24 * 90,
   },
   transportClermont: {
+    cle: 'veille_transport_clermont', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs T2C (Clermont-Ferrand)',
     organisme: 'T2C',
     url: 'https://www.t2c.fr/page/voyageur-regulier',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportLimoges: {
+    cle: 'veille_transport_limoges', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs STCL (Limoges)',
     organisme: 'STCL',
     url: 'https://www.stcl.fr/un-titre-pour-chacun-de-26-ans/',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportBrest: {
+    cle: 'veille_transport_brest', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Bibus (Brest)',
     organisme: 'Bibus',
     url: 'https://www.bibus.fr/bibus-pour-les-etudiants',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportReims: {
     nom: 'Tarifs Citura (Reims)',
@@ -259,32 +271,36 @@ export const SOURCES = {
     frequenceHeures: 24 * 90,
   },
   transportSaintEtienne: {
+    cle: 'veille_transport_saint_etienne', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs STAS (Saint-Étienne)',
     organisme: 'STAS',
     url: 'https://www.reseau-stas.fr/fr/trouver-le-meilleur-tarif/7/Fare/1-an-26-ans/30?Profile=All&Frequency=All',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportPerpignan: {
+    cle: 'veille_transport_perpignan', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Sankéo (Perpignan)',
     organisme: 'Sankéo',
     url: 'https://www.sankeo.com/jeune/',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportPau: {
+    cle: 'veille_transport_pau', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Idelis (Pau)',
     organisme: 'Idelis',
     url: 'https://www.idelis.fr/tarifs/titres-de-transport-et-tarifs/tous-les-titres',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportLeMans: {
+    cle: 'veille_transport_le_mans', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Setram (Le Mans)',
     organisme: 'Setram',
     url: 'https://www.setram.fr/fr/AmEM-Etudiants.html',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportAvignon: {
     nom: 'Tarifs Orizo (Avignon)',
@@ -294,11 +310,12 @@ export const SOURCES = {
     frequenceHeures: 24 * 90,
   },
   transportNimes: {
+    cle: 'veille_transport_nimes', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Tango (Nîmes)',
     organisme: 'Tango',
     url: 'https://www.tangobus.fr/fr/titre-et-tarifs',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportToulon: {
     nom: 'Tarifs Mistral (Toulon)',
@@ -308,25 +325,28 @@ export const SOURCES = {
     frequenceHeures: 24 * 90,
   },
   transportMulhouse: {
+    cle: 'veille_transport_mulhouse', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Soléa (Mulhouse)',
     organisme: 'Soléa',
     url: 'https://www.solea.info/titres-tarifs/abonnements/26-ans',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportAjaccio: {
+    cle: 'veille_transport_ajaccio', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Muvitarra (Ajaccio)',
     organisme: 'Muvitarra / CAPA',
     url: 'https://www.ca-ajaccien.corsica/mobilite-en-pays-ajaccien-nouvelle-tarification-des-transports/',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportChambery: {
+    cle: 'veille_transport_chambery', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Synchro (Chambéry)',
     organisme: 'Synchro',
     url: 'https://synchro.grandchambery.fr/tarifs-et-abonnements-bus/les-abonnements/',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportAnnecy: {
     nom: 'Tarifs Sibra (Annecy)',
@@ -336,11 +356,12 @@ export const SOURCES = {
     frequenceHeures: 24 * 90,
   },
   transportLaRochelle: {
+    cle: 'veille_transport_la_rochelle', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs Yélo (La Rochelle)',
     organisme: 'Yélo',
     url: 'https://yelo.agglo-larochelle.fr/en-route-vers-la-rentree-2026/',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportValence: {
     nom: 'Tarifs Citéa (Valence)',
@@ -364,25 +385,28 @@ export const SOURCES = {
     frequenceHeures: 24 * 90,
   },
   transportQuimper: {
+    cle: 'veille_transport_quimper', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs QUB (Quimper)',
     organisme: 'QUB',
     url: 'https://www.qub.fr/titres-et-tarifs',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportSaintBrieuc: {
+    cle: 'veille_transport_saint_brieuc', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs TUB (Saint-Brieuc)',
     organisme: 'TUB',
     url: 'https://tub.bzh/reseau/actualites/abonnement-etudiant',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportLeHavre: {
+    cle: 'veille_transport_le_havre', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs LiA (Le Havre)',
     organisme: 'LiA',
     url: 'https://www.transports-lia.fr/fr/abonnement-20-ans-et-etudiants',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   transportAix: {
     nom: 'Tarifs Pays d’Aix Mobilité (Aix-en-Provence)',
@@ -392,11 +416,12 @@ export const SOURCES = {
     frequenceHeures: 24 * 90,
   },
   transportGrenoble: {
+    cle: 'veille_transport_grenoble', // veille quotidienne de la page : voir sync/robots/veilleTransport.js
     nom: 'Tarifs M réso (Grenoble)',
     organisme: 'M réso',
     url: 'https://www.reso-m.fr/tarifs',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   locaPass: {
     cle: 'veille_loca_pass', // veille : la vérification reste valable tant que la page ne change pas
