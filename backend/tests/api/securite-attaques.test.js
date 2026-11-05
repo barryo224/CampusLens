@@ -139,7 +139,10 @@ describe('Attaques simulées', () => {
       const ligne = await prisma.sessionAdmin.findFirstOrThrow();
       const donnees = { ...ligne.donnees, connecteLe: Date.now() - 13 * 3_600_000 };
       await prisma.sessionAdmin.update({ where: { sid: ligne.sid }, data: { donnees } });
-      expect((await admin.get('/api/admin/me')).status).toBe(401);
+      const expiree = await admin.get('/api/admin/me');
+      expect(expiree.status).toBe(401);
+      // Le code permet au site d'ouvrir la fenêtre de reconnexion (et non de confondre avec un mauvais mot de passe).
+      expect(expiree.body.code).toBe('session_expiree');
     });
 
     it('en production, le cookie de session est protégé (Secure, HttpOnly, SameSite=Strict, préfixe __Host-)', async () => {

@@ -25,8 +25,17 @@ describe('API : espace admin', () => {
     for (const url of ['/api/admin/me', '/api/admin/changements', '/api/admin/nimporte-quoi']) {
       const res = await request(app).get(url);
       expect(res.status, url).toBe(401);
+      expect(res.body.code, url).toBe('session_expiree');
     }
     expect((await request(app).post('/api/admin/logout')).status).toBe(401);
+  });
+
+  it('un mauvais mot de passe de connexion est un 401 SANS code de session (il ne doit pas ouvrir la fenêtre de reconnexion)', async () => {
+    const res = await request(app)
+      .post('/api/admin/login')
+      .send({ email: 'inconnu@test.fr', motDePasse: 'pas-le-bon-mot-de-passe' });
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBeUndefined();
   });
 
   it('connexion correcte → session ; /me et déconnexion fonctionnent', async () => {

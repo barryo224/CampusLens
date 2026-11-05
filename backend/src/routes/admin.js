@@ -59,17 +59,20 @@ export function verifierNouveauMotDePasse(nouveau, ancien, email) {
 // pour ne pas révéler par le temps de réponse quels e-mails sont des comptes admin.
 const HASH_FACTICE = bcrypt.hashSync('mot-de-passe-factice', 12);
 
+// Réponses « pas de session » : le `code` permet au site de les distinguer d'un simple mauvais mot de passe (autre 401)
+// et d'ouvrir la fenêtre de reconnexion sans perdre ce que l'administrateur était en train de saisir.
+const SESSION_REQUISE = { error: 'Authentification requise.', code: 'session_expiree' };
+const SESSION_EXPIREE = { error: 'Session expirée : reconnectez-vous.', code: 'session_expiree' };
+
 /** Garde : toute route admin exige une session ouverte. */
 export function exigerAdmin(req, res, next) {
   if (!req.session?.adminId) {
-    return res.status(401).json({ error: 'Authentification requise.' });
+    return res.status(401).json(SESSION_REQUISE);
   }
   // Durée absolue : une session volée ou oubliée ne reste pas valable indéfiniment. Une session sans date de connexion
   // (ouverte avant cette règle) est considérée comme expirée.
   if (Date.now() - (req.session.connecteLe ?? 0) > DUREE_ABSOLUE_SESSION_MS) {
-    return req.session.destroy(() =>
-      res.status(401).json({ error: 'Session expirée : reconnectez-vous.' }),
-    );
+    return req.session.destroy(() => res.status(401).json(SESSION_EXPIREE));
   }
   next();
 }
@@ -479,7 +482,7 @@ export function routesAdmin(
   r.post('/mot-de-passe', limiteChangement, async (req, res) => {
     const { ancien, nouveau } = valider(changementSchema, req.body);
     const admin = await prisma.administrateur.findUnique({ where: { id: req.session.adminId } });
-    if (!admin) return res.status(401).json({ error: 'Authentification requise.' });
+    if (!admin) return res.status(401).json(SESSION_REQUISE);
 
     if (!(await bcrypt.compare(ancien, admin.motDePasseHash))) {
       return res.status(401).json({ error: 'Le mot de passe actuel est incorrect.' });
@@ -583,7 +586,7 @@ export function routesAdmin(
 
   r.get('/me', async (req, res) => {
     const admin = await prisma.administrateur.findUnique({ where: { id: req.session.adminId } });
-    if (!admin) return res.status(401).json({ error: 'Authentification requise.' });
+    if (!admin) return res.status(401).json(SESSION_REQUISE);
     res.json({ email: admin.email, role: admin.role, deuxFacteurs: Boolean(admin.totpActifLe) });
   });
 

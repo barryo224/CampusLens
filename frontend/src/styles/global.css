@@ -1099,7 +1099,12 @@ a {
   margin: 0 0 6px;
 }
 .tableau-defilant {
-  overflow-x: auto;
+  overflow: auto;
+  /* Long tableau : il défile DANS son cadre (vertical et horizontal) au lieu d'allonger ou d'élargir la page. */
+  max-height: min(75vh, 720px);
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #6f8d96 #dbe6e9;
   /* Contenant de référence : sans lui, les textes cachés (.sr-only, en position absolue) des colonnes de droite
      s'échappent du cadre défilant et élargissent toute la page (le téléphone dézoome alors tout le site). */
   position: relative;
@@ -1117,6 +1122,10 @@ a {
 }
 .tableau thead th {
   background: var(--fond);
+  position: sticky; /* l'en-tête reste visible pendant le défilement du tableau */
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--bordure);
 }
 
 /* ───── Budget ───── */
@@ -1827,4 +1836,76 @@ a {
 }
 .resultats-villes {
   scroll-margin-top: 76px;
+}
+
+/* ───── Débordements : rien ne dépasse de l'écran (adresses e-mail et liens très longs, listes, tableaux) ───── */
+.contenu,
+.admin-contenu {
+  min-width: 0;
+  overflow-wrap: anywhere; /* un lien ou une adresse sans espace passe à la ligne au lieu d'élargir la page */
+}
+.contenu
+  :where(div, section, article, li, ul, ol, form, p, h1, h2, h3, h4, header, fieldset, details),
+.admin-contenu
+  :where(div, section, article, li, ul, ol, form, p, h1, h2, h3, h4, header, fieldset, details) {
+  min-width: 0; /* un élément de grille ou de liste peut se rétrécir sous son plus long mot */
+}
+.admin-contenu pre,
+.admin-contenu .texte-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.liste-verification,
+.changement {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* Longues listes de l'administration : zone défilante (barre visible) plutôt qu'une page interminable. */
+.liste-verification {
+  max-height: min(60vh, 560px);
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #6f8d96 #dbe6e9;
+}
+@media (max-width: 900px) {
+  .liste-verification li {
+    flex-wrap: wrap;
+  }
+}
+/* Barres de défilement bien visibles (les navigateurs mobiles les masquent sinon). */
+.tableau-defilant::-webkit-scrollbar,
+.liste-verification::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+.tableau-defilant::-webkit-scrollbar-track,
+.liste-verification::-webkit-scrollbar-track {
+  background: #dbe6e9;
+  border-radius: 8px;
+}
+.tableau-defilant::-webkit-scrollbar-thumb,
+.liste-verification::-webkit-scrollbar-thumb {
+  background: #6f8d96;
+  border-radius: 8px;
+  border: 2px solid #dbe6e9;
+}
+
+/* ───── Session expirée : fenêtre de reconnexion par-dessus la page (la page dessous reste intacte) ───── */
+.session-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow-y: auto;
+  background: rgba(8, 28, 36, 0.62);
+}
+.session-fenetre {
+  width: min(460px, 100%);
+}
+.session-fenetre .carte-compte {
+  margin-bottom: 0;
+  box-shadow: 0 24px 60px rgba(8, 28, 36, 0.4);
 }
