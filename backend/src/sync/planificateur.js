@@ -9,7 +9,9 @@ export function sourcesDues(sources, maintenant = new Date()) {
     (s) =>
       s.cle &&
       ROBOTS[s.cle] &&
-      (!s.dernierControle || (maintenant - s.dernierControle) / 3_600_000 >= s.frequenceHeures),
+      (!s.dernierControle ||
+        (maintenant - s.dernierControle) / 3_600_000 >=
+          (ROBOTS[s.cle].veilleVerification ? Math.min(s.frequenceHeures, 24) : s.frequenceHeures)),
   );
 }
 

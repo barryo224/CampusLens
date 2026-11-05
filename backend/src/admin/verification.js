@@ -56,7 +56,8 @@ const TYPES = {
 export const TYPES_VERIFIABLES = Object.keys(TYPES);
 
 /** Une source est « manuelle » si aucun robot ne la met à jour. */
-const estManuelle = (source) => !source?.cle || !ROBOTS[source.cle];
+const estManuelle = (source) =>
+  !source?.cle || !ROBOTS[source.cle] || ROBOTS[source.cle].veilleVerification === true;
 
 const sourcePublique = (s) => ({
   id: s.id,

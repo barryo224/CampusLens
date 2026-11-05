@@ -110,6 +110,17 @@ export async function synchroniser(
       return { statut: 'succes', nbChangements: nb, synchronisationId: passage.id };
     }
 
+    // 4a bis. Veille d'une page vérifiée à la main : la première lecture sert de référence (rien à signaler) ;
+    // ensuite, un changement de la page annule les vérifications des données qui en dépendent.
+    if (robot.veilleVerification && !source.empreinte) {
+      await prisma.source.update({
+        where: { id: source.id },
+        data: { empreinte: nouvelleEmpreinte, dernierControle: now, statut: 'ok' },
+      });
+      await terminer('aucun_changement', { nbChangements: 0 });
+      return { statut: 'aucun_changement', nbChangements: 0, synchronisationId: passage.id };
+    }
+
     // 4b. Niveau 3 : on ne touche à aucune valeur, on prévient l'administrateur.
     const proposition = await robot.proposer({
       source,
@@ -136,9 +147,17 @@ export async function synchroniser(
         },
       });
     }
+    if (robot.veilleVerification) {
+      await annulerVerifications(prisma, source, passage.id, now);
+    }
     await prisma.source.update({
       where: { id: source.id },
-      data: { dernierControle: now, statut: 'ok' },
+      data: {
+        dernierControle: now,
+        statut: 'ok',
+        // Veille : la nouvelle page devient la référence (l'alerte est déjà créée, on ne la répète pas).
+        ...(robot.veilleVerification && { empreinte: nouvelleEmpreinte, dernierChangement: now }),
+      },
     });
     await terminer('en_attente_validation', { nbChangements: dejaSignale ? 0 : 1 });
     return {
@@ -151,5 +170,35 @@ export async function synchroniser(
     await prisma.source.update({ where: { id: source.id }, data: { statut: 'erreur' } });
     await terminer('echec', { messageErreur: messageSur(e) });
     return { statut: 'echec', message: messageSur(e), synchronisationId: passage.id };
+  }
+}
+
+const MODELES_VERIFIES = [
+  ['parametre', 'parametre'],
+  ['aide', 'aide'],
+  ['posteRentree', 'poste_rentree'],
+  ['association', 'association'],
+];
+
+/** La page source a changé : les données vérifiées qui en dépendent repassent en « vérification en cours ». */
+async function annulerVerifications(prisma, source, synchronisationId, now) {
+  for (const [modele, table] of MODELES_VERIFIES) {
+    const lignes = await prisma[modele].findMany({
+      where: { sourceId: source.id, verifieLe: { not: null } },
+    });
+    for (const l of lignes) {
+      await prisma.historiqueValeur.create({
+        data: {
+          tableCible: table,
+          ligneId: String(l.id),
+          champ: 'verifieLe',
+          ancienneValeur: l.verifieLe.toISOString(),
+          nouvelleValeur: null,
+          synchronisationId,
+          changeLe: now,
+        },
+      });
+      await prisma[modele].update({ where: { id: l.id }, data: { verifieLe: null } });
+    }
   }
 }

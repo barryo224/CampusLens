@@ -159,7 +159,22 @@ describe('Base de données et seed', () => {
       .map((s) => s.cle)
       .sort();
     expect(cles).toEqual(
-      ['cvec', 'droits', 'liens_ressources', 'loyers', 'logements_crous', 'openfisca'].sort(),
+      [
+        'cvec',
+        'droits',
+        'liens_ressources',
+        'loyers',
+        'logements_crous',
+        'openfisca',
+        'veille_apl',
+        'veille_visale',
+        'veille_aide_specifique',
+        'veille_fsl',
+        'veille_cout_inscription',
+        'veille_bourse',
+        'veille_loca_pass',
+        'veille_repas_crous',
+      ].sort(),
     );
     const droits = await prisma.source.findUniqueOrThrow({ where: { cle: 'droits' } });
     expect(droits.url).toContain('service-public.fr');

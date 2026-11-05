@@ -164,6 +164,12 @@ describe('Maintenance et planification', () => {
         'actualites/A14725': () => pageHtml(pageDroits()),
         'cvec.etudiant.gouv.fr': () => pageHtml(pageCvec()),
         'api.fr.openfisca.org': () => variableAideLogement(),
+        // pages officielles sous veille (aides vérifiées à la main)
+        'service-public.': () => pageHtml(`<main><p>${'Contenu officiel. '.repeat(40)}</p></main>`),
+        'actionlogement.fr': () =>
+          pageHtml(`<main><p>${'Contenu officiel. '.repeat(40)}</p></main>`),
+        'etudiant.gouv.fr/fr/restauration': () =>
+          pageHtml(`<main><p>${'Contenu officiel. '.repeat(40)}</p></main>`),
         // les pages de Ressources répondent 200
         '': (u) => reponse({ status: 200, url: u }),
       });
@@ -175,6 +181,7 @@ describe('Maintenance et planification', () => {
       expect(par.cvec).toBe('en_attente_validation');
       expect(par.openfisca).toBe('succes');
       expect(par.liens_ressources).toBeDefined();
+      expect(par.veille_apl).toBe('aucun_changement'); // première lecture = référence
       expect(journal.log).toHaveBeenCalled();
 
       // Deuxième passage immédiat : plus rien n'est « dû » (aucun appel réseau).

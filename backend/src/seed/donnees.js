@@ -68,60 +68,68 @@ export const SOURCES = {
   },
   // Pages officielles réellement consultées le 5 novembre 2026 (vérification manuelle, refaite chaque mois).
   bourseServicePublic: {
+    cle: 'veille_bourse', // veille : la vérification reste valable tant que la page ne change pas
     nom: 'Étudiant : bourse sur critères sociaux',
     organisme: 'Service-Public.fr',
     url: 'https://www.service-public.fr/particuliers/vosdroits/F12214',
     type: 'page_web',
-    frequenceHeures: 24 * 30,
+    frequenceHeures: 24 * 3,
   },
   aplServicePublic: {
+    cle: 'veille_apl', // veille : la vérification reste valable tant que la page ne change pas
     nom: 'Aide personnalisée au logement (APL)',
     organisme: 'Service-Public.fr',
     url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F12006',
     type: 'page_web',
-    frequenceHeures: 24 * 30,
+    frequenceHeures: 24 * 3,
   },
   visaleServicePublic: {
+    cle: 'veille_visale', // veille : la vérification reste valable tant que la page ne change pas
     nom: 'Garantie Visale',
     organisme: 'Service-Public.fr',
     url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F32320',
     type: 'page_web',
-    frequenceHeures: 24 * 30,
+    frequenceHeures: 24 * 3,
   },
   aideSpecifiqueServicePublic: {
+    cle: 'veille_aide_specifique', // veille : la vérification reste valable tant que la page ne change pas
     nom: 'Aide spécifique ponctuelle pour étudiant en difficulté',
     organisme: 'Service-Public.fr',
     url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F34073',
     type: 'page_web',
-    frequenceHeures: 24 * 30,
+    frequenceHeures: 24 * 3,
   },
   fslServicePublic: {
+    cle: 'veille_fsl', // veille : la vérification reste valable tant que la page ne change pas
     nom: 'Aide pour le dépôt de garantie (Loca-Pass, FSL)',
     organisme: 'Service-Public.fr',
     url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/N20359',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   coutInscriptionServicePublic: {
+    cle: 'veille_cout_inscription', // veille : la vérification reste valable tant que la page ne change pas
     nom: 'Coût d’une inscription dans l’enseignement supérieur',
     organisme: 'Service-Public.fr',
     url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F2865',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   locaPass: {
+    cle: 'veille_loca_pass', // veille : la vérification reste valable tant que la page ne change pas
     nom: 'Avance Loca-Pass',
     organisme: 'Action Logement',
     url: 'https://www.actionlogement.fr/l-avance-loca-pass',
     type: 'page_web',
-    frequenceHeures: 24 * 30,
+    frequenceHeures: 24 * 3,
   },
   repasCrous: {
+    cle: 'veille_repas_crous', // veille : la vérification reste valable tant que la page ne change pas
     nom: 'Restauration universitaire (repas Crous à 1 €)',
     organisme: 'Étudiant.gouv.fr',
     url: 'https://www.etudiant.gouv.fr/fr/restauration-universitaire',
     type: 'page_web',
-    frequenceHeures: 24 * 30,
+    frequenceHeures: 24 * 3,
   },
   travailEtranger: {
     nom: 'Travailler pendant ses études (étudiants étrangers)',

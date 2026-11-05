@@ -11,10 +11,13 @@ const MIN_CARACTERES = 400; // en dessous : page d'erreur ou page vide, pas un v
  * @param cle           identifiant de la source
  * @param extraire      (texte, { parametres, annees }) → [{ parametreId, valeur }] valeurs repérées
  */
-export function creerVeillePage({ cle, extraire = () => [] }) {
+export function creerVeillePage({ cle, extraire = () => [], veilleVerification = false }) {
   return {
     cle,
     niveau: 3,
+    // Veille d'une page dont les données sont vérifiées À LA MAIN : tant que la page ne change pas, la vérification
+    // reste valable ; si elle change, les données repassent en « vérification en cours » (voir moteur.js).
+    veilleVerification,
 
     async telecharger({ source, fetchImpl }) {
       const reponse = await telecharger(source.url, { fetchImpl });
