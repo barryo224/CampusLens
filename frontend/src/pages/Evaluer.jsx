@@ -80,7 +80,10 @@ export default function Evaluer() {
   const [erreurPdf, setErreurPdf] = useState(null);
 
   const parametres = data?.parametres;
-  const maj = (champ) => (valeur) => setSaisie((s) => ({ ...s, [champ]: valeur }));
+  const maj = (champ) => (valeur) => {
+    setErreurPdf(null); // l'étudiant corrige : le message d'erreur disparaît
+    setSaisie((s) => ({ ...s, [champ]: valeur }));
+  };
 
   // Calcul dans le navigateur : rien n'est envoyé (aucune requête ne part avec ces montants).
   const calcul = useMemo(() => {
@@ -111,6 +114,13 @@ export default function Evaluer() {
 
   async function telecharger() {
     setErreurPdf(null);
+    // Un bilan sans aucun montant n'aurait aucun sens : on le refuse avec un message clair
+    // et on place le curseur dans le premier champ à remplir.
+    if (resultat.totalRevenus === 0 && resultat.totalDepenses === 0) {
+      setErreurPdf('Renseignez au moins un revenu ou une dépense pour générer votre bilan.');
+      document.getElementById('rev-job')?.focus();
+      return;
+    }
     try {
       // Une ligne par organisme (Service-Public.fr n'apparaît qu'une fois).
       const parOrganisme = new Map();

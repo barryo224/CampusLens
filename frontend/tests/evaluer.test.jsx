@@ -264,6 +264,49 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(document.cookie).not.toMatch(/Marie|Confidentielle/);
   });
 
+  it('bilan PDF sans aucun montant : refusé avec un message clair, rien n’est téléchargé, le curseur va au 1er champ', async () => {
+    await ouvrir();
+    const bouton = screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' });
+    await userEvent.click(bouton);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Renseignez au moins un revenu ou une dépense pour générer votre bilan.',
+    );
+    expect(pdf.sauvegardes).toEqual([]);
+    expect(pdf.textes).toEqual([]);
+    expect(screen.getByLabelText('Job étudiant (net)')).toHaveFocus();
+    // Un prénom et un profil ne suffisent pas : il faut au moins un montant.
+    await saisir('Prénom (facultatif)', 'Zoé');
+    await userEvent.click(screen.getByLabelText('Je suis boursier CROUS'));
+    await userEvent.click(bouton);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(pdf.sauvegardes).toEqual([]);
+    // Saisies invalides (texte, négatif, vide) = 0 : toujours refusé.
+    await saisir('Job étudiant (net)', 'abc');
+    await saisir('Loyer charges comprises', '-300');
+    await userEvent.click(bouton);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(pdf.sauvegardes).toEqual([]);
+  });
+
+  it('le message d’erreur disparaît dès que l’étudiant saisit un montant, et le bilan se télécharge alors', async () => {
+    await ouvrir();
+    const bouton = screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' });
+    await userEvent.click(bouton);
+    await screen.findByRole('alert');
+    await saisir('Alimentation', '200'); // une seule dépense suffit
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await userEvent.click(bouton);
+    await vi.waitFor(() => expect(pdf.sauvegardes).toEqual(['bilan-campuslens.pdf']));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('un seul revenu (sans dépense) suffit aussi pour générer le bilan', async () => {
+    await ouvrir();
+    await saisir('Aide de la famille', '250');
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
+    await vi.waitFor(() => expect(pdf.sauvegardes).toHaveLength(1));
+  });
+
   it('API indisponible → message clair, aucun calcul inventé', async () => {
     simulerApi({ '/parametres': new Error('panne') });
     rendreApp('/evaluer');

@@ -97,6 +97,25 @@ test('E2E-04 : formulaire de contact → message envoyé et confirmation affich�
   });
 });
 
+test('bilan PDF sans aucun montant : message d’erreur, aucun téléchargement', async ({ page }) => {
+  await page.goto('/evaluer');
+  let telecharge = false;
+  page.on('download', () => (telecharge = true));
+  await page.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }).click();
+  await expect(page.getByRole('alert')).toContainText(
+    'Renseignez au moins un revenu ou une dépense',
+  );
+  await expect(page.getByLabel('Job étudiant (net)')).toBeFocused();
+  await page.waitForTimeout(800); // laisse le temps à un éventuel téléchargement (qui ne doit pas se produire)
+  expect(telecharge).toBe(false);
+  // Dès qu'on saisit un montant, le message disparaît et le bilan se télécharge.
+  await page.getByLabel('Alimentation').fill('150');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  const telechargement = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }).click();
+  expect((await telechargement).suggestedFilename()).toBe('bilan-campuslens.pdf');
+});
+
 test('le bilan PDF se télécharge (nom par défaut, sans prénom)', async ({ page }) => {
   await page.goto('/evaluer');
   await remplirBudgetDeReference(page);
