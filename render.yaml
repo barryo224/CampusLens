@@ -1,0 +1,30 @@
+# Plan gratuit Render : l'API s'endort après 15 min sans visite (réveil ~30 s) ; le ping UptimeRobot et le cache
+# du CDN Vercel atténuent cela (voir DEPLOIEMENT.md). Les valeurs « sync: false » se saisissent dans le tableau de bord.
+services:
+  - type: web
+    name: campuslens-etudiants-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm ci && npm run db:generate -w backend
+    startCommand: npm run db:deploy -w backend && npm start -w backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: 2
+      - key: SYNC_ENABLED
+        value: true
+      - key: CORS_ORIGIN
+        value: https://campuslens-etudiants.vercel.app
+      - key: SITE_URL
+        value: https://campuslens-etudiants.vercel.app
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CLE_CHIFFREMENT
+        sync: false

@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { EMAIL_CONTACT } from '../lib/config.js';
 
-// ⚠ Il reste une mention entre crochets (l'hébergeur) à COMPLÉTER avant la mise en ligne (voir le README).
 export default function MentionsLegales() {
   usePageTitre('Mentions légales et confidentialité');
   return (
@@ -19,7 +18,13 @@ export default function MentionsLegales() {
           <Link to="/contact">page Contact</Link>.
         </p>
         <h2>Hébergement</h2>
-        <p>[Hébergeur du site et de l’API : à compléter lors de la mise en ligne.]</p>
+        <p>
+          Site : Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis (vercel.com).
+          API : Render Services, Inc., San Francisco, États-Unis (render.com), serveur situé à
+          Francfort (Allemagne). Base de données : Neon, Inc. (neon.tech), région Francfort
+          (Allemagne). Les données personnelles (messages de contact, avis) sont stockées dans
+          l’Union européenne et chiffrées.
+        </p>
 
         <h2>Vos données personnelles</h2>
         <p>
