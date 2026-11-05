@@ -5,6 +5,7 @@ import Icone from '../components/Icone.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { formaterDate } from '../lib/format.js';
+import LienExterne from '../components/LienExterne.jsx';
 
 // Libellés lisibles des catégories connues ; sinon « cout_de_la_vie » → « Cout de la vie » (les catégories viennent des données).
 const LIBELLES_CATEGORIES = {
@@ -150,14 +151,13 @@ export default function Ressources() {
                           {r.statutLien === 'casse' ? (
                             <span className="fraicheur">Indisponible</span>
                           ) : (
-                            <a
+                            <LienExterne
                               href={r.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              annonce={false}
                               aria-label={`Ouvrir : ${r.titre} (nouvel onglet)`}
                             >
                               <Icone nom="fleche" />
-                            </a>
+                            </LienExterne>
                           )}
                         </td>
                       </tr>

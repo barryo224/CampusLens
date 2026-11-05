@@ -272,7 +272,11 @@ describe('Espace administration', () => {
       screen.queryByRole('navigation', { name: 'Navigation principale' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Évaluer ma situation' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Voir le site' })).toHaveAttribute('href', '/');
+    const voirLeSite = screen.getByRole('link', { name: /^Voir le site/ });
+    expect(voirLeSite).toHaveAttribute('href', '/');
+    // S'ouvre dans un NOUVEL onglet : la vue d'administration reste ouverte à côté du site.
+    expect(voirLeSite).toHaveAttribute('target', '_blank');
+    expect(voirLeSite).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByText(/admin@campuslens.test \(admin\)/)).toBeInTheDocument();
   });
 
@@ -357,15 +361,19 @@ describe('Espace administration', () => {
     expect(mock.mock.calls.some(([u]) => u === '/api/admin/login')).toBe(true);
   });
 
-  it('« Voir le site » mène au site public (menu public), et on peut revenir à l’admin sans se reconnecter', async () => {
+  it('« Voir le site » s’ouvre dans un nouvel onglet : l’administration reste affichée, rien n’est perdu', async () => {
     connecte('admin', { '/aides': [] });
     rendreApp('/admin/sources');
-    await userEvent.click(await screen.findByRole('link', { name: 'Voir le site' }));
+    const lien = await screen.findByRole('link', { name: /^Voir le site/ });
+    expect(lien).toHaveAttribute('target', '_blank');
+    expect(lien).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(lien).toHaveAccessibleName('Voir le site (nouvel onglet)');
+    await userEvent.click(lien); // dans un vrai navigateur : nouvel onglet ; ici, la page courante ne change pas
     expect(
-      await screen.findByRole('navigation', { name: 'Navigation principale' }),
+      screen.getByRole('navigation', { name: 'Sections de l’administration' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('navigation', { name: 'Sections de l’administration' }),
+      screen.queryByRole('navigation', { name: 'Navigation principale' }),
     ).not.toBeInTheDocument();
   });
 

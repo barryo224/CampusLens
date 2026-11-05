@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { get, post } from '../lib/api.js';
 import { nombreSaisi } from '../lib/simulation.js';
 import { formaterEuro, formaterDate } from '../lib/format.js';
+import LienExterne from './LienExterne.jsx';
 
 const TYPES_LOGEMENT = [
   { code: 'vide', libelle: 'Location non meublée' },
@@ -171,10 +172,9 @@ export default function EstimationAide({ saisie, resteAVivre }) {
               </p>
               <p className="fraicheur">{etat.resultat.avertissement}</p>
               <p>
-                <a href="https://www.caf.fr" target="_blank" rel="noopener noreferrer">
+                <LienExterne href="https://www.caf.fr">
                   Faire la simulation officielle sur caf.fr
-                  <span className="sr-only"> (nouvel onglet)</span>
-                </a>
+                </LienExterne>
               </p>
             </div>
           )}

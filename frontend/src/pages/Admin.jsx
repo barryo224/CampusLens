@@ -7,6 +7,7 @@ import { get, post, supprimer, ErreurApi } from '../lib/api.js';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { formaterDateHeure, formaterDate } from '../lib/format.js';
+import LienExterne from '../components/LienExterne.jsx';
 
 const LIBELLE_STATUT_SOURCE = { ok: 'À jour', a_verifier: 'À vérifier', erreur: 'En erreur' };
 const CLASSE_STATUT_SOURCE = {
@@ -130,9 +131,7 @@ function CarteChangement({ changement, surTraite }) {
       <h3>{changement.source.nom}</h3>
       <p>{changement.resume}</p>
       <p>
-        <a href={changement.source.url} target="_blank" rel="noopener noreferrer">
-          Ouvrir la page officielle<span className="sr-only"> (nouvel onglet)</span>
-        </a>
+        <LienExterne href={changement.source.url}>Ouvrir la page officielle</LienExterne>
       </p>
       {changement.parametres.length > 0 && (
         <fieldset className="groupe">
@@ -886,11 +885,8 @@ function Verification() {
                 <h3>{source.nom}</h3>
                 <p className="fraicheur">
                   {source.organisme} ·{' '}
-                  <a href={source.url} target="_blank" rel="noopener noreferrer">
-                    Ouvrir la source officielle<span className="sr-only"> (nouvel onglet)</span>
-                  </a>{' '}
-                  · à revérifier tous les {Math.max(1, Math.round(source.frequenceHeures / 24))}{' '}
-                  jours
+                  <LienExterne href={source.url}>Ouvrir la source officielle</LienExterne> · à
+                  revérifier tous les {Math.max(1, Math.round(source.frequenceHeures / 24))} jours
                 </p>
                 <ul className="liste-verification">
                   {items.map((item) => (
@@ -1072,9 +1068,10 @@ export default function AdminLayout() {
               {admin.email} ({admin.role})
             </span>
           )}
-          <Link to="/" className="bouton bouton-clair">
+          {/* Nouvel onglet : on garde la vue de l'administration ouverte à côté du site. */}
+          <LienExterne href="/" className="bouton bouton-clair">
             Voir le site
-          </Link>
+          </LienExterne>
           {admin && (
             <button type="button" className="bouton bouton-clair" onClick={deconnecter}>
               Se déconnecter

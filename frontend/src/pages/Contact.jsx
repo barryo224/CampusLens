@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { post } from '../lib/api.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
@@ -108,7 +109,7 @@ export default function Contact() {
           </div>
           <p className="fraicheur" style={{ marginBottom: 14 }}>
             Votre message est supprimé automatiquement au bout de 6 mois. Voir{' '}
-            <a href="/mentions-legales">Mentions légales et confidentialité</a>.
+            <Link to="/mentions-legales">Mentions légales et confidentialité</Link>.
           </p>
           <button type="submit" className="bouton" disabled={etat.envoi}>
             {etat.envoi ? 'Envoi…' : 'Envoyer'}

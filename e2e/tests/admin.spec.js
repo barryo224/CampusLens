@@ -85,9 +85,17 @@ test.describe('E2E-05 : espace administration', () => {
     await page.reload(); // la section est conservée, on reste connecté
     await expect(page.getByRole('table', { name: 'État des sources de données' })).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toHaveCount(0);
-    await page.getByRole('link', { name: 'Voir le site' }).click();
-    await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toBeVisible();
-    await page.goBack(); // retour à l'admin : toujours connecté, sans ressaisir le mot de passe
+    // « Voir le site » s'ouvre dans un NOUVEL onglet : l'administration reste affichée dans le premier.
+    const [site] = await Promise.all([
+      page.context().waitForEvent('page'),
+      page.getByRole('link', { name: /^Voir le site/ }).click(),
+    ]);
+    await site.waitForLoadState();
+    await expect(site.getByRole('navigation', { name: 'Navigation principale' })).toBeVisible();
+    expect(new URL(site.url()).pathname).toBe('/');
+    await expect(page.getByRole('table', { name: 'État des sources de données' })).toBeVisible(); // admin intacte
+    await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toHaveCount(0);
+    await site.close();
     await expect(page.getByRole('table', { name: 'État des sources de données' })).toBeVisible();
 
     // 7. Déconnexion : l'accès est refusé ensuite.

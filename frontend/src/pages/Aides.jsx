@@ -7,6 +7,7 @@ import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { formaterEuro, formaterEuroCentimes } from '../lib/format.js';
 import { rechercherVilles } from '../lib/rechercheVilles.js';
+import LienExterne from '../components/LienExterne.jsx';
 
 const PROFILS = [
   { code: 'fr_ue', libelle: 'Étudiant français ou UE' },
@@ -78,9 +79,7 @@ function CarteAide({ aide }) {
           <p>{aide.commentDemander}</p>
           {aide.lienDemarche && (
             <p>
-              <a href={aide.lienDemarche} target="_blank" rel="noopener noreferrer">
-                Ouvrir le site officiel<span className="sr-only"> (nouvel onglet)</span>
-              </a>
+              <LienExterne href={aide.lienDemarche}>Ouvrir le site officiel</LienExterne>
             </p>
           )}
           <Fraicheur source={aide.source} verifieLe={aide.verifieLe} aVerifier={aide.aVerifier} />
@@ -150,9 +149,7 @@ function Associations() {
             <p>{a.description}</p>
             {a.lien && (
               <p style={{ marginTop: 10 }}>
-                <a href={a.lien} target="_blank" rel="noopener noreferrer">
-                  Site de l’association<span className="sr-only"> (nouvel onglet)</span>
-                </a>
+                <LienExterne href={a.lien}>Site de l’association</LienExterne>
               </p>
             )}
             <Fraicheur source={a.source} verifieLe={a.verifieLe} aVerifier={a.aVerifier} />
@@ -244,10 +241,7 @@ function Villes() {
                           : v.transport.montantMensuel
                             ? `pass mensuel ; ${formaterEuroCentimes(v.transport.montantAnnuel)} par an en annuel`
                             : `${formaterEuroCentimes(v.transport.montantAnnuel)} par an`}
-                        ) ·{' '}
-                        <a href={v.transport.urlTarifs} target="_blank" rel="noopener noreferrer">
-                          tarifs officiels<span className="sr-only"> (nouvel onglet)</span>
-                        </a>
+                        ) · <LienExterne href={v.transport.urlTarifs}>tarifs officiels</LienExterne>
                       </span>
                       <Fraicheur
                         source={v.transport.source}

@@ -1478,3 +1478,60 @@ a {
   background: #fff;
   width: 100%;
 }
+
+/* ───── À propos ───── */
+.grille-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.liste-sources,
+.liste-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.liste-sources li {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bordure);
+}
+.liste-points li {
+  padding-left: 18px;
+  position: relative;
+}
+.liste-points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primaire);
+}
+.appel-a-propos p {
+  max-width: 70ch;
+}
+@media (max-width: 900px) {
+  .grille-2 {
+    grid-template-columns: 1fr;
+  }
+  .liste-sources li {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+.grille-2 .carte p + p,
+.appel-a-propos p + p {
+  margin-top: 10px;
+}
+.appel-a-propos .resultat-actions {
+  margin-top: 16px;
+}
+.liste-sources {
+  margin-top: 14px;
+}

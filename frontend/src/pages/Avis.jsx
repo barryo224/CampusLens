@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { post } from '../lib/api.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 
@@ -164,8 +164,8 @@ export default function Avis() {
           <p className="fraicheur" style={{ marginBottom: 14 }}>
             Votre avis est <strong>anonyme</strong> : nous n’enregistrons ni votre nom, ni votre
             adresse e-mail, ni votre adresse IP. Il est supprimé automatiquement au bout de 12 mois.
-            Voir <a href="/mentions-legales">Mentions légales et confidentialité</a>. Pour recevoir
-            une réponse, utilisez plutôt la page <a href="/contact">Contact</a>.
+            Voir <Link to="/mentions-legales">Mentions légales et confidentialité</Link>. Pour
+            recevoir une réponse, utilisez plutôt la page <Link to="/contact">Contact</Link>.
           </p>
           <button type="submit" className="bouton" disabled={etat.envoi}>
             {etat.envoi ? 'Envoi…' : 'Envoyer mon avis'}
