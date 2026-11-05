@@ -67,11 +67,28 @@ describe('Synchronisation', () => {
       expect(s.empreinte).toMatch(/^[0-9a-f]{64}$/);
     });
 
+    it('lit le fichier « 1 ou 2 pièces » et regroupe les arrondissements de Paris, Lyon et Marseille', async () => {
+      const f = sourceLoyers({
+        ...LOYERS,
+        75101: ['Paris 1er Arrondissement', '30,00'],
+        75102: ['Paris 2e Arrondissement', '34,00'],
+        69381: ['Lyon 1er Arrondissement', '19,00'],
+        13201: ['Marseille 1er Arrondissement', '15,50'],
+      });
+      await synchroniser(prisma, robotLoyers, { fetchImpl: f });
+      expect(f.appels.some((u) => u.includes('tous-appartements'))).toBe(false);
+      const paris = await ville('Paris');
+      expect(Number(paris.loyerM2Appartement)).toBe(32); // moyenne des deux arrondissements
+      expect(Number(paris.loyerStudioEstime)).toBe(640);
+      expect(Number((await ville('Lyon')).loyerM2Appartement)).toBe(19);
+      expect(Number((await ville('Marseille')).loyerM2Appartement)).toBe(15.5);
+    });
+
     it('prend automatiquement l’édition la plus récente du jeu de données', async () => {
       const f = sourceLoyers(LOYERS, { annee: 2025 });
       await synchroniser(prisma, robotLoyers, { fetchImpl: f });
       expect(f.appels.some((u) => u.includes('ancien-2024'))).toBe(false);
-      expect(f.appels.some((u) => u.includes('pred-app-mef-dhup.csv'))).toBe(true);
+      expect(f.appels.some((u) => u.includes('pred-app12-mef-dhup.csv'))).toBe(true);
     });
 
     it('SYN-01 : source inchangée → aucune écriture sauf dernier_controle ; statut aucun_changement', async () => {
@@ -232,9 +249,17 @@ describe('Synchronisation', () => {
       expect(extraireLoyers('Studio : 480,50 €')).toEqual({ min: 480.5, max: 480.5 });
     });
 
+    it('ignore les montants parasites : « 5,99 € », année 2026, avance, internet ; lit « de 412 à 536 € »', () => {
+      expect(
+        extraireLoyers(
+          'Individuel : de 412 à 536 €\nAvance déductible du premier mois de loyer : 100 €\nAbonnement Internet : 5,99 € par mois\nTarifs applicables à compter du 1er septembre 2026 - révisables €',
+        ),
+      ).toEqual({ min: 412, max: 536 });
+    });
+
     it('recopie les résidences des villes suivies et compte celles de chaque ville', async () => {
       const f = sourceCrous([
-        { ...RESIDENCE_REELLE, zone: 'Angers' },
+        { ...RESIDENCE_REELLE, zone: 'Angers', address: '3 rue Test 49000 Angers' },
         residence(2, 'Cité U Belle-Beille', 'Angers', 'Chambre : 310 €'),
         residence(3, 'Résidence Villejean', 'Rennes'),
         residence(4, 'Résidence hors suivi', 'Village-Perdu', 'Chambre : 200 €'),
@@ -250,6 +275,24 @@ describe('Synchronisation', () => {
         where: { nomResidence: 'Cité U Arc de Meyran' },
       });
       expect([Number(meyran.loyerMin), Number(meyran.loyerMax)]).toEqual([269, 342]);
+    });
+
+    it('retrouve la commune par l’adresse : arrondissements, quartiers, campus, Corse', async () => {
+      const f = sourceCrous([
+        { ...residence(1, 'Rollin', 'Paris 05'), address: '8 rue Rollin 75005 Paris' },
+        { ...residence(2, 'Girard', 'Paris 10'), address: '13 rue Philippe de Girard 75010 Paris' },
+        { ...residence(3, 'Gerland', 'Lyon 7ème'), address: '1 rue X 69007 Lyon' },
+        { ...residence(4, 'Mariani', 'Campus Mariani'), address: 'Campus Mariani 20250 Corte' },
+        {
+          ...residence(5, 'Sans CP', 'Hauts-de-Seine'),
+          address: '3, rue de l’Annapurna - 92 160 Antony',
+        },
+      ]);
+      await synchroniser(prisma, robotLogementsCrous, { fetchImpl: f });
+      expect((await ville('Paris')).nbLogementsCrous).toBe(2);
+      expect((await ville('Lyon')).nbLogementsCrous).toBe(1);
+      expect((await ville('Corte')).nbLogementsCrous).toBe(1);
+      expect((await ville('Antony')).nbLogementsCrous).toBe(1);
     });
 
     it('une résidence retirée de la source disparaît ; la suppression est journalisée', async () => {
@@ -524,7 +567,7 @@ describe('Synchronisation', () => {
           await new Promise((r) => setTimeout(r, 150));
           return (await import('../helpers/sources.js')).recherchePourLoyers();
         },
-        'pred-app-mef-dhup.csv': () => sourceLoyersCsv(),
+        'pred-app12-mef-dhup.csv': () => sourceLoyersCsv(),
       });
       const [a, b] = await Promise.all([
         synchroniser(prisma, robotLoyers, { fetchImpl: lente }),
@@ -600,6 +643,6 @@ describe('Synchronisation', () => {
   });
 
   function sourceLoyersCsv() {
-    return sourceLoyers(LOYERS)('carte-des-loyers/pred-app-mef-dhup.csv');
+    return sourceLoyers(LOYERS)('carte-des-loyers/pred-app12-mef-dhup.csv');
   }
 });

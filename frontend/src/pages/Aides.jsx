@@ -180,7 +180,12 @@ function Villes() {
       </p>
     );
   }
-  const filtrees = data.filter((v) => v.nom.toLowerCase().includes(recherche.trim().toLowerCase()));
+  // Recherche sans tenir compte des accents ni des majuscules (« orleans » trouve « Orléans »).
+  const simplifier = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const terme = simplifier(recherche.trim());
+  const filtrees = data.filter(
+    (v) => simplifier(v.nom).includes(terme) || simplifier(v.region).includes(terme),
+  );
   const nombre = (n) => (n === null || n === undefined ? '—' : formaterEuro(n));
   return (
     <div>
@@ -193,6 +198,11 @@ function Villes() {
           onChange={(e) => setRecherche(e.target.value)}
         />
       </div>
+      <p className="aide-organisme" id="note-villes">
+        {data.length} villes. Le loyer du studio est une estimation : loyer d’annonce au m² pour les
+        appartements de 1 ou 2 pièces (carte des loyers officielle), multiplié par la surface type
+        d’un studio. En résidence CROUS, les tarifs sont ceux publiés par les CROUS.
+      </p>
       <ZoneDefilante libelle="Tableau du comparateur de villes">
         <table className="tableau">
           <caption className="sr-only">Comparateur de villes</caption>
@@ -201,6 +211,7 @@ function Villes() {
               <th scope="col">Ville</th>
               <th scope="col">Loyer d’un studio (estimé)</th>
               <th scope="col">Résidences CROUS dans la commune</th>
+              <th scope="col">Loyer en résidence CROUS</th>
               <th scope="col">Abonnement transport</th>
               <th scope="col">Source</th>
             </tr>
@@ -213,6 +224,11 @@ function Villes() {
                 </th>
                 <td>{nombre(v.loyerStudioEstime)}</td>
                 <td>{v.nbLogementsCrous ?? '—'}</td>
+                <td>
+                  {v.loyerCrousDesA === null || v.loyerCrousDesA === undefined
+                    ? '—'
+                    : `dès ${formaterEuro(v.loyerCrousDesA)}`}
+                </td>
                 <td>{nombre(v.abonnementTransport)}</td>
                 <td>
                   <Fraicheur source={v.source} verifieLe={v.verifieLe} aVerifier={v.aVerifier} />

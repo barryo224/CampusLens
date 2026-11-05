@@ -40,7 +40,7 @@ export function fausseSource(routes) {
 }
 
 // ───── Carte des loyers (data.gouv.fr + CSV en Windows-1252, séparateur « ; », décimale « , ») ─────
-const URL_CSV = 'https://static.data.gouv.fr/resources/carte-des-loyers/pred-app-mef-dhup.csv';
+const URL_CSV = 'https://static.data.gouv.fr/resources/carte-des-loyers/pred-app12-mef-dhup.csv';
 
 export function recherchePourLoyers({ annee = 2025 } = {}) {
   return reponse({
@@ -60,7 +60,17 @@ export function recherchePourLoyers({ annee = 2025 } = {}) {
           title: ` "Carte des loyers" - Indicateurs de loyers d'annonce par commune en ${annee}`,
           resources: [
             { title: 'Note méthodologique', format: 'pdf', url: 'https://exemple.test/note.pdf' },
-            { title: 'Indicateurs de loyer appartement', format: 'csv', url: URL_CSV },
+            // Fichier « tous appartements » : ne doit PAS être choisi (trop bas pour un étudiant).
+            {
+              title: 'Indicateurs de loyer appartement',
+              format: 'csv',
+              url: 'https://exemple.test/tous-appartements.csv',
+            },
+            {
+              title: 'Indicateur de loyer appartement de 1 ou 2 pièces',
+              format: 'csv',
+              url: URL_CSV,
+            },
             {
               title: 'Indicateurs de loyer maison',
               format: 'csv',
@@ -97,7 +107,7 @@ export function csvLoyers(
 export function sourceLoyers(loyers, options) {
   return fausseSource({
     'data.gouv.fr/api/1/datasets': () => recherchePourLoyers(options),
-    'carte-des-loyers/pred-app-mef-dhup.csv': () => csvLoyers(loyers, options),
+    'carte-des-loyers/pred-app12-mef-dhup.csv': () => csvLoyers(loyers, options),
   });
 }
 
@@ -115,7 +125,7 @@ export const residence = (id, title, zone, infos = null) => ({
   id,
   title,
   zone,
-  address: '1 rue Test  75000 Ville',
+  address: `1 rue Test, ${zone}`,
   infos,
 });
 

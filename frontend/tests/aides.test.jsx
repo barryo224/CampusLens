@@ -197,6 +197,41 @@ describe('Mes aides', () => {
     expect(screen.getByRole('rowheader', { name: /Lille/ })).toBeInTheDocument();
   });
 
+  it('comparateur de villes : loyer en résidence CROUS, recherche sans accents, Corse comprise', async () => {
+    const ville = (id, nom, region, extra = {}) => ({
+      id,
+      nom,
+      region,
+      loyerStudioEstime: 400,
+      nbLogementsCrous: 3,
+      loyerCrousDesA: null,
+      abonnementTransport: null,
+      source: { organisme: 'ANIL' },
+      verifieLe: '2026-09-01T00:00:00Z',
+      aVerifier: false,
+      ...extra,
+    });
+    apiAides({
+      '/villes': [
+        ville(1, 'Orléans', 'Centre-Val de Loire', { loyerCrousDesA: 259 }),
+        ville(2, 'Ajaccio', 'Corse'),
+        ville(3, 'Lille', 'Hauts-de-France'),
+      ],
+    });
+    rendreApp('/aides?onglet=villes');
+    const orleans = (await screen.findByRole('rowheader', { name: /Orléans/ })).closest('tr');
+    expect(orleans).toHaveTextContent('dès 259');
+    expect(screen.getByRole('rowheader', { name: /Ajaccio/ }).closest('tr')).not.toHaveTextContent(
+      'dès',
+    );
+    await userEvent.type(screen.getByLabelText('Rechercher une ville'), 'orleans');
+    expect(screen.queryByRole('rowheader', { name: /Lille/ })).not.toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText('Rechercher une ville'));
+    await userEvent.type(screen.getByLabelText('Rechercher une ville'), 'corse');
+    expect(screen.getByRole('rowheader', { name: /Ajaccio/ })).toBeInTheDocument();
+    expect(screen.queryByRole('rowheader', { name: /Orléans/ })).not.toBeInTheDocument();
+  });
+
   it('accessibilité : aucune violation axe-core', async () => {
     apiAides();
     const { container } = rendreApp('/aides');

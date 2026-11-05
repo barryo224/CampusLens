@@ -1,3 +1,5 @@
+import { VILLES_SUIVIES } from './villes.js';
+
 // Données de DÉPART uniquement. Dès qu'un robot de synchronisation (phase 6) ou un
 // administrateur met une valeur à jour, la base fait foi et le seed ne l'écrase jamais.
 // Toutes ces lignes ont verifieLe = null : le site les affichera « à vérifier »
@@ -182,41 +184,14 @@ export const SOURCES = {
   },
 };
 
-// Villes étudiantes suivies (code INSEE vérifié dans la carte des loyers 2025).
-// Paris, Lyon et Marseille n'apparaissent dans ce fichier que par arrondissement : leur loyer
-// reste vide (« — ») tant qu'on ne les agrège pas. Le robot remplit les valeurs ; on ne les écrit jamais ici.
-export const VILLES = [
-  ['75056', 'Paris', 'Île-de-France'],
-  ['69123', 'Lyon', 'Auvergne-Rhône-Alpes'],
-  ['13055', 'Marseille', 'Provence-Alpes-Côte d’Azur'],
-  ['31555', 'Toulouse', 'Occitanie'],
-  ['59350', 'Lille', 'Hauts-de-France'],
-  ['33063', 'Bordeaux', 'Nouvelle-Aquitaine'],
-  ['44109', 'Nantes', 'Pays de la Loire'],
-  ['67482', 'Strasbourg', 'Grand Est'],
-  ['34172', 'Montpellier', 'Occitanie'],
-  ['35238', 'Rennes', 'Bretagne'],
-  ['38185', 'Grenoble', 'Auvergne-Rhône-Alpes'],
-  ['06088', 'Nice', 'Provence-Alpes-Côte d’Azur'],
-  ['21231', 'Dijon', 'Bourgogne-Franche-Comté'],
-  ['49007', 'Angers', 'Pays de la Loire'],
-  ['51454', 'Reims', 'Grand Est'],
-  ['63113', 'Clermont-Ferrand', 'Auvergne-Rhône-Alpes'],
-  ['37261', 'Tours', 'Centre-Val de Loire'],
-  ['14118', 'Caen', 'Normandie'],
-  ['76540', 'Rouen', 'Normandie'],
-  ['54395', 'Nancy', 'Grand Est'],
-  ['57463', 'Metz', 'Grand Est'],
-  ['86194', 'Poitiers', 'Nouvelle-Aquitaine'],
-  ['87085', 'Limoges', 'Nouvelle-Aquitaine'],
-  ['45234', 'Orléans', 'Centre-Val de Loire'],
-  ['25056', 'Besançon', 'Bourgogne-Franche-Comté'],
-  ['80021', 'Amiens', 'Hauts-de-France'],
-  ['29019', 'Brest', 'Bretagne'],
-  ['66136', 'Perpignan', 'Occitanie'],
-  ['64445', 'Pau', 'Nouvelle-Aquitaine'],
-  ['42218', 'Saint-Étienne', 'Auvergne-Rhône-Alpes'],
-].map(([codeInsee, nom, region]) => ({ codeInsee, nom, region }));
+// Villes étudiantes suivies : communes où le CNOUS recense au moins une résidence CROUS, plus des villes
+// universitaires (Corse comprise). Liste générée (scripts/generer-villes.mjs). Le robot remplit les valeurs ;
+// on ne les écrit jamais ici.
+export const VILLES = VILLES_SUIVIES.map(([codeInsee, nom, region]) => ({
+  codeInsee,
+  nom,
+  region,
+}));
 
 // profil: null = valeur nationale (tous les profils). niveau: 'aucun' si indépendant du niveau.
 export const PARAMETRES = [

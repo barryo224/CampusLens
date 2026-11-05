@@ -147,9 +147,12 @@ describe('Base de données et seed', () => {
     expect(Number(apres.valeur)).toBe(111);
   });
 
-  it('crée les 30 villes étudiantes sans aucun loyer (les robots les remplissent)', async () => {
+  it('crée toutes les villes suivies (Corse, Paris, Lyon, Marseille…) sans aucun loyer (les robots les remplissent)', async () => {
     const villes = await prisma.ville.findMany();
-    expect(villes).toHaveLength(30);
+    expect(villes.length).toBeGreaterThanOrEqual(150);
+    for (const nom of ['Paris', 'Lyon', 'Marseille', 'Ajaccio', 'Bastia', 'Corte', 'Rennes'])
+      expect(villes.some((v) => v.nom === nom)).toBe(true);
+    expect(new Set(villes.map((v) => v.codeInsee)).size).toBe(villes.length);
     expect(villes.every((v) => v.loyerM2Appartement === null && v.verifieLe === null)).toBe(true);
     expect(villes.find((v) => v.nom === 'Rennes').codeInsee).toBe('35238');
   });

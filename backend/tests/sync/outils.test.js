@@ -6,6 +6,7 @@ import {
   normaliserNom,
   empreinte,
   arrondir2,
+  communeDeResidence,
 } from '../../src/sync/outils.js';
 import { extraireDroits, extraireCvec } from '../../src/sync/robots/pagesOfficielles.js';
 import { telecharger, ErreurSource } from '../../src/sync/http.js';
@@ -82,5 +83,20 @@ describe('client HTTP des robots', () => {
     await expect(
       telecharger('https://x.test/a', { fetchImpl: fausseSource({ a: new Error('boom') }) }),
     ).rejects.toBeInstanceOf(ErreurSource);
+  });
+});
+
+describe('communeDeResidence', () => {
+  it.each([
+    ['8 rue Rollin 75005 Paris', 'Paris 05', 'paris'],
+    ['3, rue de l’Annapurna - 92 160 Antony', 'Hauts-de-Seine', 'antony'],
+    ['3 rue Notre-Dame de Lourdes, Nancy', 'Nancy', 'nancy'],
+    ['x 69007 Lyon cedex 07', 'Lyon 7ème', 'lyon'],
+    ['', 'Lyon 8ème', 'lyon'],
+    ['', 'Paris 18', 'paris'],
+    ['Campus 74940 Annecy-Le-Vieux', 'Annecy', 'annecy'],
+    ['1 rue 59370 Mons-en-Barœul', 'Nord', 'mons en baroeul'],
+  ])('%s / %s → %s', (address, zone, attendu) => {
+    expect(communeDeResidence({ address, zone })).toBe(attendu);
   });
 });

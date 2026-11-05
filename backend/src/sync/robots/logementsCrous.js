@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { telecharger, ErreurSource } from '../http.js';
-import { normaliserNom } from '../outils.js';
+import { normaliserNom, communeDeResidence, empreinte } from '../outils.js';
 
 const residenceSchema = z.object({
   id: z.number(),
@@ -10,7 +10,8 @@ const residenceSchema = z.object({
   infos: z.string().nullable().optional(),
 });
 
-const LIGNE_A_IGNORER = /d[ée]p[ôo]t|garantie|caution|parking|frais|cotisation|assurance|caf\b/i;
+const LIGNE_A_IGNORER =
+  /d[ée]p[ôo]t|garantie|caution|parking|frais|cotisation|assurance|caf\b|avance|internet|wifi|abonnement|m[ée]nage|nettoyage|p[ée]nalit|dossier|option/i;
 
 /**
  * Extrait la fourchette de loyers mensuels du texte libre d'une résidence.
@@ -21,7 +22,14 @@ export function extraireLoyers(infos) {
   const montants = [];
   for (const ligne of String(infos ?? '').split(/\r?\n/)) {
     if (!ligne.includes('€') || LIGNE_A_IGNORER.test(ligne)) continue;
-    for (const m of ligne.matchAll(/(\d{2,4}(?:[.,]\d{1,2})?)\s*€/g)) {
+    // « de 412 à 536 € » : la borne basse n'est pas suivie du signe € ; « 5,99 € » ne doit pas donner « 99 € ».
+    const nombres = /(?<![\d.,])(\d{2,4}(?:[.,]\d{1,2})?)(?![\d])\s*(?:€|euros?)?/g;
+    const avecEuro = ligne.replace(/\s+/g, ' ');
+    for (const m of avecEuro.matchAll(nombres)) {
+      const apres = avecEuro.slice(m.index + m[0].length);
+      const suiviDEuro = /€|euro/i.test(m[0]);
+      const bornBasse = /^\s*à\s*\d[\d.,\s]*(?:€|euros?)/i.test(apres);
+      if (!suiviDEuro && !bornBasse) continue;
       const n = Number(m[1].replace(',', '.'));
       // Un loyer de chambre étudiante : on écarte les montants manifestement hors sujet.
       if (n >= 80 && n <= 2500) montants.push(n);
@@ -37,6 +45,9 @@ export function extraireLoyers(infos) {
 export const robotLogementsCrous = {
   cle: 'logements_crous',
   niveau: 1,
+  // La version de la lecture fait partie de l'empreinte : si on améliore l'extraction des loyers, les résidences
+  // sont relues même si le fichier du CNOUS n'a pas changé.
+  empreinte: (contenu) => empreinte(`v2|${contenu}`),
 
   async telecharger({ source, fetchImpl }) {
     const url = `${source.url}/exports/json?select=id%2Ctitle%2Czone%2Caddress%2Cinfos&limit=-1`;
@@ -65,7 +76,7 @@ export const robotLogementsCrous = {
     const parVille = new Map(villes.map((v) => [normaliserNom(v.nom), v]));
     const groupes = new Map();
     for (const r of donnees.residences) {
-      const ville = parVille.get(normaliserNom(r.zone));
+      const ville = parVille.get(communeDeResidence(r));
       if (!ville) continue;
       if (!groupes.has(ville.id)) groupes.set(ville.id, []);
       groupes.get(ville.id).push(r);

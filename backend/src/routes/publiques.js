@@ -171,8 +171,23 @@ export function routesPubliques(prisma) {
       include: { source: true },
       orderBy: { nom: 'asc' },
     });
+    // Loyer le plus bas en résidence CROUS, par ville (les résidences sans tarif lisible sont ignorées).
+    const loyersCrous = await prisma.logementCrous.groupBy({
+      by: ['villeId'],
+      _min: { loyerMin: true },
+      where: { loyerMin: { not: null } },
+    });
+    const parVille = new Map(loyersCrous.map((l) => [l.villeId, nombre(l._min.loyerMin)]));
     const maintenant = new Date();
-    res.json(villes.map((v) => avecSource(formaterVille(v), v.source, maintenant)));
+    res.json(
+      villes.map((v) =>
+        avecSource(
+          { ...formaterVille(v), loyerCrousDesA: parVille.get(v.id) ?? null },
+          v.source,
+          maintenant,
+        ),
+      ),
+    );
   });
 
   // GET /api/villes/:id

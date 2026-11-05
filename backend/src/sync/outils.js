@@ -6,6 +6,8 @@ export const empreinte = (contenu) => createHash('sha256').update(contenu).diges
 /** « Île-de-France » → « ile de france » : comparer des noms de villes sans se soucier des accents. */
 export const normaliserNom = (t) =>
   String(t ?? '')
+    .replace(/œ/gi, 'oe')
+    .replace(/æ/gi, 'ae')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
@@ -110,3 +112,43 @@ export const nombreFr = (t) =>
   /^-?\d+([.,]\d+)?$/.test(String(t).trim()) ? Number(String(t).trim().replace(',', '.')) : NaN;
 
 export const arrondir2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+/**
+ * Commune d'une résidence CROUS, sous forme normalisée (« 75005 Paris » → « paris »).
+ * Le champ « zone » du CNOUS est un libellé libre (« Paris 18 », « Toulouse sud-est », « Hauts-de-Seine »,
+ * « Campus Grimaldi »…) : on lit donc d'abord l'adresse (code postal + commune), sinon la fin de l'adresse,
+ * sinon la zone débarrassée de son numéro d'arrondissement.
+ */
+// Libellés du CNOUS qui ne sont pas le nom officiel de la commune (commune fusionnée, abréviation, quartier).
+const ALIAS_COMMUNES = {
+  'annecy le vieux': 'annecy',
+  'campus mariani': 'corte',
+  'st quentin': 'saint quentin',
+  'cannes la bocca': 'cannes',
+  'cergy pontoise': 'cergy',
+  'amiens centre': 'amiens',
+  'amiens cedex 2': 'amiens',
+  brunstatt: 'brunstatt didenheim',
+  'brive 19': 'brive la gaillarde',
+  'valenciennes domaine universitaire': 'valenciennes',
+  '86962 futuroscope chasseneuil': 'chasseneuil du poitou',
+  'futuroscope chasseneuil': 'chasseneuil du poitou',
+  'campus saint martin d heres': 'saint martin d heres',
+};
+const resoudre = (nom) => ALIAS_COMMUNES[nom] ?? nom;
+
+export function communeDeResidence({ address, zone }) {
+  const adresse = String(address ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const avecCodePostal = adresse.match(/\b\d{2}\s?\d{3}\s+([^,\d][^,]*?)\s*(?:cedex.*)?$/i);
+  if (avecCodePostal) return resoudre(normaliserNom(avecCodePostal[1]));
+  const derniere = adresse.split(',').pop()?.trim();
+  if (adresse.includes(',') && derniere && !/\d/.test(derniere))
+    return resoudre(normaliserNom(derniere));
+  return resoudre(
+    normaliserNom(
+      String(zone ?? '').replace(/\s+\d+\s*(?:er|e|ème|eme)?$|\s+\d+\s*(?:er|e|ème|eme)\b.*$/i, ''),
+    ),
+  );
+}

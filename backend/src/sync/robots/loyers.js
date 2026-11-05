@@ -4,7 +4,16 @@ import { lireCsv, nombreFr, arrondir2 } from '../outils.js';
 
 const RECHERCHE =
   'https://www.data.gouv.fr/api/1/datasets/?q=carte+des+loyers+indicateurs+de+loyers+d%27annonce+par+commune&page_size=30';
-const TITRE_RESSOURCE = 'Indicateurs de loyer appartement';
+// Fichier « appartement de 1 ou 2 pièces » : le plus proche de la réalité d'un étudiant (le fichier « tous appartements »
+// est tiré vers le bas par les grands logements, moins chers au m²).
+const TITRE_RESSOURCE = /^Indicateurs? de loyer appartement de 1 ou 2 pi[eè]ces/i;
+
+// Paris, Lyon et Marseille sont publiées par arrondissement : on les regroupe (moyenne pondérée par le nombre d'annonces).
+const ARRONDISSEMENTS = [
+  { commune: '75056', test: /^751(0[1-9]|1\d|20)$/ },
+  { commune: '69123', test: /^6938[1-9]$/ },
+  { commune: '13055', test: /^132(0[1-9]|1[0-6])$/ },
+];
 
 const metaSchema = z.object({
   data: z.array(
@@ -53,11 +62,11 @@ export const robotLoyers = {
       .sort((a, b) => b.annee - a.annee);
     const derniere = editions[0];
     const ressource = derniere?.d.resources.find(
-      (r) => r.title === TITRE_RESSOURCE && /csv/i.test(r.format ?? ''),
+      (r) => TITRE_RESSOURCE.test(r.title ?? '') && /csv/i.test(r.format ?? ''),
     );
     if (!ressource)
       throw new ErreurSource(
-        'Fichier « Indicateurs de loyer appartement » introuvable dans la dernière édition.',
+        'Fichier « loyer appartement de 1 ou 2 pièces » introuvable dans la dernière édition.',
       );
 
     const fichier = await telecharger(ressource.url, { fetchImpl, binaire: true, delaiMs: 90_000 });
@@ -77,7 +86,23 @@ export const robotLoyers = {
       (await prisma.ville.findMany({ select: { codeInsee: true } })).map((v) => v.codeInsee),
     );
     const loyers = {};
+    const arrondissements = new Map(); // commune → { somme, poids }
     for (const l of lignes) {
+      const regroupement = ARRONDISSEMENTS.find((a) => a.test.test(l.INSEE_C));
+      if (regroupement && suivies.has(regroupement.commune)) {
+        const m2 = loyerSchema.safeParse(nombreFr(l.loypredm2));
+        const poids = Number(l.nbobs_com) > 0 ? Number(l.nbobs_com) : 1;
+        if (!m2.success) {
+          throw new ErreurSource(
+            `Loyer invalide pour ${l.LIBGEO} (${l.INSEE_C}) : « ${l.loypredm2} ».`,
+          );
+        }
+        const cumul = arrondissements.get(regroupement.commune) ?? { somme: 0, poids: 0 };
+        cumul.somme += m2.data * poids;
+        cumul.poids += poids;
+        arrondissements.set(regroupement.commune, cumul);
+        continue;
+      }
       if (!suivies.has(l.INSEE_C)) continue;
       const valeur = loyerSchema.safeParse(nombreFr(l.loypredm2));
       if (!valeur.success) {
@@ -87,6 +112,7 @@ export const robotLoyers = {
       }
       loyers[l.INSEE_C] = valeur.data;
     }
+    for (const [commune, { somme, poids }] of arrondissements) loyers[commune] = somme / poids;
     if (Object.keys(loyers).length === 0)
       throw new ErreurSource('Aucune ville suivie trouvée dans le fichier des loyers.');
     return { annee: meta.annee, loyers };
