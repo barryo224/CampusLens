@@ -104,6 +104,6 @@ un robot et d'annuler une modification (rôle `admin`).
 ## À compléter avant la mise en ligne
 
 - `frontend/vercel.json` : remplacer `REMPLACER-PAR-ADRESSE-DE-L-API` par l'adresse du serveur de l'API.
-- Mentions légales : nom du responsable et hébergeur (`frontend/src/pages/MentionsLegales.jsx`).
+- Mentions légales : l'**hébergeur** reste à indiquer (`frontend/src/pages/MentionsLegales.jsx`) ; le responsable de la publication (Ousmane Barry) est renseigné.
 - Source « Indicateur du coût de la rentrée » (FAGE) : indiquer l'adresse du dossier de presse annuel pour activer sa veille.
 - Photo du bandeau d'accueil (illustration provisoire).

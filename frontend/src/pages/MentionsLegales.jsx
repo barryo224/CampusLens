@@ -1,7 +1,7 @@
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { EMAIL_CONTACT } from '../lib/config.js';
 
-// ⚠ Les mentions entre crochets sont à COMPLÉTER par le responsable du site avant la mise en ligne.
+// ⚠ Il reste une mention entre crochets (l'hébergeur) à COMPLÉTER avant la mise en ligne (voir le README).
 export default function MentionsLegales() {
   usePageTitre('Mentions légales et confidentialité');
   return (
@@ -13,12 +13,12 @@ export default function MentionsLegales() {
         <h2>Éditeur du site</h2>
         <p>
           CampusLens est un service gratuit d’information destiné aux étudiants en France.
-          Responsable de la publication : [nom et prénom à compléter]. Contact :{' '}
+          Responsable de la publication : Ousmane Barry. Contact :{' '}
           <a href={`mailto:${EMAIL_CONTACT}`}>{EMAIL_CONTACT}</a> ou la{' '}
           <a href="/contact">page Contact</a>.
         </p>
         <h2>Hébergement</h2>
-        <p>[Hébergeur du site et de l’API à compléter lors de la mise en ligne.]</p>
+        <p>[Hébergeur du site et de l’API : à compléter lors de la mise en ligne.]</p>
 
         <h2>Vos données personnelles</h2>
         <p>

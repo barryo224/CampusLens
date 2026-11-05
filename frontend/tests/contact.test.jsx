@@ -92,6 +92,8 @@ describe('Mentions légales', () => {
     expect(screen.getByText(/Le simulateur ne transmet rien/)).toBeInTheDocument();
     expect(screen.getByText(/6 mois/)).toBeInTheDocument();
     expect(screen.getByText(/CNIL/)).toBeInTheDocument();
+    expect(screen.getByText(/Responsable de la publication : Ousmane Barry/)).toBeInTheDocument();
+    expect(screen.queryByText(/nom et prénom à compléter/)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'ousmanebarrie224@gmail.com' })).toHaveAttribute(
       'href',
       'mailto:ousmanebarrie224@gmail.com',
