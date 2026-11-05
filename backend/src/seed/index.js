@@ -165,13 +165,29 @@ export async function seed(prisma) {
   }
 
   // Abonnements de transport étudiants : créés ou corrigés tant qu'ils ne sont pas vérifiés par un humain.
-  for (const { codeInsee, source: cleSource, montantAnnuel, ...t } of TARIFS_TRANSPORT) {
-    const ville = await prisma.ville.findUnique({ where: { codeInsee } });
-    if (!ville) continue;
-    const donnees = { ...t, montantAnnuel, sourceId: sources[cleSource].id };
-    const existant = await prisma.tarifTransport.findUnique({ where: { villeId: ville.id } });
-    if (!existant) await prisma.tarifTransport.create({ data: { villeId: ville.id, ...donnees } });
-    else if (!existant.verifieLe)
-      await prisma.tarifTransport.update({ where: { id: existant.id }, data: donnees });
+  // Un même réseau dessert plusieurs communes (`aussiPour`, `aussiPourDepartements`) : même tarif pour toutes.
+  for (const {
+    codeInsee,
+    source: cleSource,
+    aussiPour = [],
+    aussiPourDepartements = [],
+    ...t
+  } of TARIFS_TRANSPORT) {
+    const donnees = { ...t, sourceId: sources[cleSource].id };
+    const villes = await prisma.ville.findMany({
+      where: {
+        OR: [
+          { codeInsee: { in: [codeInsee, ...aussiPour] } },
+          ...aussiPourDepartements.map((d) => ({ codeInsee: { startsWith: d } })),
+        ],
+      },
+    });
+    for (const ville of villes) {
+      const existant = await prisma.tarifTransport.findUnique({ where: { villeId: ville.id } });
+      if (!existant)
+        await prisma.tarifTransport.create({ data: { villeId: ville.id, ...donnees } });
+      else if (!existant.verifieLe)
+        await prisma.tarifTransport.update({ where: { id: existant.id }, data: donnees });
+    }
   }
 }

@@ -186,8 +186,12 @@ describe('API publique : lecture', () => {
     expect(parNom('Nancy').transport.montantAnnuel).toBeNull();
     expect(parNom('Toulouse').transport.source).toBeTruthy();
     expect(parNom('Toulouse').transport.aVerifier).toBe(true); // jamais vérifié à la main
-    expect(parNom('Ajaccio').transport).toBeNull(); // pas encore relevé : jamais de chiffre inventé
-    expect(parNom('Ajaccio').abonnementTransport).toBeNull();
+    expect(parNom('Bastia').transport).toBeNull(); // pas encore relevé : jamais de chiffre inventé
+    expect(parNom('Bastia').abonnementTransport).toBeNull();
+    // Même réseau, même tarif : toute l'Île-de-France est couverte par l'Imagine R.
+    expect(parNom('Nanterre').abonnementTransport).toBe(33.44);
+    expect(parNom('Villeurbanne').abonnementTransport).toBe(26); // réseau TCL de Lyon
+    expect(villes.filter((v) => v.transport).length).toBeGreaterThanOrEqual(60);
   });
 
   it('/api/villes/:id : inconnue → 404, invalide → 400', async () => {
