@@ -12,6 +12,22 @@ vi.mock('jspdf', () => ({
     setFontSize() {}
     setTextColor() {}
     addPage() {}
+    // Dessin (bandeau, logo, tableaux, encadré) : sans effet dans le test, seul le texte est vérifié.
+    setFillColor() {}
+    setDrawColor() {}
+    setLineWidth() {}
+    setLineCap() {}
+    rect() {}
+    roundedRect() {}
+    circle() {}
+    line() {}
+    setPage() {}
+    getNumberOfPages() {
+      return 1;
+    }
+    getTextWidth(t) {
+      return String(t).length * 2;
+    }
     splitTextToSize(t) {
       return [t];
     }
@@ -284,7 +300,7 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(contenu).toContain('Tarif d’inscription appliqué : Tarif national');
     expect(contenu).toMatch(/Établi le \d{1,2} \p{L}+ \d{4}/u);
     expect(contenu).toContain('Service-Public.fr');
-    expect(contenu.match(/• Service-Public\.fr/g)).toHaveLength(1); // pas de doublon de source
+    expect(pdf.textes.filter((t) => t.startsWith('Service-Public.fr'))).toHaveLength(1); // pas de doublon de source
     expect(contenu).toContain('rien n’a été envoyé');
   });
 
@@ -313,7 +329,7 @@ describe('Simulateur — Évaluer ma situation', () => {
     await budgetDeReference();
     await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
     await vi.waitFor(() => expect(pdf.sauvegardes).toEqual(['zoe-mon-budget.pdf']));
-    expect(pdf.textes.join('\n')).toContain('Bilan établi pour : Zoé Dupont-Martin');
+    expect(pdf.textes.join('\n')).toMatch(/Bilan établi pour\nZoé Dupont-Martin/);
   });
 
   it('le nom reste dans le navigateur : aucune requête ne le contient, rien n’est mémorisé', async () => {
