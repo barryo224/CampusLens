@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom';
 import Logo from '../components/Logo.jsx';
 import MessageErreur from '../components/MessageErreur.jsx';
@@ -35,22 +35,100 @@ const nomParametre = (p) =>
 
 function Connexion({ surConnecte }) {
   const [champs, setChamps] = useState({ email: '', motDePasse: '' });
+  const [etape, setEtape] = useState('mot-de-passe'); // « code » : la double authentification attend le code
+  const [code, setCode] = useState('');
   const [erreur, setErreur] = useState(null);
   const [envoi, setEnvoi] = useState(false);
+  const champCode = useRef(null);
+
+  useEffect(() => {
+    if (etape === 'code') champCode.current?.focus();
+  }, [etape]);
+
+  const message = (err) =>
+    err.status === 429 ? 'Trop de tentatives. Réessayez dans quelques minutes.' : err.message;
 
   async function envoyer(e) {
     e.preventDefault();
     setEnvoi(true);
     setErreur(null);
     try {
-      surConnecte(await post('/admin/login', champs));
+      const r = await post('/admin/login', champs);
+      if (r.etape === 'code') setEtape('code');
+      else surConnecte(r);
     } catch (err) {
-      setErreur(
-        err.status === 429 ? 'Trop de tentatives. Réessayez dans quelques minutes.' : err.message,
-      );
+      setErreur(message(err));
     } finally {
       setEnvoi(false);
     }
+  }
+
+  async function envoyerCode(e) {
+    e.preventDefault();
+    setEnvoi(true);
+    setErreur(null);
+    try {
+      surConnecte(await post('/admin/login/code', { code }));
+    } catch (err) {
+      setCode('');
+      // Trop d'erreurs ou délai dépassé : le serveur a fermé la tentative, il faut ressaisir le mot de passe.
+      if (/recommencez/i.test(err.message)) {
+        setEtape('mot-de-passe');
+        setChamps((c) => ({ ...c, motDePasse: '' }));
+      }
+      setErreur(message(err));
+    } finally {
+      setEnvoi(false);
+    }
+  }
+
+  if (etape === 'code') {
+    return (
+      <section className="carte" style={{ maxWidth: 440 }} aria-labelledby="titre-code">
+        <h2 id="titre-code" className="titre-carte">
+          Double authentification
+        </h2>
+        <p>
+          Ouvrez votre application d’authentification et saisissez le code à 6 chiffres. Si vous
+          avez perdu votre téléphone, saisissez l’un de vos codes de secours.
+        </p>
+        {erreur && (
+          <p className="message message-erreur" role="alert">
+            {erreur}
+          </p>
+        )}
+        <form onSubmit={envoyerCode}>
+          <div className="champ">
+            <label htmlFor="admin-code">Code de sécurité</label>
+            <input
+              id="admin-code"
+              ref={champCode}
+              type="text"
+              inputMode="text"
+              required
+              autoComplete="one-time-code"
+              maxLength={20}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+          </div>
+          <button type="submit" className="bouton" disabled={envoi || code.trim() === ''}>
+            {envoi ? 'Vérification…' : 'Valider'}
+          </button>{' '}
+          <button
+            type="button"
+            className="bouton bouton-secondaire"
+            onClick={() => {
+              setEtape('mot-de-passe');
+              setCode('');
+              setErreur(null);
+            }}
+          >
+            Retour
+          </button>
+        </form>
+      </section>
+    );
   }
 
   return (
@@ -700,6 +778,228 @@ function AvisVisiteurs({ surChangement }) {
   );
 }
 
+/** Double authentification : activer (clé + code de vérification + codes de secours), désactiver (mot de passe + code). */
+function DoubleAuthentification() {
+  const { rafraichirAdmin } = useOutletContext();
+  const { data, erreur, recharger } = useApi('/admin/2fa', { garderAnciennes: true });
+  const [preparation, setPreparation] = useState(null); // { secret, adresse } pendant l'activation
+  const [code, setCode] = useState('');
+  const [secours, setSecours] = useState(null); // codes de secours, affichés UNE fois
+  const [retrait, setRetrait] = useState(null); // { motDePasse, code } pendant la désactivation
+  const [etat, setEtat] = useState({ envoi: false, erreur: null, message: null });
+
+  if (erreur) return <MessageErreur erreur={erreur} surReessayer={recharger} />;
+  if (!data)
+    return (
+      <p className="message" role="status">
+        Chargement…
+      </p>
+    );
+
+  const echec = (err) => setEtat({ envoi: false, erreur: err.message, message: null });
+
+  async function commencer() {
+    setEtat({ envoi: true, erreur: null, message: null });
+    try {
+      setPreparation(await post('/admin/2fa/preparer', {}));
+      setEtat({ envoi: false, erreur: null, message: null });
+    } catch (err) {
+      echec(err);
+    }
+  }
+
+  async function activer(e) {
+    e.preventDefault();
+    setEtat({ envoi: true, erreur: null, message: null });
+    try {
+      const r = await post('/admin/2fa/activer', { code });
+      setSecours(r.codesSecours);
+      setPreparation(null);
+      setCode('');
+      setEtat({ envoi: false, erreur: null, message: null });
+      recharger();
+      rafraichirAdmin?.();
+    } catch (err) {
+      echec(err);
+    }
+  }
+
+  async function desactiver(e) {
+    e.preventDefault();
+    setEtat({ envoi: true, erreur: null, message: null });
+    try {
+      await post('/admin/2fa/desactiver', retrait);
+      setRetrait(null);
+      setEtat({ envoi: false, erreur: null, message: 'Double authentification désactivée.' });
+      recharger();
+      rafraichirAdmin?.();
+    } catch (err) {
+      echec(err);
+    }
+  }
+
+  return (
+    <section
+      className="carte"
+      style={{ maxWidth: 560, marginBottom: 16 }}
+      aria-labelledby="titre-2fa"
+    >
+      <h2 id="titre-2fa" className="titre-carte">
+        Double authentification
+      </h2>
+      {etat.message && (
+        <p className="message message-succes" role="status">
+          {etat.message}
+        </p>
+      )}
+      {etat.erreur && (
+        <p className="message message-erreur" role="alert">
+          {etat.erreur}
+        </p>
+      )}
+
+      {secours && (
+        <div role="region" aria-label="Codes de secours" className="codes-secours">
+          <p>
+            <strong>La double authentification est activée.</strong> Voici vos codes de secours.
+            Chacun ne sert qu’une fois, si vous perdez votre téléphone.{' '}
+            <strong>
+              Notez-les maintenant dans un endroit sûr : ils ne seront plus jamais affichés.
+            </strong>
+          </p>
+          <ul className="liste-codes">
+            {secours.map((c) => (
+              <li key={c}>
+                <code>{c}</code>
+              </li>
+            ))}
+          </ul>
+          <button type="button" className="bouton" onClick={() => setSecours(null)}>
+            J’ai noté mes codes
+          </button>
+        </div>
+      )}
+
+      {!secours && !data.actif && !preparation && (
+        <>
+          <p>
+            <strong>Non activée.</strong> Avec la double authentification, le mot de passe ne suffit
+            plus : il faut aussi un code à 6 chiffres qui change toutes les 30 secondes, produit par
+            une application sur votre téléphone (Google Authenticator, Microsoft Authenticator,
+            Aegis…). Même si votre mot de passe était volé, personne ne pourrait entrer.
+          </p>
+          <button type="button" className="bouton" onClick={commencer} disabled={etat.envoi}>
+            Activer la double authentification
+          </button>
+        </>
+      )}
+
+      {preparation && (
+        <form onSubmit={activer}>
+          <ol className="etapes-2fa">
+            <li>
+              Dans votre application d’authentification, ajoutez un compte et choisissez « saisir
+              une clé ». Recopiez cette clé :
+              <p>
+                <code className="cle-2fa" data-testid="cle-2fa">
+                  {preparation.secret}
+                </code>
+              </p>
+              <p className="fraicheur">
+                Sur le téléphone qui affiche cette page, vous pouvez aussi{' '}
+                <a href={preparation.adresse}>ouvrir directement l’application</a>.
+              </p>
+            </li>
+            <li>Saisissez ci-dessous le code à 6 chiffres que l’application affiche.</li>
+          </ol>
+          <div className="champ">
+            <label htmlFor="code-activation">Code à 6 chiffres</label>
+            <input
+              id="code-activation"
+              type="text"
+              inputMode="numeric"
+              required
+              autoComplete="one-time-code"
+              maxLength={10}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+          </div>
+          <button type="submit" className="bouton" disabled={etat.envoi || code.trim() === ''}>
+            Vérifier et activer
+          </button>{' '}
+          <button
+            type="button"
+            className="bouton bouton-secondaire"
+            onClick={() => {
+              setPreparation(null);
+              setCode('');
+              setEtat({ envoi: false, erreur: null, message: null });
+            }}
+          >
+            Annuler
+          </button>
+        </form>
+      )}
+
+      {!secours && data.actif && !retrait && (
+        <>
+          <p>
+            <strong>Activée.</strong> Il vous reste {data.codesSecoursRestants} code
+            {data.codesSecoursRestants > 1 ? 's' : ''} de secours.
+          </p>
+          <button
+            type="button"
+            className="bouton bouton-secondaire"
+            onClick={() => setRetrait({ motDePasse: '', code: '' })}
+          >
+            Désactiver…
+          </button>
+        </>
+      )}
+
+      {data.actif && retrait && (
+        <form onSubmit={desactiver}>
+          <p>Pour retirer cette protection, confirmez avec votre mot de passe et un code.</p>
+          <div className="champ">
+            <label htmlFor="retrait-mdp">Mot de passe</label>
+            <input
+              id="retrait-mdp"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={retrait.motDePasse}
+              onChange={(e) => setRetrait({ ...retrait, motDePasse: e.target.value })}
+            />
+          </div>
+          <div className="champ">
+            <label htmlFor="retrait-code">Code à 6 chiffres ou code de secours</label>
+            <input
+              id="retrait-code"
+              type="text"
+              required
+              autoComplete="one-time-code"
+              maxLength={20}
+              value={retrait.code}
+              onChange={(e) => setRetrait({ ...retrait, code: e.target.value })}
+            />
+          </div>
+          <button type="submit" className="bouton" disabled={etat.envoi}>
+            Désactiver la double authentification
+          </button>{' '}
+          <button
+            type="button"
+            className="bouton bouton-secondaire"
+            onClick={() => setRetrait(null)}
+          >
+            Annuler
+          </button>
+        </form>
+      )}
+    </section>
+  );
+}
+
 function MonCompte() {
   const { admin } = useOutletContext();
   const [champs, setChamps] = useState({ ancien: '', nouveau: '', confirmation: '' });
@@ -733,81 +1033,88 @@ function MonCompte() {
   }
 
   return (
-    <section className="carte" style={{ maxWidth: 560 }} aria-labelledby="titre-compte">
-      <h2 id="titre-compte" className="titre-carte">
-        Changer mon mot de passe
-      </h2>
-      <p className="fraicheur" style={{ marginBottom: 14 }}>
-        Compte : <strong>{admin.email}</strong> ({admin.role})
-      </p>
-      {etat.succes && (
-        <p className="message message-succes" role="status">
-          Mot de passe modifié. Vos autres appareils connectés ont été déconnectés par sécurité.
+    <>
+      <DoubleAuthentification />
+      <section className="carte" style={{ maxWidth: 560 }} aria-labelledby="titre-compte">
+        <h2 id="titre-compte" className="titre-carte">
+          Changer mon mot de passe
+        </h2>
+        <p className="fraicheur" style={{ marginBottom: 14 }}>
+          Compte : <strong>{admin.email}</strong> ({admin.role})
         </p>
-      )}
-      {etat.erreur && (
-        <p className="message message-erreur" role="alert">
-          {etat.erreur}
-        </p>
-      )}
-      <form onSubmit={envoyer}>
-        <div className="champ">
-          <label htmlFor="mdp-ancien">Mot de passe actuel</label>
-          <input
-            id="mdp-ancien"
-            type={type}
-            required
-            autoComplete="current-password"
-            value={champs.ancien}
-            onChange={maj('ancien')}
-          />
-        </div>
-        <div className="champ">
-          <label htmlFor="mdp-nouveau">Nouveau mot de passe</label>
-          <input
-            id="mdp-nouveau"
-            type={type}
-            required
-            autoComplete="new-password"
-            aria-describedby="mdp-regles"
-            aria-invalid={trop}
-            value={champs.nouveau}
-            onChange={maj('nouveau')}
-          />
-        </div>
-        <ul id="mdp-regles" className="regles-mdp">
-          <li className={champs.nouveau.length >= 12 ? 'regle-ok' : ''}>
-            12 caractères minimum (une phrase de plusieurs mots convient très bien)
-          </li>
-          <li>Différent de l’ancien, et sans votre adresse e-mail</li>
-        </ul>
-        <div className="champ">
-          <label htmlFor="mdp-confirmation">Confirmer le nouveau mot de passe</label>
-          <input
-            id="mdp-confirmation"
-            type={type}
-            required
-            autoComplete="new-password"
-            aria-invalid={different}
-            aria-describedby={different ? 'mdp-difference' : undefined}
-            value={champs.confirmation}
-            onChange={maj('confirmation')}
-          />
-          {different && (
-            <p id="mdp-difference" className="erreur-champ">
-              Les deux mots de passe ne sont pas identiques.
-            </p>
-          )}
-        </div>
-        <label className="case">
-          <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />
-          Afficher les mots de passe
-        </label>
-        <button type="submit" className="bouton" disabled={!pret}>
-          {etat.envoi ? 'Modification…' : 'Changer mon mot de passe'}
-        </button>
-      </form>
-    </section>
+        {etat.succes && (
+          <p className="message message-succes" role="status">
+            Mot de passe modifié. Vos autres appareils connectés ont été déconnectés par sécurité.
+          </p>
+        )}
+        {etat.erreur && (
+          <p className="message message-erreur" role="alert">
+            {etat.erreur}
+          </p>
+        )}
+        <form onSubmit={envoyer}>
+          <div className="champ">
+            <label htmlFor="mdp-ancien">Mot de passe actuel</label>
+            <input
+              id="mdp-ancien"
+              type={type}
+              required
+              autoComplete="current-password"
+              value={champs.ancien}
+              onChange={maj('ancien')}
+            />
+          </div>
+          <div className="champ">
+            <label htmlFor="mdp-nouveau">Nouveau mot de passe</label>
+            <input
+              id="mdp-nouveau"
+              type={type}
+              required
+              autoComplete="new-password"
+              aria-describedby="mdp-regles"
+              aria-invalid={trop}
+              value={champs.nouveau}
+              onChange={maj('nouveau')}
+            />
+          </div>
+          <ul id="mdp-regles" className="regles-mdp">
+            <li className={champs.nouveau.length >= 12 ? 'regle-ok' : ''}>
+              12 caractères minimum (une phrase de plusieurs mots convient très bien)
+            </li>
+            <li>Différent de l’ancien, et sans votre adresse e-mail</li>
+          </ul>
+          <div className="champ">
+            <label htmlFor="mdp-confirmation">Confirmer le nouveau mot de passe</label>
+            <input
+              id="mdp-confirmation"
+              type={type}
+              required
+              autoComplete="new-password"
+              aria-invalid={different}
+              aria-describedby={different ? 'mdp-difference' : undefined}
+              value={champs.confirmation}
+              onChange={maj('confirmation')}
+            />
+            {different && (
+              <p id="mdp-difference" className="erreur-champ">
+                Les deux mots de passe ne sont pas identiques.
+              </p>
+            )}
+          </div>
+          <label className="case">
+            <input
+              type="checkbox"
+              checked={visible}
+              onChange={(e) => setVisible(e.target.checked)}
+            />
+            Afficher les mots de passe
+          </label>
+          <button type="submit" className="bouton" disabled={!pret}>
+            {etat.envoi ? 'Modification…' : 'Changer mon mot de passe'}
+          </button>
+        </form>
+      </section>
+    </>
   );
 }
 
@@ -1040,6 +1347,13 @@ export default function AdminLayout() {
       });
   }, []);
 
+  // Relit le compte (par exemple après avoir activé la double authentification).
+  const rafraichirAdmin = useCallback(() => {
+    get('/admin/me')
+      .then(setAdmin)
+      .catch(() => {});
+  }, []);
+
   async function deconnecter() {
     try {
       await post('/admin/logout', {});
@@ -1117,7 +1431,15 @@ export default function AdminLayout() {
         )}
         {erreur && <MessageErreur erreur={erreur} />}
         {admin === null && <Connexion surConnecte={setAdmin} />}
-        {admin && <Outlet context={{ admin, rafraichirNonLus }} />}
+        {/* Rappel tant que la double authentification n'est pas activée (sauf sur la page qui la propose). */}
+        {admin && admin.deuxFacteurs === false && pathname !== '/admin/compte' && (
+          <p className="message rappel-2fa" role="note">
+            <strong>Protégez votre compte.</strong> Les messages des visiteurs contiennent des
+            adresses e-mail : activez la double authentification dans{' '}
+            <Link to="/admin/compte">Mon compte</Link>.
+          </p>
+        )}
+        {admin && <Outlet context={{ admin, rafraichirNonLus, rafraichirAdmin }} />}
       </main>
     </div>
   );

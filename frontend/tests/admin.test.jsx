@@ -367,6 +367,42 @@ describe('Espace administration', () => {
     expect(mock.mock.calls.some(([u]) => u === '/api/admin/login')).toBe(true);
   });
 
+  it('double authentification : le mot de passe puis le code de sécurité ouvrent la session', async () => {
+    let connecteMaintenant = false;
+    const mock = simulerApi({
+      '/admin/me': () =>
+        connecteMaintenant
+          ? { email: 'admin@campuslens.test', role: 'admin', deuxFacteurs: true }
+          : { __status: 401 },
+      '/admin/login': { etape: 'code' },
+      '/admin/login/code': () => {
+        connecteMaintenant = true;
+        return { email: 'admin@campuslens.test', role: 'admin', deuxFacteurs: true };
+      },
+      '/admin/sources': SOURCES,
+    });
+    rendreApp('/admin/sources');
+    await userEvent.type(await screen.findByLabelText('Adresse e-mail'), 'admin@campuslens.test');
+    await userEvent.type(screen.getByLabelText('Mot de passe'), 'un-mot-de-passe');
+    await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
+    const code = await screen.findByLabelText('Code de sécurité');
+    expect(code).toHaveFocus();
+    await userEvent.type(code, '123456');
+    await userEvent.click(screen.getByRole('button', { name: /Valider|Se connecter/ }));
+    expect(
+      await screen.findByRole('table', { name: 'État des sources de données' }),
+    ).toBeInTheDocument();
+    expect(mock.mock.calls.some(([u]) => u === '/api/admin/login/code')).toBe(true);
+    expect(document.querySelector('.rappel-2fa')).toBeNull();
+  });
+
+  it('sans double authentification : une bannière invite à la activer', async () => {
+    connecte('admin', { '/admin/me': { email: 'a@b.test', role: 'admin', deuxFacteurs: false } });
+    rendreApp('/admin/sources');
+    await screen.findByRole('table', { name: 'État des sources de données' });
+    expect(document.querySelector('.rappel-2fa')).not.toBeNull();
+  });
+
   it('« Voir le site » s’ouvre dans un nouvel onglet : l’administration reste affichée, rien n’est perdu', async () => {
     connecte('admin', { '/aides': [] });
     rendreApp('/admin/sources');
@@ -1084,6 +1120,7 @@ describe('Espace administration', () => {
     const ouvrirCompte = async (role = 'admin', extra = {}) => {
       const mock = connecte(role, {
         '/admin/mot-de-passe': { message: 'Mot de passe modifié.' },
+        '/admin/2fa': { actif: false },
         ...extra,
       });
       rendreApp('/admin/compte');

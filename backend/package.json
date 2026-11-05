@@ -16,7 +16,9 @@
     "admin:creer": "node --env-file-if-exists=.env src/admin/creer-admin.js",
     "test:coverage": "vitest run --coverage",
     "sync": "node --env-file-if-exists=.env src/sync/cli.js",
-    "notif:tester": "node --env-file-if-exists=.env src/notifications/tester.js"
+    "notif:tester": "node --env-file-if-exists=.env src/notifications/tester.js",
+    "donnees:chiffrer": "node --env-file-if-exists=.env src/admin/chiffrer-existant.js",
+    "admin:desactiver-2fa": "node --env-file-if-exists=.env src/admin/desactiver-2fa.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

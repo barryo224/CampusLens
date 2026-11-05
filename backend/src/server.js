@@ -13,6 +13,8 @@ const serveur = createApp({ prisma }).listen(port, () => {
 // vient de fermer, ce qui produit des erreurs 502 intermittentes sous charge.
 serveur.keepAliveTimeout = 65_000;
 serveur.headersTimeout = 66_000;
+// Protection contre les connexions « lentes » (une requête dont l'envoi traîne indéfiniment bloquerait des ressources).
+serveur.requestTimeout = 70_000;
 
 // Les robots tournent dans ce même processus (node-cron). Désactivés par défaut hors production
 // pour ne pas télécharger des fichiers à chaque rechargement : SYNC_ENABLED=true pour les activer.

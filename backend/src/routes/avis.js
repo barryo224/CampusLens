@@ -37,14 +37,18 @@ const avisSchema = z.object({
  * ANONYME : on ne stocke ni nom, ni e-mail, ni adresse IP (la limite de débit se fait en mémoire).
  * L'avis est supprimé automatiquement après `moisConservation` mois.
  */
-export function routeAvis(prisma, { moisConservation = 12 } = {}) {
+export function routeAvis(prisma, { moisConservation = 12, chiffreur } = {}) {
   const r = Router();
   r.post('/avis', async (req, res) => {
     const { siteWeb, ...donnees } = valider(avisSchema, req.body);
     // Un robot a rempli le champ piège : on répond « succès » sans rien enregistrer.
     if (siteWeb) return res.status(201).json({ message: 'Merci pour votre avis !' });
+    // Le commentaire est libre : le visiteur peut y glisser des renseignements personnels. Il est donc chiffré lui aussi.
+    const protegees = chiffreur
+      ? { ...donnees, commentaire: chiffreur.chiffrer(donnees.commentaire) }
+      : donnees;
     await prisma.avis.create({
-      data: { ...donnees, supprimerApres: ajouterMois(new Date(), moisConservation) },
+      data: { ...protegees, supprimerApres: ajouterMois(new Date(), moisConservation) },
     });
     res.status(201).json({ message: 'Merci pour votre avis !' });
   });

@@ -17,6 +17,10 @@ import {
   TYPES_VERIFIABLES,
 } from '../admin/verification.js';
 import { synchroniser } from '../sync/moteur.js';
+import { nomCookieSession } from '../lib/cookie.js';
+import { chiffreurDepuisEnv } from '../lib/chiffrement.js';
+import { adresseOtpauth, formaterSecret, genererSecret, verifierCode } from '../admin/totp.js';
+import { empreinteCode, genererCodesSecours, trouverCode } from '../admin/codes-secours.js';
 import { ROBOTS } from '../sync/robots/index.js';
 
 const loginSchema = z.object({
@@ -25,6 +29,14 @@ const loginSchema = z.object({
 });
 
 const COUT_BCRYPT = 12;
+/** Après le mot de passe, on dispose de 5 minutes et de 5 essais pour saisir le code de la double authentification. */
+export const DUREE_ATTENTE_CODE_MS = 5 * 60 * 1000;
+export const ESSAIS_CODE_PAR_CONNEXION = 5;
+/** Une session s'éteint au plus tard 12 h après la connexion, même si on l'utilise sans arrêt. */
+export const DUREE_ABSOLUE_SESSION_MS = 12 * 60 * 60 * 1000;
+/** Après 10 échecs de connexion d'affilée, le compte est verrouillé 15 minutes (quelle que soit l'adresse IP de l'attaquant). */
+export const ECHECS_AVANT_VERROU = 10;
+export const DUREE_VERROU_MS = 15 * 60 * 1000;
 
 const changementSchema = z
   .object({ ancien: z.string().min(1).max(200), nouveau: z.string().max(200) })
@@ -52,10 +64,20 @@ export function exigerAdmin(req, res, next) {
   if (!req.session?.adminId) {
     return res.status(401).json({ error: 'Authentification requise.' });
   }
+  // Durée absolue : une session volée ou oubliée ne reste pas valable indéfiniment. Une session sans date de connexion
+  // (ouverte avant cette règle) est considérée comme expirée.
+  if (Date.now() - (req.session.connecteLe ?? 0) > DUREE_ABSOLUE_SESSION_MS) {
+    return req.session.destroy(() =>
+      res.status(401).json({ error: 'Session expirée : reconnectez-vous.' }),
+    );
+  }
   next();
 }
 
-export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
+export function routesAdmin(
+  prisma,
+  { fetchImpl = fetch, production = false, chiffreur = chiffreurDepuisEnv({ production }) } = {},
+) {
   const r = Router();
 
   // 5 échecs de connexion par IP et par 15 min, puis blocage temporaire (429).
@@ -68,22 +90,110 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
     message: { error: 'Trop de tentatives. Réessayez dans quelques minutes.' },
   });
 
+  /** Un échec (mot de passe ou code) : compté sur le COMPTE ; verrouillé 15 min après trop d'échecs d'affilée. */
+  async function enregistrerEchec(admin, maintenant) {
+    const apres = await prisma.administrateur.update({
+      where: { id: admin.id },
+      data: { echecsConsecutifs: { increment: 1 } },
+    });
+    if (apres.echecsConsecutifs >= ECHECS_AVANT_VERROU) {
+      await prisma.administrateur.update({
+        where: { id: admin.id },
+        data: {
+          echecsConsecutifs: 0,
+          verrouilleJusqua: new Date(maintenant.getTime() + DUREE_VERROU_MS),
+        },
+      });
+    }
+  }
+
+  const regenerer = (req) =>
+    new Promise((resolve, reject) =>
+      req.session.regenerate((err) => (err ? reject(err) : resolve())),
+    );
+
+  /** Ouvre vraiment la session de l'administrateur (après le mot de passe, et le code s'il a la double authentification). */
+  async function ouvrirSession(req, res, admin) {
+    await regenerer(req); // nouvelle session à chaque connexion (évite la fixation de session)
+    req.session.adminId = admin.id;
+    req.session.connecteLe = Date.now(); // pour la durée absolue de la session
+    await prisma.administrateur.update({
+      where: { id: admin.id },
+      data: { derniereConnexion: new Date(), echecsConsecutifs: 0, verrouilleJusqua: null },
+    });
+    res.json({ email: admin.email, role: admin.role });
+  }
+
+  const verrouille = (admin, maintenant) =>
+    Boolean(admin?.verrouilleJusqua && admin.verrouilleJusqua > maintenant);
+  const REPONSE_VERROU = { error: 'Trop de tentatives. Réessayez dans quelques minutes.' };
+
   r.post('/login', limiteConnexion, async (req, res) => {
     const { email, motDePasse } = valider(loginSchema, req.body);
     const admin = await prisma.administrateur.findUnique({ where: { email: email.toLowerCase() } });
+    const maintenant = new Date();
+    // Compte verrouillé : on refuse, même avec le bon mot de passe (sinon le verrou ne protégerait de rien).
+    if (verrouille(admin, maintenant)) {
+      await bcrypt.compare(motDePasse, HASH_FACTICE); // même durée de réponse
+      return res.status(429).json(REPONSE_VERROU);
+    }
     const ok = await bcrypt.compare(motDePasse, admin?.motDePasseHash ?? HASH_FACTICE);
-    if (!admin || !ok) return res.status(401).json({ error: 'Identifiants incorrects.' });
+    if (!admin || !ok) {
+      if (admin) await enregistrerEchec(admin, maintenant);
+      return res.status(401).json({ error: 'Identifiants incorrects.' });
+    }
+    // Double authentification activée : le mot de passe ne suffit PAS. La session n'est pas ouverte : elle attend le code.
+    if (admin.totpActifLe) {
+      await regenerer(req);
+      req.session.attente2fa = { adminId: admin.id, le: Date.now(), essais: 0 };
+      return res.json({ etape: 'code' });
+    }
+    await ouvrirSession(req, res, admin);
+  });
 
-    // Nouvelle session à chaque connexion (évite la fixation de session).
-    await new Promise((resolve, reject) =>
-      req.session.regenerate((err) => (err ? reject(err) : resolve())),
-    );
-    req.session.adminId = admin.id;
+  // Deuxième étape : le code à 6 chiffres de l'application d'authentification, ou un code de secours.
+  r.post('/login/code', limiteConnexion, async (req, res) => {
+    const { code } = valider(z.object({ code: z.string().min(1).max(40) }), req.body);
+    const attente = req.session?.attente2fa;
+    if (!attente || Date.now() - attente.le > DUREE_ATTENTE_CODE_MS) {
+      return res.status(401).json({ error: 'Session de connexion expirée : recommencez.' });
+    }
+    const admin = await prisma.administrateur.findUnique({ where: { id: attente.adminId } });
+    const maintenant = new Date();
+    if (!admin?.totpActifLe)
+      return res.status(401).json({ error: 'Session de connexion expirée : recommencez.' });
+    if (verrouille(admin, maintenant)) return res.status(429).json(REPONSE_VERROU);
+
+    const echouer = async () => {
+      await enregistrerEchec(admin, maintenant);
+      attente.essais += 1;
+      // Trop d'erreurs dans cette tentative : on détruit la session, il faut ressaisir le mot de passe.
+      if (attente.essais >= ESSAIS_CODE_PAR_CONNEXION) {
+        return req.session.destroy(() =>
+          res.status(401).json({ error: 'Trop d’erreurs : recommencez la connexion.' }),
+        );
+      }
+      res.status(401).json({ error: 'Code incorrect.' });
+    };
+
+    const secret = chiffreur.dechiffrer(admin.totpSecret);
+    const pas = verifierCode(secret, code, { dernierPas: admin.totpDernierPas });
+    if (pas !== null) {
+      await prisma.administrateur.update({
+        where: { id: admin.id },
+        data: { totpDernierPas: pas },
+      });
+      return ouvrirSession(req, res, admin);
+    }
+    // Pas un code de l'application : peut-être un code de secours (valable une seule fois).
+    const position = trouverCode(admin.codesSecours ?? [], code);
+    if (position === -1) return echouer();
+    const restants = admin.codesSecours.filter((_, i) => i !== position);
     await prisma.administrateur.update({
       where: { id: admin.id },
-      data: { derniereConnexion: new Date() },
+      data: { codesSecours: restants },
     });
-    res.json({ email: admin.email, role: admin.role });
+    await ouvrirSession(req, res, admin);
   });
 
   // Tout ce qui suit exige une session. (Routes de validation : phase 6.)
@@ -92,7 +202,12 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
   r.post('/logout', (req, res, next) => {
     req.session.destroy((err) => {
       if (err) return next(err);
-      res.clearCookie('campuslens.sid');
+      res.clearCookie(nomCookieSession(production), {
+        path: '/',
+        secure: production,
+        httpOnly: true,
+        sameSite: 'strict',
+      });
       res.status(204).end();
     });
   });
@@ -224,7 +339,15 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
   // (après réponse, ou à la demande de la personne : droit à l'effacement).
   r.get('/messages', exigerRoleAdmin, async (_req, res) => {
     const messages = await prisma.messageContact.findMany({ orderBy: { id: 'desc' }, take: 200 });
-    res.json(messages);
+    // Lus et déchiffrés seulement ici, pour l'administrateur connecté.
+    res.json(
+      messages.map((m) => ({
+        ...m,
+        objet: chiffreur.dechiffrer(m.objet),
+        message: chiffreur.dechiffrer(m.message),
+        email: chiffreur.dechiffrer(m.email),
+      })),
+    );
   });
 
   // Pastille « non lus » : le nombre de messages jamais ouverts.
@@ -284,7 +407,7 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
         moyenne: total ? Math.round((somme / total) * 10) / 10 : null,
         repartition,
       },
-      avis,
+      avis: avis.map((a) => ({ ...a, commentaire: chiffreur.dechiffrer(a.commentaire) })),
     });
   });
 
@@ -374,17 +497,94 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
     await prisma.sessionAdmin.deleteMany({
       where: { donnees: { path: ['adminId'], equals: admin.id } },
     });
+    const connecteLe = req.session.connecteLe; // changer son mot de passe ne prolonge pas la durée absolue de la session
     await new Promise((resolve, reject) =>
       req.session.regenerate((err) => (err ? reject(err) : resolve())),
     );
     req.session.adminId = admin.id;
+    req.session.connecteLe = connecteLe;
     res.json({ message: 'Mot de passe modifié.' });
+  });
+
+  // ───── Double authentification (TOTP) : activer, désactiver ─────
+  r.get('/2fa', async (req, res) => {
+    const admin = await prisma.administrateur.findUnique({ where: { id: req.session.adminId } });
+    res.json({
+      actif: Boolean(admin?.totpActifLe),
+      codesSecoursRestants: admin?.totpActifLe ? (admin.codesSecours ?? []).length : 0,
+    });
+  });
+
+  // Étape 1 : une clé secrète est générée (chiffrée en base, pas encore active). L'utilisateur l'enregistre dans son application.
+  r.post('/2fa/preparer', async (req, res) => {
+    const admin = await prisma.administrateur.findUnique({ where: { id: req.session.adminId } });
+    if (admin.totpActifLe)
+      return res.status(409).json({ error: 'La double authentification est déjà activée.' });
+    const secret = genererSecret();
+    await prisma.administrateur.update({
+      where: { id: admin.id },
+      data: { totpSecret: chiffreur.chiffrer(secret), totpDernierPas: null },
+    });
+    res.json({
+      secret: formaterSecret(secret),
+      adresse: adresseOtpauth({ secret, email: admin.email }),
+    });
+  });
+
+  // Étape 2 : le code produit par l'application prouve qu'elle est bien réglée. Les codes de secours sont affichés UNE fois.
+  r.post('/2fa/activer', async (req, res) => {
+    const { code } = valider(z.object({ code: z.string().min(1).max(20) }), req.body);
+    const admin = await prisma.administrateur.findUnique({ where: { id: req.session.adminId } });
+    if (admin.totpActifLe)
+      return res.status(409).json({ error: 'La double authentification est déjà activée.' });
+    if (!admin.totpSecret)
+      return res
+        .status(409)
+        .json({ error: 'Commencez par « Activer la double authentification ».' });
+    const pas = verifierCode(chiffreur.dechiffrer(admin.totpSecret), code);
+    if (pas === null)
+      return res
+        .status(400)
+        .json({ error: 'Code incorrect. Vérifiez l’heure de votre téléphone.' });
+    const codesSecours = genererCodesSecours();
+    await prisma.administrateur.update({
+      where: { id: admin.id },
+      data: {
+        totpActifLe: new Date(),
+        totpDernierPas: pas,
+        codesSecours: codesSecours.map(empreinteCode),
+      },
+    });
+    res.json({ codesSecours });
+  });
+
+  // Désactiver exige le mot de passe ET un code : une session volée ne peut pas retirer la protection.
+  r.post('/2fa/desactiver', limiteConnexion, async (req, res) => {
+    const { motDePasse, code } = valider(
+      z.object({ motDePasse: z.string().min(1).max(200), code: z.string().min(1).max(40) }),
+      req.body,
+    );
+    const admin = await prisma.administrateur.findUnique({ where: { id: req.session.adminId } });
+    if (!admin.totpActifLe)
+      return res.status(409).json({ error: 'La double authentification n’est pas activée.' });
+    if (!(await bcrypt.compare(motDePasse, admin.motDePasseHash)))
+      return res.status(400).json({ error: 'Mot de passe incorrect.' });
+    const pas = verifierCode(chiffreur.dechiffrer(admin.totpSecret), code, {
+      dernierPas: admin.totpDernierPas,
+    });
+    if (pas === null && trouverCode(admin.codesSecours ?? [], code) === -1)
+      return res.status(400).json({ error: 'Code incorrect.' });
+    await prisma.administrateur.update({
+      where: { id: admin.id },
+      data: { totpSecret: null, totpActifLe: null, totpDernierPas: null, codesSecours: [] },
+    });
+    res.json({ message: 'Double authentification désactivée.' });
   });
 
   r.get('/me', async (req, res) => {
     const admin = await prisma.administrateur.findUnique({ where: { id: req.session.adminId } });
     if (!admin) return res.status(401).json({ error: 'Authentification requise.' });
-    res.json({ email: admin.email, role: admin.role });
+    res.json({ email: admin.email, role: admin.role, deuxFacteurs: Boolean(admin.totpActifLe) });
   });
 
   return r;

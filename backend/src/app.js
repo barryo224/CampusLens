@@ -11,6 +11,9 @@ import { routeSimulation } from './routes/simulation.js';
 import { notificateurDepuisEnv } from './notifications/courriel.js';
 import { routesAdmin } from './routes/admin.js';
 import { StockageSessions } from './admin/sessions.js';
+import { METHODES_ECRITURE, origineAutorisee } from './lib/securite.js';
+import { nomCookieSession } from './lib/cookie.js';
+import { chiffreurDepuisEnv } from './lib/chiffrement.js';
 
 /**
  * Construit l'application Express.
@@ -32,10 +35,13 @@ export function createApp({
     (process.env.NODE_ENV === 'production' ? 600 : 5000),
   moisConservationContact = Number(process.env.CONTACT_RETENTION_MONTHS) || 6,
   moisConservationAvis = Number(process.env.AVIS_RETENTION_MONTHS) || 12,
+  chiffreur: chiffreurFourni,
 } = {}) {
   if (production && !sessionSecret) {
     throw new Error('SESSION_SECRET est obligatoire en production.');
   }
+  // Clé de chiffrement des données personnelles : obligatoire en production (le serveur refuse de démarrer sans elle).
+  const chiffreur = chiffreurFourni ?? chiffreurDepuisEnv({ production });
 
   const app = express();
   app.disable('x-powered-by');
@@ -47,6 +53,19 @@ export function createApp({
   app.use(compression());
   // CORS restreint : seule l'adresse du site est autorisée (jamais « * »).
   app.use(cors({ origin: corsOrigin ? corsOrigin.split(',') : false, credentials: true }));
+
+  // Forgerie inter-sites (CSRF) : une ÉCRITURE (POST, DELETE…) envoyée par un navigateur depuis un autre site que le nôtre
+  // est refusée, même si l'administrateur est connecté. Les navigateurs indiquent toujours l'origine des écritures ;
+  // sans en-tête Origin (outil en ligne de commande, tests) la requête passe : elle n'a de toute façon pas de cookie à abuser.
+  const sitesAutorises = corsOrigin ? corsOrigin.split(',').map((o) => o.trim()) : [];
+  app.use('/api', (req, res, next) => {
+    const origine = req.get('origin');
+    if (!METHODES_ECRITURE.has(req.method) || !origine) return next();
+    if (origineAutorisee({ origin: origine, host: req.get('host'), autorisees: sitesAutorises }))
+      return next();
+    res.status(403).json({ error: 'Origine non autorisée.' });
+  });
+
   app.use(express.json({ limit: '10kb' }));
 
   // Santé du service. Sans paramètre : ne touche PAS à la base (un outil de surveillance qui l'appelle toutes les 5 minutes
@@ -108,7 +127,8 @@ export function createApp({
   app.use(
     '/api/admin',
     session({
-      name: 'campuslens.sid',
+      // Préfixe « __Host- » : le navigateur n'accepte ce cookie que sécurisé, sans domaine, valable sur tout le site.
+      name: nomCookieSession(production),
       // En base si on a un vrai client Prisma ; sinon (tests sans base) mémoire.
       ...(prisma?.sessionAdmin ? { store: new StockageSessions(prisma) } : {}),
       secret: sessionSecret ?? 'secret-de-developpement-uniquement',
@@ -122,7 +142,7 @@ export function createApp({
         maxAge: 2 * 60 * 60 * 1000,
       },
     }),
-    routesAdmin(prisma, { fetchImpl }),
+    routesAdmin(prisma, { fetchImpl, production, chiffreur }),
   );
 
   app.use('/api', routesPubliques(prisma));
@@ -130,10 +150,10 @@ export function createApp({
     '/api',
     routeSimulation(prisma, { fetchImpl, maintenant, ...(urlOpenfisca && { urlOpenfisca }) }),
   );
-  app.use('/api', routeAvis(prisma, { moisConservation: moisConservationAvis }));
+  app.use('/api', routeAvis(prisma, { moisConservation: moisConservationAvis, chiffreur }));
   app.use(
     '/api',
-    routeContact(prisma, { moisConservation: moisConservationContact, notificateur }),
+    routeContact(prisma, { moisConservation: moisConservationContact, notificateur, chiffreur }),
   );
 
   // Toute route inconnue (ou méthode non prévue : PUT, DELETE…) : 404 JSON propre.

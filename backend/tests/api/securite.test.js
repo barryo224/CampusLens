@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { prismaTest, viderBase } from '../helpers/db.js';
 import { seed } from '../../src/seed/index.js';
 import { createApp } from '../../src/app.js';
+import { creerChiffreur } from '../../src/lib/chiffrement.js';
 
 describe('Sécurité de l’API (en-têtes, cookies, limites)', () => {
   const prisma = prismaTest();
@@ -73,6 +74,7 @@ describe('Sécurité de l’API (en-têtes, cookies, limites)', () => {
     const prod = createApp({
       prisma,
       production: true,
+      chiffreur: creerChiffreur('une-cle-de-test-assez-longue-123456'),
       sessionSecret: 'un-secret-de-test-assez-long-et-aleatoire',
     });
     const res = await request(prod)

@@ -3,6 +3,10 @@ import request from 'supertest';
 import bcrypt from 'bcrypt';
 import { prismaTest, viderBase } from '../helpers/db.js';
 import { createApp } from '../../src/app.js';
+import { chiffreurDepuisEnv } from '../../src/lib/chiffrement.js';
+
+// Les commentaires sont chiffrés en base : on les relit avec la clé de développement, comme le fait l'administration.
+const clair = (v) => chiffreurDepuisEnv().dechiffrer(v);
 import { purgerAvis, maintenanceQuotidienne } from '../../src/sync/maintenance.js';
 
 const MDP = 'un-mot-de-passe-solide-2026';
@@ -40,9 +44,11 @@ describe('Avis des visiteurs sur le site', () => {
       });
       expect(res.status).toBe(201);
       const avis = await prisma.avis.findFirstOrThrow();
+      // Le commentaire est chiffré en base : on le relit avec la clé.
+      expect(avis.commentaire).toMatch(/^v1\./);
+      expect(clair(avis.commentaire)).toBe('Le simulateur m’a aidé à comprendre mes aides.');
       expect(avis).toMatchObject({
         note: 4,
-        commentaire: 'Le simulateur m’a aidé à comprendre mes aides.',
         page: 'evaluer',
         profil: 'intl',
         luLe: null,
@@ -76,7 +82,7 @@ describe('Avis des visiteurs sur le site', () => {
       expect(sansNote.body.error).toMatch(/note : note de 1 à 5/);
       // Le minimum accepté : quelques mots (les espaces autour sont retirés).
       expect((await envoyer({ note: 4, commentaire: '  Utile ! ' })).status).toBe(201);
-      expect((await prisma.avis.findFirstOrThrow()).commentaire).toBe('Utile !');
+      expect(clair((await prisma.avis.findFirstOrThrow()).commentaire)).toBe('Utile !');
     });
 
     it('refuse une note absente ou hors de 1 à 5, un texte trop long, une page ou un profil inconnus', async () => {
@@ -116,7 +122,7 @@ describe('Avis des visiteurs sur le site', () => {
     it('le texte est stocké tel quel (aucune interprétation) et ne casse pas la base', async () => {
       const piege = `<script>alert(1)</script>'; DROP TABLE avis; --`;
       expect((await envoyer({ note: 3, commentaire: piege })).status).toBe(201);
-      expect((await prisma.avis.findFirstOrThrow()).commentaire).toBe(piege);
+      expect(clair((await prisma.avis.findFirstOrThrow()).commentaire)).toBe(piege);
     });
 
     it('limite : 5 avis par 10 minutes, puis message clair (429)', async () => {

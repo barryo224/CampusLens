@@ -21,7 +21,7 @@ export function ajouterMois(date, mois) {
  * POST /api/contact : la SEULE écriture publique.
  * On ne stocke que ce qui est nécessaire, avec une date de suppression automatique.
  */
-export function routeContact(prisma, { moisConservation = 6, notificateur } = {}) {
+export function routeContact(prisma, { moisConservation = 6, notificateur, chiffreur } = {}) {
   const r = Router();
   r.post('/contact', async (req, res) => {
     const { siteWeb, ...donnees } = valider(contactSchema, req.body);
@@ -30,8 +30,16 @@ export function routeContact(prisma, { moisConservation = 6, notificateur } = {}
     if (siteWeb) return res.status(201).json({ message: 'Message envoyé. Merci !' });
 
     const maintenant = new Date();
+    // Données personnelles (adresse e-mail, message) : chiffrées avant d'être écrites en base.
+    const protegees = chiffreur
+      ? {
+          objet: chiffreur.chiffrer(donnees.objet),
+          message: chiffreur.chiffrer(donnees.message),
+          email: chiffreur.chiffrer(donnees.email),
+        }
+      : donnees;
     await prisma.messageContact.create({
-      data: { ...donnees, supprimerApres: ajouterMois(maintenant, moisConservation) },
+      data: { ...protegees, supprimerApres: ajouterMois(maintenant, moisConservation) },
     });
     notificateur?.prevenir(); // e-mail de prévenance (sans le contenu du message), si configuré
     res.status(201).json({ message: 'Message envoyé. Merci !' });

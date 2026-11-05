@@ -374,6 +374,13 @@ model Administrateur {
   motDePasseHash    String    @map("mot_de_passe_hash") // bcrypt
   role              RoleAdmin @default(relecteur)
   derniereConnexion DateTime? @map("derniere_connexion")
+  echecsConsecutifs Int       @default(0) @map("echecs_consecutifs") // échecs de connexion d'affilée
+  verrouilleJusqua  DateTime? @map("verrouille_jusqua") // compte verrouillé jusqu'à cette date (force brute)
+  // Double authentification (TOTP). Le secret est chiffré ; les codes de secours sont des empreintes (scrypt).
+  totpSecret        String?   @map("totp_secret")
+  totpActifLe       DateTime? @map("totp_actif_le") // vide = double authentification non activée
+  totpDernierPas    Int?      @map("totp_dernier_pas") // anti-rejeu : un code ne sert qu'une fois
+  codesSecours      Json      @default("[]") @map("codes_secours")
 
   changementsTraites ChangementDetecte[]
 

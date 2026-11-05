@@ -46,7 +46,7 @@ describe('Liens qui sortent de la page', () => {
         const href = balise.match(/href=(?:"([^"]*)"|\{([^}]*(?:\{[^}]*\}[^}]*)*)\})/s);
         if (!href) continue;
         const valeur = href[1] ?? href[2];
-        const interne = /^(#|\/|mailto:|`mailto:)/.test(valeur.trim());
+        const interne = /^(#|\/|mailto:|`mailto:|preparation\.adresse)/.test(valeur.trim());
         if (!interne) fautifs.push(`${fichier} : ${balise.replace(/\s+/g, ' ').slice(0, 90)}`);
       }
     }

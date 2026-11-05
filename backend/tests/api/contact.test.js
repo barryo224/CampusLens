@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import { creerContexte, nouvelleApp } from '../helpers/app.js';
 import { ajouterMois } from '../../src/routes/contact.js';
+import { chiffreurDepuisEnv } from '../../src/lib/chiffrement.js';
 
 const valide = {
   objet: 'Une question',
@@ -31,7 +32,8 @@ describe('API : formulaire de contact', () => {
     expect(lignes).toHaveLength(1);
     const attendu = ajouterMois(avant, 6).getTime();
     expect(Math.abs(lignes[0].supprimerApres.getTime() - attendu)).toBeLessThan(10_000);
-    expect(lignes[0].email).toBe(valide.email);
+    expect(lignes[0].email).toMatch(/^v1\./); // chiffré en base
+    expect(chiffreurDepuisEnv().dechiffrer(lignes[0].email)).toBe(valide.email);
   });
 
   it('API-08 : e-mail invalide ou message vide → 400, rien n’est enregistré', async () => {
