@@ -33,23 +33,23 @@ for (const [cle, cp] of parNom) {
   let candidats = [];
   if (cp)
     candidats = await json(
-      `https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom,code,region`,
+      `https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom,code,region,codesPostaux`,
     );
   let c = candidats.find((x) => normaliserNom(x.nom) === cle);
   if (!c) {
     const nom = cle.replace(/ /g, '-');
     const l = await json(
-      `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(cle)}&fields=nom,code,region,population&boost=population&limit=5`,
+      `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(cle)}&fields=nom,code,region,codesPostaux,population&boost=population&limit=5`,
     );
     c = l.find((x) => normaliserNom(x.nom) === cle) ?? null;
     void nom;
   }
-  if (c?.region) retenues.set(c.code, [c.code, c.nom, c.region.nom]);
+  if (c?.region) retenues.set(c.code, [c.code, c.nom, c.region.nom, c.codesPostaux ?? []]);
   else introuvables.push(cle);
 }
 const lignes = [...retenues.values()].sort((a, b) => a[1].localeCompare(b[1], 'fr'));
 const contenu = `// Fichier GÉNÉRÉ par scripts/generer-villes.mjs (communes avec résidence CROUS + villes universitaires, Corse comprise).
-// Codes INSEE et régions : API geo.api.gouv.fr. Ne pas modifier à la main.
+// Format : [code INSEE, nom, région, codes postaux]. Codes INSEE, codes postaux et régions : API geo.api.gouv.fr. Ne pas modifier à la main.
 export const VILLES_SUIVIES = ${JSON.stringify(lignes, null, 2)};
 `;
 await writeFile(new URL('../backend/src/seed/villes.js', import.meta.url), contenu);

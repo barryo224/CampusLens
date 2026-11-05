@@ -132,7 +132,8 @@ export default function Budget() {
             type="button"
             className={`pastille${profil === p.code ? ' pastille-active' : ''}`}
             aria-pressed={profil === p.code}
-            onClick={() => choisir({ profil: p.code })}
+            // Changer de profil efface les choix propres à l'ancien (exonération, situation) : rien ne reste coché en cachette.
+            onClick={() => choisir({ profil: p.code, exonere: null, situation: null })}
           >
             {p.libelle}
           </button>

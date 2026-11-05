@@ -212,6 +212,11 @@ describe('Préparer mon budget', () => {
     // L'exonération n'existe que pour le profil international.
     await userEvent.click(screen.getByRole('button', { name: 'Boursier' }));
     expect(screen.queryByRole('checkbox', { name: /exonéré/ })).not.toBeInTheDocument();
+
+    // Revenir au profil international : l'exonération ne s'est pas cochée toute seule.
+    await userEvent.click(screen.getByRole('button', { name: 'International hors UE' }));
+    expect(screen.getByRole('checkbox', { name: /exonéré/ })).not.toBeChecked();
+    await vi.waitFor(async () => expect(await droits()).toHaveTextContent('3 950'));
   });
 
   it('lien vers le simulateur', async () => {

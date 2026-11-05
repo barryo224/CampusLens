@@ -238,6 +238,10 @@ describe('API publique : lecture', () => {
   it('/api/villes : abonnement de transport = pass mensuel s’il existe, sinon annuel ÷ 12, avec sa source', async () => {
     const villes = (await request(app).get('/api/villes')).body;
     const parNom = (nom) => villes.find((v) => v.nom === nom);
+    // Les codes postaux permettent de retrouver une ville par son code (Paris : tous ses arrondissements).
+    expect(parNom('Rennes').codesPostaux).toContain('35000');
+    expect(parNom('Paris').codesPostaux).toEqual(expect.arrayContaining(['75001', '75020']));
+    expect(parNom('Ajaccio').codesPostaux).toContain('20000'); // Corse comprise
     expect(parNom('Toulouse').abonnementTransport).toBe(16); // pass 31 jours, pas 169,60 ÷ 12
     expect(parNom('Toulouse').transport.montantAnnuel).toBe(169.6);
     expect(parNom('Paris').abonnementTransport).toBe(33.44); // annuel ÷ 12 (pas de pass mensuel)

@@ -197,6 +197,65 @@ describe('Mes aides', () => {
     expect(screen.getByRole('rowheader', { name: /Lille/ })).toBeInTheDocument();
   });
 
+  it('comparateur de villes : la recherche trouve par nom, code postal, département, région ou plusieurs mots', async () => {
+    const ville = (id, nom, region, codeInsee, codesPostaux) => ({
+      id,
+      nom,
+      region,
+      codeInsee,
+      codesPostaux,
+      loyerStudioEstime: null,
+      nbLogementsCrous: null,
+      loyerCrousDesA: null,
+      abonnementTransport: null,
+      source: { organisme: 'ANIL' },
+      verifieLe: null,
+      aVerifier: true,
+    });
+    apiAides({
+      '/villes': [
+        ville(1, 'Rennes', 'Bretagne', '35238', ['35000', '35200', '35700']),
+        ville(2, 'Brest', 'Bretagne', '29019', ['29200']),
+        ville(3, 'Paris', 'Île-de-France', '75056', ['75001', '75002', '75116']),
+        ville(4, 'Ajaccio', 'Corse', '2A004', ['20000', '20090']),
+      ],
+    });
+    rendreApp('/aides?onglet=villes');
+    const champ = await screen.findByLabelText('Rechercher une ville');
+    const visibles = () =>
+      screen
+        .queryAllByRole('rowheader')
+        .map((e) => e.textContent.split(/Bretagne|Corse|Île/)[0].trim());
+    const chercher = async (texte) => {
+      await userEvent.clear(champ);
+      if (texte) await userEvent.type(champ, texte);
+    };
+
+    await chercher('35000'); // code postal exact
+    expect(visibles()).toEqual(['Rennes']);
+    await chercher('352'); // début de code postal
+    expect(visibles()).toEqual(['Rennes']);
+    await chercher('35'); // département
+    expect(visibles()).toEqual(['Rennes']);
+    await chercher('75116'); // code postal « secondaire » de Paris
+    expect(visibles()).toEqual(['Paris']);
+    await chercher('2a'); // département corse (code INSEE 2A…)
+    expect(visibles()).toEqual(['Ajaccio']);
+    await chercher('20090'); // code postal corse
+    expect(visibles()).toEqual(['Ajaccio']);
+    await chercher('bretagne'); // région
+    expect(visibles()).toEqual(['Rennes', 'Brest']);
+    await chercher('ILE de france'); // sans accent ni majuscule, plusieurs mots
+    expect(visibles()).toEqual(['Paris']);
+    await chercher('rennes 35'); // plusieurs mots : tous doivent correspondre
+    expect(visibles()).toEqual(['Rennes']);
+    await chercher('rennes 29');
+    expect(visibles()).toEqual([]);
+    expect(screen.getByRole('status')).toHaveTextContent('Aucune ville ne correspond');
+    await chercher('');
+    expect(visibles()).toHaveLength(4);
+  });
+
   it('comparateur de villes : loyer en résidence CROUS, recherche sans accents, Corse comprise', async () => {
     const ville = (id, nom, region, extra = {}) => ({
       id,

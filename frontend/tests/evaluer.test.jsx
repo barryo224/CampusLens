@@ -120,11 +120,50 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.getByRole('img', { name: /-352,58/ })).toBeInTheDocument(); // SIM-02
     await userEvent.click(screen.getByLabelText(/exonéré des droits différenciés/));
     expect(screen.getByRole('img', { name: /-125,58/ })).toBeInTheDocument(); // SIM-03
-    await userEvent.click(screen.getByLabelText(/exonéré/)); // on décoche
     await userEvent.click(screen.getByLabelText('Je suis boursier CROUS'));
     expect(screen.getByRole('img', { name: /-102,00/ })).toBeInTheDocument(); // SIM-14
     await userEvent.click(screen.getByRole('radio', { name: 'Master' }));
     expect(screen.getByRole('img', { name: /-102,00/ })).toBeInTheDocument();
+  });
+
+  it('boursier et exonéré s’excluent (choix unique) ; être boursier gomme la différence étranger / français', async () => {
+    await ouvrir();
+    await budgetDeReference();
+    await userEvent.click(screen.getByRole('radio', { name: /international hors UE/ }));
+    const choix = (nom) => screen.getByRole('radio', { name: nom });
+
+    await userEvent.click(choix(/exonéré des droits différenciés/));
+    expect(choix(/exonéré des droits différenciés/)).toBeChecked();
+    await userEvent.click(choix('Je suis boursier CROUS'));
+    expect(choix('Je suis boursier CROUS')).toBeChecked();
+    expect(choix(/exonéré des droits différenciés/)).not.toBeChecked(); // l'un remplace l'autre
+    expect(screen.getByRole('img', { name: /-102,00/ })).toBeInTheDocument(); // même résultat qu'un boursier français
+    expect(screen.getByText(/Si vous perdez la bourse/)).toBeInTheDocument();
+
+    // Plus de bourse : l'étudiant redevient « international », droits différenciés.
+    await userEvent.click(choix('Ni boursier ni exonéré'));
+    expect(screen.getByRole('img', { name: /-352,58/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Si vous perdez la bourse/)).not.toBeInTheDocument();
+  });
+
+  it('repasser à « français » efface l’exonération : rien ne reste coché en cachette', async () => {
+    await ouvrir();
+    await budgetDeReference();
+    await userEvent.click(screen.getByRole('radio', { name: /international hors UE/ }));
+    await userEvent.click(screen.getByRole('radio', { name: /exonéré des droits différenciés/ }));
+    expect(screen.getByRole('img', { name: /-125,58/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', { name: /français ou UE/ }));
+    expect(screen.getByTestId('explication-tarif')).toHaveTextContent('Tarif national');
+    expect(screen.queryByRole('radio', { name: /exonéré/ })).not.toBeInTheDocument();
+
+    // De retour en « international » : la case n'est plus cochée.
+    await userEvent.click(screen.getByRole('radio', { name: /international hors UE/ }));
+    expect(
+      screen.getByRole('radio', { name: /exonéré des droits différenciés/ }),
+    ).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Ni boursier ni exonéré' })).toBeChecked();
+    expect(screen.getByRole('img', { name: /-352,58/ })).toBeInTheDocument();
   });
 
   it('l’explication sous le résultat dit QUEL tarif est appliqué, dans les 4 situations', async () => {

@@ -6,6 +6,7 @@ import Fraicheur from '../components/Fraicheur.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { formaterEuro, formaterEuroCentimes } from '../lib/format.js';
+import { rechercherVilles } from '../lib/rechercheVilles.js';
 
 const PROFILS = [
   { code: 'fr_ue', libelle: 'Étudiant français ou UE' },
@@ -180,12 +181,7 @@ function Villes() {
       </p>
     );
   }
-  // Recherche sans tenir compte des accents ni des majuscules (« orleans » trouve « Orléans »).
-  const simplifier = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  const terme = simplifier(recherche.trim());
-  const filtrees = data.filter(
-    (v) => simplifier(v.nom).includes(terme) || simplifier(v.region).includes(terme),
-  );
+  const filtrees = rechercherVilles(data, recherche);
   const nombre = (n) => (n === null || n === undefined ? '—' : formaterEuro(n));
   return (
     <div>
@@ -194,9 +190,14 @@ function Villes() {
         <input
           id="recherche-ville"
           type="search"
+          aria-describedby="aide-recherche-ville"
+          placeholder="Nom, code postal, département ou région"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
         />
+        <p className="fraicheur" id="aide-recherche-ville">
+          Exemples : « rennes », « 35000 », « 35 », « corse ».
+        </p>
       </div>
       <p className="aide-organisme" id="note-villes">
         {data.length} villes. Le loyer du studio est une estimation : loyer d’annonce au m² pour les
@@ -266,6 +267,12 @@ function Villes() {
           </tbody>
         </table>
       </ZoneDefilante>
+      {filtrees.length === 0 && (
+        <p className="message" role="status">
+          Aucune ville ne correspond à « {recherche.trim()} ». Essayez le nom d’une ville, un code
+          postal, un département ou une région.
+        </p>
+      )}
     </div>
   );
 }

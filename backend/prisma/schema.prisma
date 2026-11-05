@@ -217,6 +217,7 @@ model Ville {
   codeInsee           String    @unique @map("code_insee")
   nom                 String
   region              String
+  codesPostaux        String[]  @default([]) @map("codes_postaux")
   loyerM2Appartement  Decimal?  @map("loyer_m2_appartement") @db.Decimal(8, 2) // carte des loyers, €/m²
   loyerStudioEstime   Decimal?  @map("loyer_studio_estime") @db.Decimal(8, 2) // loyer au m² × surface type
   nbLogementsCrous    Int?      @map("nb_logements_crous")

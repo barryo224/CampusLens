@@ -171,7 +171,8 @@ export default function Evaluer() {
                     valeur="fr_ue"
                     courant={profil.statut}
                     libelle="Étudiant français ou UE"
-                    surChoix={(v) => setProfil((p) => ({ ...p, statut: v }))}
+                    // « Exonéré des droits différenciés » n'existe que pour un étudiant étranger : on l'efface.
+                    surChoix={(v) => setProfil((p) => ({ ...p, statut: v, exonere: false }))}
                   />
                   <Choix
                     nom="statut"
@@ -224,24 +225,62 @@ export default function Evaluer() {
                   Votre nom n’est pas envoyé : il apparaît seulement sur le PDF que vous
                   téléchargez.
                 </p>
-                <label className="case">
-                  <input
-                    type="checkbox"
-                    checked={profil.boursier}
-                    onChange={(e) => setProfil((p) => ({ ...p, boursier: e.target.checked }))}
-                  />
-                  Je suis boursier CROUS
-                </label>
+                {profil.statut === 'fr_ue' && (
+                  <label className="case">
+                    <input
+                      type="checkbox"
+                      checked={profil.boursier}
+                      onChange={(e) => setProfil((p) => ({ ...p, boursier: e.target.checked }))}
+                    />
+                    Je suis boursier CROUS
+                  </label>
+                )}
                 {profil.statut === 'intl' && (
                   <>
-                    <label className="case">
-                      <input
-                        type="checkbox"
-                        checked={profil.exonere}
-                        onChange={(e) => setProfil((p) => ({ ...p, exonere: e.target.checked }))}
+                    {/* Un seul choix : être boursier ou exonéré règle déjà la question des droits d'inscription. */}
+                    <fieldset className="groupe">
+                      <legend>Droits d’inscription</legend>
+                      <Choix
+                        nom="aide-droits"
+                        valeur="aucun"
+                        courant={
+                          profil.boursier ? 'boursier' : profil.exonere ? 'exonere' : 'aucun'
+                        }
+                        libelle="Ni boursier ni exonéré"
+                        surChoix={() =>
+                          setProfil((p) => ({ ...p, boursier: false, exonere: false }))
+                        }
                       />
-                      Je suis exonéré des droits différenciés
-                    </label>
+                      <Choix
+                        nom="aide-droits"
+                        valeur="boursier"
+                        courant={
+                          profil.boursier ? 'boursier' : profil.exonere ? 'exonere' : 'aucun'
+                        }
+                        libelle="Je suis boursier CROUS"
+                        surChoix={() =>
+                          setProfil((p) => ({ ...p, boursier: true, exonere: false }))
+                        }
+                      />
+                      <Choix
+                        nom="aide-droits"
+                        valeur="exonere"
+                        courant={
+                          profil.boursier ? 'boursier' : profil.exonere ? 'exonere' : 'aucun'
+                        }
+                        libelle="Je suis exonéré des droits différenciés"
+                        surChoix={() =>
+                          setProfil((p) => ({ ...p, boursier: false, exonere: true }))
+                        }
+                      />
+                    </fieldset>
+                    {profil.boursier && (
+                      <p className="rappel" role="note">
+                        Boursier : droits d’inscription et CVEC offerts, comme pour un étudiant
+                        français. Si vous perdez la bourse, le tarif d’étudiant international
+                        s’applique de nouveau.
+                      </p>
+                    )}
                     {heuresMax !== null && (
                       <p className="rappel" role="note">
                         Étudiant international : le travail salarié est limité à {heuresMax} heures

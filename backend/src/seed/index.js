@@ -170,7 +170,8 @@ export async function seed(prisma) {
   for (const v of VILLES) {
     await prisma.ville.upsert({
       where: { codeInsee: v.codeInsee },
-      update: {},
+      // Identité de la ville (codes postaux compris) : mise à jour ; jamais les loyers ni les valeurs des robots.
+      update: { codesPostaux: v.codesPostaux },
       create: { ...v, sourceId: sources.loyers.id },
     });
   }

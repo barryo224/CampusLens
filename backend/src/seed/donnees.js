@@ -468,10 +468,11 @@ export const SOURCES = {
 // Villes étudiantes suivies : communes où le CNOUS recense au moins une résidence CROUS, plus des villes
 // universitaires (Corse comprise). Liste générée (scripts/generer-villes.mjs). Le robot remplit les valeurs ;
 // on ne les écrit jamais ici.
-export const VILLES = VILLES_SUIVIES.map(([codeInsee, nom, region]) => ({
+export const VILLES = VILLES_SUIVIES.map(([codeInsee, nom, region, codesPostaux]) => ({
   codeInsee,
   nom,
   region,
+  codesPostaux,
 }));
 
 // profil: null = valeur nationale (tous les profils). niveau: 'aucun' si indépendant du niveau.

@@ -388,6 +388,7 @@ function formaterVille(v) {
     codeInsee: v.codeInsee,
     nom: v.nom,
     region: v.region,
+    codesPostaux: v.codesPostaux,
     loyerM2Appartement: nombre(v.loyerM2Appartement),
     loyerStudioEstime: nombre(v.loyerStudioEstime),
     nbLogementsCrous: v.nbLogementsCrous,
