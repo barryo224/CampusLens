@@ -126,43 +126,56 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.getByRole('img', { name: /-102,00/ })).toBeInTheDocument();
   });
 
-  it('boursier et exonéré s’excluent (choix unique) ; être boursier gomme la différence étranger / français', async () => {
+  it('boursier et exonéré s’excluent : cocher l’un décoche l’autre, mêmes cases que pour un Français', async () => {
     await ouvrir();
     await budgetDeReference();
     await userEvent.click(screen.getByRole('radio', { name: /international hors UE/ }));
-    const choix = (nom) => screen.getByRole('radio', { name: nom });
+    const boursier = () => screen.getByRole('checkbox', { name: 'Je suis boursier CROUS' });
+    const exonere = () => screen.getByRole('checkbox', { name: /exonéré des droits différenciés/ });
 
-    await userEvent.click(choix(/exonéré des droits différenciés/));
-    expect(choix(/exonéré des droits différenciés/)).toBeChecked();
-    await userEvent.click(choix('Je suis boursier CROUS'));
-    expect(choix('Je suis boursier CROUS')).toBeChecked();
-    expect(choix(/exonéré des droits différenciés/)).not.toBeChecked(); // l'un remplace l'autre
+    await userEvent.click(exonere());
+    expect(exonere()).toBeChecked();
+    await userEvent.click(boursier());
+    expect(boursier()).toBeChecked();
+    expect(exonere()).not.toBeChecked(); // l'un remplace l'autre
     expect(screen.getByRole('img', { name: /-102,00/ })).toBeInTheDocument(); // même résultat qu'un boursier français
-    expect(screen.getByText(/Si vous perdez la bourse/)).toBeInTheDocument();
-
-    // Plus de bourse : l'étudiant redevient « international », droits différenciés.
-    await userEvent.click(choix('Ni boursier ni exonéré'));
-    expect(screen.getByRole('img', { name: /-352,58/ })).toBeInTheDocument();
     expect(screen.queryByText(/Si vous perdez la bourse/)).not.toBeInTheDocument();
-  });
 
-  it('repasser à « français » efface l’exonération : rien ne reste coché en cachette', async () => {
-    await ouvrir();
-    await budgetDeReference();
-    await userEvent.click(screen.getByRole('radio', { name: /international hors UE/ }));
-    await userEvent.click(screen.getByRole('radio', { name: /exonéré des droits différenciés/ }));
+    await userEvent.click(exonere());
+    expect(boursier()).not.toBeChecked();
     expect(screen.getByRole('img', { name: /-125,58/ })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('radio', { name: /français ou UE/ }));
-    expect(screen.getByTestId('explication-tarif')).toHaveTextContent('Tarif national');
-    expect(screen.queryByRole('radio', { name: /exonéré/ })).not.toBeInTheDocument();
+    // Plus rien de coché : l'étudiant redevient « international », droits différenciés.
+    await userEvent.click(exonere());
+    expect(screen.getByRole('img', { name: /-352,58/ })).toBeInTheDocument();
+  });
 
-    // De retour en « international » : la case n'est plus cochée.
+  it('changer de statut remet les cases à zéro : rien ne reste coché en revenant', async () => {
+    await ouvrir();
+    await budgetDeReference();
+    const boursier = () => screen.getByRole('checkbox', { name: 'Je suis boursier CROUS' });
+
+    // Français boursier → on change d'option → on revient : la case n'est plus cochée.
+    await userEvent.click(boursier());
+    expect(boursier()).toBeChecked();
+    await userEvent.click(screen.getByRole('radio', { name: /international hors UE/ }));
+    expect(boursier()).not.toBeChecked();
+    await userEvent.click(screen.getByRole('radio', { name: /français ou UE/ }));
+    expect(boursier()).not.toBeChecked();
+    expect(screen.getByTestId('explication-tarif')).toHaveTextContent('Tarif national');
+
+    // International exonéré → français → international : plus exonéré.
+    await userEvent.click(screen.getByRole('radio', { name: /international hors UE/ }));
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: /exonéré des droits différenciés/ }),
+    );
+    expect(screen.getByRole('img', { name: /-125,58/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: /français ou UE/ }));
+    expect(screen.queryByRole('checkbox', { name: /exonéré/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('radio', { name: /international hors UE/ }));
     expect(
-      screen.getByRole('radio', { name: /exonéré des droits différenciés/ }),
+      screen.getByRole('checkbox', { name: /exonéré des droits différenciés/ }),
     ).not.toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Ni boursier ni exonéré' })).toBeChecked();
     expect(screen.getByRole('img', { name: /-352,58/ })).toBeInTheDocument();
   });
 
