@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { choisirRecommandations } from '../src/lib/recommandations.js';
 import { positionJauge } from '../src/lib/jauge.js';
-import { construireBilan } from '../src/lib/bilan.js';
+import { construireBilan, nomFichierBilan, nomComplet, texteSurPdf } from '../src/lib/bilan.js';
 import { calculerResteAVivre } from '../src/lib/simulation.js';
 
 const PARAMS = [
@@ -129,5 +129,74 @@ describe('construireBilan', () => {
     expect(b.profil).toBe(
       'Étudiant international hors UE · Master · boursier CROUS · exonéré des droits différenciés',
     );
+  });
+});
+
+describe('nom du fichier du bilan', () => {
+  it('« prénom-mon-budget.pdf », en minuscules et sans accents', () => {
+    expect(nomFichierBilan('Marie')).toBe('marie-mon-budget.pdf');
+    expect(nomFichierBilan('Zoé')).toBe('zoe-mon-budget.pdf');
+    expect(nomFichierBilan('Jean-Pierre')).toBe('jean-pierre-mon-budget.pdf');
+    expect(nomFichierBilan('  Anne  Sophie ')).toBe('anne-sophie-mon-budget.pdf');
+    expect(nomFichierBilan('Éloïse')).toBe('eloise-mon-budget.pdf');
+    expect(nomFichierBilan('İbrahim')).toBe('ibrahim-mon-budget.pdf');
+  });
+  it('sans prénom : nom par défaut', () => {
+    for (const vide of ['', '   ', null, undefined, '---', '...', '!!!']) {
+      expect(nomFichierBilan(vide), String(vide)).toBe('bilan-campuslens.pdf');
+    }
+  });
+  it('conserve les prénoms en alphabet non latin (nom de fichier lisible)', () => {
+    expect(nomFichierBilan('Мария')).toBe('мария-mon-budget.pdf');
+    expect(nomFichierBilan('محمد')).toBe('محمد-mon-budget.pdf');
+  });
+  it('est toujours un nom de fichier sûr : pas de chemin, de point, ni de caractère de contrôle', () => {
+    for (const piege of [
+      '../../etc/passwd',
+      '..\\windows\\system32',
+      'a/b',
+      'con<>:"|?*',
+      'x\u0000y',
+      'a\u202Eb',
+      '.hidden',
+      'nom.exe',
+    ]) {
+      const f = nomFichierBilan(piege);
+      expect(f, piege).toMatch(/^[\p{L}\p{N}-]+-mon-budget\.pdf$|^bilan-campuslens\.pdf$/u);
+      expect(f.slice(0, -4)).not.toMatch(/[./\\]/);
+    }
+    expect(nomFichierBilan('../../etc/passwd')).toBe('etc-passwd-mon-budget.pdf');
+  });
+  it('un prénom très long est raccourci', () => {
+    const f = nomFichierBilan('a'.repeat(200));
+    expect(f.length).toBeLessThanOrEqual(40 + '-mon-budget.pdf'.length);
+    expect(f.endsWith('-mon-budget.pdf')).toBe(true);
+  });
+});
+
+describe('nom affiché sur le PDF', () => {
+  it('nomComplet assemble prénom et nom, sans espaces en trop, et reste vide si rien', () => {
+    expect(nomComplet({ prenom: ' Marie ', nom: 'Dupont  Martin' })).toBe('Marie Dupont Martin');
+    expect(nomComplet({ prenom: 'Marie', nom: '' })).toBe('Marie');
+    expect(nomComplet({ prenom: '', nom: 'Dupont' })).toBe('Dupont');
+    expect(nomComplet({})).toBe('');
+    expect(nomComplet(undefined)).toBe('');
+  });
+  it('texteSurPdf : garde le français, simplifie les lettres hors police, « ? » pour les autres écritures', () => {
+    expect(texteSurPdf('Éloïse Dupont-Martin d’Œuvre')).toBe('Éloïse Dupont-Martin d’Œuvre');
+    expect(texteSurPdf('Şahin Ğüler')).toBe('Sahin Güler');
+    expect(texteSurPdf('Łukasz Đorđević')).toBe('Lukasz Dordevic');
+    expect(texteSurPdf('محمد')).toBe('????');
+    expect(texteSurPdf(null)).toBe('');
+  });
+  const resultat = calcul(FR, BUDGET);
+  const base = { profil: FR, saisie: BUDGET, resultat, recommandations: [], sources: [] };
+  it('le bilan mentionne la personne quand un nom est renseigné, et rien sinon', () => {
+    expect(construireBilan({ ...base, identite: { prenom: 'Marie', nom: 'Dupont' } }).pour).toBe(
+      'Marie Dupont',
+    );
+    expect(construireBilan({ ...base, identite: { prenom: 'Şahin' } }).pour).toBe('Sahin');
+    expect(construireBilan({ ...base }).pour).toBe('');
+    expect(construireBilan({ ...base, identite: { prenom: ' ', nom: '' } }).pour).toBe('');
   });
 });

@@ -75,6 +75,8 @@ export default function Evaluer() {
     exonere: false,
   });
   const [saisie, setSaisie] = useState({});
+  // Facultatif. Reste dans le navigateur : sert uniquement à personnaliser le PDF (jamais envoyé, jamais mémorisé).
+  const [identite, setIdentite] = useState({ prenom: '', nom: '' });
   const [erreurPdf, setErreurPdf] = useState(null);
 
   const parametres = data?.parametres;
@@ -121,7 +123,7 @@ export default function Evaluer() {
         }
       }
       const sources = [...parOrganisme.values()];
-      await telechargerBilan({ profil, saisie, resultat, recommandations, sources });
+      await telechargerBilan({ profil, saisie, resultat, recommandations, sources, identite });
     } catch {
       setErreurPdf('Le bilan n’a pas pu être généré. Réessayez.');
     }
@@ -184,6 +186,31 @@ export default function Evaluer() {
                   surChoix={(v) => setProfil((p) => ({ ...p, niveau: v }))}
                 />
               </fieldset>
+              <div className="champ">
+                <label htmlFor="identite-prenom">Prénom (facultatif)</label>
+                <input
+                  id="identite-prenom"
+                  type="text"
+                  autoComplete="given-name"
+                  maxLength={60}
+                  value={identite.prenom}
+                  onChange={(e) => setIdentite({ ...identite, prenom: e.target.value })}
+                />
+              </div>
+              <div className="champ">
+                <label htmlFor="identite-nom">Nom (facultatif)</label>
+                <input
+                  id="identite-nom"
+                  type="text"
+                  autoComplete="family-name"
+                  maxLength={60}
+                  value={identite.nom}
+                  onChange={(e) => setIdentite({ ...identite, nom: e.target.value })}
+                />
+              </div>
+              <p className="fraicheur" style={{ marginBottom: 14 }}>
+                Votre nom n’est pas envoyé : il apparaît seulement sur le PDF que vous téléchargez.
+              </p>
               <label className="case">
                 <input
                   type="checkbox"

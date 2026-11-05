@@ -284,6 +284,31 @@ describe('Estimation facultative de l’aide au logement (OpenFisca)', () => {
     });
   });
 
+  it('le nom saisi n’est jamais transmis avec l’estimation (seulement les cinq informations annoncées)', async () => {
+    const mock = await ouvrir();
+    await saisir('Prénom (facultatif)', 'Marie');
+    await saisir('Nom (facultatif)', 'Confidentielle');
+    await budget();
+    const formulaire = await deplier();
+    await userEvent.selectOptions(
+      await within(formulaire).findByLabelText('Ville où vous étudiez'),
+      'Rennes',
+    );
+    await userEvent.type(within(formulaire).getByLabelText('Votre âge'), '20');
+    await userEvent.click(
+      within(formulaire).getByRole('button', { name: 'Estimer mon aide au logement' }),
+    );
+    await within(formulaire).findByText(/≈ 200 €/);
+    expect(Object.keys(JSON.parse(appelsEstimation(mock)[0][1].body)).sort()).toEqual([
+      'age',
+      'loyer',
+      'revenu',
+      'typeLogement',
+      'ville',
+    ]);
+    expect(JSON.stringify(mock.mock.calls)).not.toMatch(/Marie|Confidentielle/);
+  });
+
   it('accessibilité : aucune violation axe-core (repliée, ouverte, avec résultat)', async () => {
     await ouvrir();
     const { container } = { container: document.body };

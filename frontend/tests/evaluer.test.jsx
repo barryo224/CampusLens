@@ -172,6 +172,55 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(contenu).toContain('rien n’a été envoyé');
   });
 
+  it('prénom et nom : facultatifs, vides par défaut, avec une phrase qui dit qu’ils ne sont pas envoyés', async () => {
+    await ouvrir();
+    const prenom = screen.getByLabelText('Prénom (facultatif)');
+    const nom = screen.getByLabelText('Nom (facultatif)');
+    expect(prenom).toHaveValue('');
+    expect(nom).toHaveValue('');
+    expect(prenom).not.toBeRequired();
+    expect(nom).not.toBeRequired();
+    expect(prenom).toHaveAttribute('autocomplete', 'given-name');
+    expect(nom).toHaveAttribute('autocomplete', 'family-name');
+    expect(screen.getByText(/Votre nom n’est pas envoyé/)).toBeInTheDocument();
+    // Sans nom, le bilan se télécharge normalement.
+    await budgetDeReference();
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
+    await vi.waitFor(() => expect(pdf.sauvegardes).toEqual(['bilan-campuslens.pdf']));
+    expect(pdf.textes.join('\n')).not.toContain('Bilan établi pour');
+  });
+
+  it('avec un prénom et un nom : ils figurent sur le PDF et le fichier s’appelle « prénom-mon-budget.pdf »', async () => {
+    await ouvrir();
+    await saisir('Prénom (facultatif)', 'Zoé');
+    await saisir('Nom (facultatif)', 'Dupont-Martin');
+    await budgetDeReference();
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
+    await vi.waitFor(() => expect(pdf.sauvegardes).toEqual(['zoe-mon-budget.pdf']));
+    expect(pdf.textes.join('\n')).toContain('Bilan établi pour : Zoé Dupont-Martin');
+  });
+
+  it('le nom reste dans le navigateur : aucune requête ne le contient, rien n’est mémorisé', async () => {
+    const mock = await ouvrir();
+    await saisir('Prénom (facultatif)', 'Marie');
+    await saisir('Nom (facultatif)', 'Confidentielle');
+    await budgetDeReference();
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
+    await vi.waitFor(() => expect(pdf.sauvegardes).toHaveLength(1));
+
+    const toutesLesRequetes = JSON.stringify(mock.mock.calls);
+    expect(toutesLesRequetes).not.toMatch(/Marie|Confidentielle/);
+    expect(
+      mock.mock.calls.every(
+        ([u, o]) => String(u).startsWith('/api/parametres') && (o?.method ?? 'GET') === 'GET',
+      ),
+    ).toBe(true);
+    // Rien n'est gardé : ni stockage local, ni cookie.
+    expect(JSON.stringify({ ...localStorage })).not.toMatch(/Marie|Confidentielle/);
+    expect(JSON.stringify({ ...sessionStorage })).not.toMatch(/Marie|Confidentielle/);
+    expect(document.cookie).not.toMatch(/Marie|Confidentielle/);
+  });
+
   it('API indisponible → message clair, aucun calcul inventé', async () => {
     simulerApi({ '/parametres': new Error('panne') });
     rendreApp('/evaluer');

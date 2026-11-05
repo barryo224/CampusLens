@@ -48,6 +48,8 @@ test('E2E-02 : aucune requête réseau ne contient les montants saisis', async (
   await page.goto('/evaluer');
   await expect(page.getByLabel('Job étudiant (net)')).toBeVisible();
   const avant = requetes.length;
+  await page.getByLabel('Prénom (facultatif)', { exact: true }).fill('Marie');
+  await page.getByLabel('Nom (facultatif)', { exact: true }).fill('Confidentielle');
 
   await remplirBudgetDeReference(page);
   await page.getByLabel('Je suis boursier CROUS').check();
@@ -63,7 +65,7 @@ test('E2E-02 : aucune requête réseau ne contient les montants saisis', async (
   for (const r of requetes.filter((x) => x.url.includes('/api/'))) {
     expect(r.methode).toBe('GET');
     expect(r.corps).toBeNull();
-    for (const montant of ['637', '600', '250', '200']) {
+    for (const montant of ['637', '600', '250', '200', 'Marie', 'Confidentielle']) {
       expect(r.url, r.url).not.toContain(montant);
     }
   }
@@ -95,13 +97,29 @@ test('E2E-04 : formulaire de contact → message envoyé et confirmation affich�
   });
 });
 
-test('le bilan PDF se télécharge', async ({ page }) => {
+test('le bilan PDF se télécharge (nom par défaut, sans prénom)', async ({ page }) => {
   await page.goto('/evaluer');
   await remplirBudgetDeReference(page);
   const telechargement = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }).click();
   const fichier = await telechargement;
   expect(fichier.suggestedFilename()).toBe('bilan-campuslens.pdf');
+});
+
+test('avec un prénom : le fichier s’appelle « prénom-mon-budget.pdf » et le PDF porte le nom', async ({
+  page,
+}) => {
+  await page.goto('/evaluer');
+  await page.getByLabel('Prénom (facultatif)', { exact: true }).fill('Zoé');
+  await page.getByLabel('Nom (facultatif)', { exact: true }).fill('Dupont');
+  await remplirBudgetDeReference(page);
+  const telechargement = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }).click();
+  const fichier = await telechargement;
+  expect(fichier.suggestedFilename()).toBe('zoe-mon-budget.pdf');
+  const chemin = await fichier.path();
+  const { readFileSync } = await import('node:fs');
+  expect(readFileSync(chemin).subarray(0, 5).toString()).toBe('%PDF-'); // un vrai PDF
 });
 
 test('les 6 pages se chargent sans erreur de console', async ({ page }) => {
