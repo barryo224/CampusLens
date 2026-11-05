@@ -101,7 +101,7 @@ la main tous les 90 jours. Les prix changent à des dates variables (juillet, ao
 ## Avis des visiteurs
 
 La page `/avis` (lien « Donner mon avis » dans le pied de page et sous le résultat de l'évaluation) permet de noter le site de
-1 à 5 et de raconter son expérience. Les avis sont **anonymes** (ni nom, ni e-mail, ni adresse IP : la limite de 5 avis par
+1 à 5 et de raconter son expérience (note **et** commentaire obligatoires : un avis vide est refusé). Les avis sont **anonymes** (ni nom, ni e-mail, ni adresse IP : la limite de 5 avis par
 10 minutes se fait en mémoire), protégés par un champ piège anti-robot, et **supprimés automatiquement après 12 mois**
 (`AVIS_RETENTION_MONTHS`). Ils arrivent dans l'onglet **Avis** de l'administration (rôle `admin` seulement) : moyenne,
 répartition des notes, pastille des avis non lus, suppression à la demande. Ils ne sont jamais affichés au public : n'importe qui

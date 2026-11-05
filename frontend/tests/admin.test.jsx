@@ -680,6 +680,42 @@ describe('Espace administration', () => {
       expect(screen.queryByRole('link', { name: /^Avis/ })).not.toBeInTheDocument();
     });
 
+    it('la pastille des avis se comporte comme celle des messages : 1 au singulier, 99+ au-delà de 99, rien à zéro', async () => {
+      connecte('admin', { '/admin/messages/non-lus': { nombre: 0, avis: 1 } });
+      rendreApp('/admin/sources');
+      const un = await screen.findByRole('link', { name: 'Avis 1 non lu' });
+      expect(un.querySelector('.pastille-compteur')).toHaveTextContent('1');
+      await vi.waitFor(() => expect(document.title).toBe('(1) Espace administration · CampusLens'));
+      cleanup();
+
+      connecte('admin', { '/admin/messages/non-lus': { nombre: 0, avis: 99 } });
+      rendreApp('/admin/sources');
+      expect(await screen.findByRole('link', { name: 'Avis 99 non lus' })).toHaveTextContent('99');
+      cleanup();
+
+      connecte('admin', { '/admin/messages/non-lus': { nombre: 0, avis: 250 } });
+      rendreApp('/admin/sources');
+      const beaucoup = await screen.findByRole('link', { name: 'Avis 99+ non lus' });
+      expect(beaucoup.querySelector('.pastille-compteur')).toHaveTextContent('99+');
+      await vi.waitFor(() =>
+        expect(document.title).toBe('(250) Espace administration · CampusLens'),
+      );
+      cleanup();
+
+      connecte('admin', { '/admin/messages/non-lus': { nombre: 0, avis: 0 } });
+      rendreApp('/admin/sources');
+      const zero = await screen.findByRole('link', { name: 'Avis' });
+      expect(zero.querySelector('.pastille-compteur')).toBeNull();
+    });
+
+    it('messages et avis ont chacun leur pastille, indépendantes l’une de l’autre', async () => {
+      connecte('admin', { '/admin/messages/non-lus': { nombre: 3, avis: 1 } });
+      rendreApp('/admin/sources');
+      expect(await screen.findByRole('link', { name: 'Messages 3 non lus' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Avis 1 non lu' })).toBeInTheDocument();
+      await vi.waitFor(() => expect(document.title).toBe('(4) Espace administration · CampusLens'));
+    });
+
     it('un relecteur qui tape l’adresse à la main est renvoyé vers « À valider »', async () => {
       connecte('relecteur');
       rendreApp('/admin/avis');

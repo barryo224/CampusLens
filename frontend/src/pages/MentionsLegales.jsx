@@ -42,11 +42,10 @@ export default function MentionsLegales() {
         </p>
         <p>
           <strong>Avis sur le site.</strong> Si vous donnez votre avis, nous conservons votre note,
-          votre commentaire facultatif, la page d’où vous venez et, si vous l’indiquez, votre profil
-          (français, boursier, international). Cet avis est anonyme : nous n’enregistrons ni votre
-          nom, ni votre adresse e-mail, ni votre adresse IP. Il est supprimé automatiquement 12 mois
-          après l’envoi. N’y indiquez pas de renseignements personnels. Base légale : votre
-          consentement.
+          votre commentaire, la page d’où vous venez et, si vous l’indiquez, votre profil (français,
+          boursier, international). Cet avis est anonyme : nous n’enregistrons ni votre nom, ni
+          votre adresse e-mail, ni votre adresse IP. Il est supprimé automatiquement 12 mois après
+          l’envoi. N’y indiquez pas de renseignements personnels. Base légale : votre consentement.
         </p>
         <p>
           <strong>Vos droits.</strong> Vous pouvez demander l’accès, la rectification ou la

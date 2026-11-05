@@ -11,6 +11,17 @@ export default function Contact() {
 
   async function envoyer(e) {
     e.preventDefault();
+    // Des espaces seuls passent la vérification du navigateur : on les refuse ici, avec un message clair.
+    const vide = ['objet', 'message'].find((cle) => champs[cle].trim() === '');
+    if (vide) {
+      setEtat({
+        envoi: false,
+        succes: false,
+        erreur: `Renseignez ${vide === 'objet' ? 'l’objet' : 'le message'} avant d’envoyer.`,
+      });
+      document.getElementById(`contact-${vide}`)?.focus();
+      return;
+    }
     setEtat({ envoi: true, succes: false, erreur: null });
     try {
       await post('/contact', champs, {

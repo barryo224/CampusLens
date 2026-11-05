@@ -57,11 +57,26 @@ describe('Avis des visiteurs sur le site', () => {
       expect(mois).toBeLessThan(13);
     });
 
-    it('une note seule suffit (commentaire facultatif, vide = aucun)', async () => {
-      expect((await envoyer({ note: 5 })).status).toBe(201);
-      expect((await envoyer({ note: 2, commentaire: '   ' })).status).toBe(201);
-      const tous = await prisma.avis.findMany({ orderBy: { id: 'asc' } });
-      expect(tous.map((a) => a.commentaire)).toEqual([null, null]);
+    it('un avis « vide » est refusé : la note seule, des espaces ou un commentaire trop court ne passent pas', async () => {
+      for (const corps of [
+        { note: 5 },
+        { note: 2, commentaire: '' },
+        { note: 2, commentaire: '      ' },
+        { note: 3, commentaire: 'ok' },
+        { commentaire: 'Un texte sans aucune note' },
+      ]) {
+        const res = await envoyer(corps, createApp({ prisma }));
+        expect(res.status, JSON.stringify(corps)).toBe(400);
+      }
+      expect(await prisma.avis.count()).toBe(0);
+      // Message lisible (jamais « expected string, received undefined »).
+      const sansTexte = await envoyer({ note: 4 }, createApp({ prisma }));
+      expect(sansTexte.body.error).toMatch(/commentaire : racontez votre expérience/);
+      const sansNote = await envoyer({ commentaire: 'Un texte' }, createApp({ prisma }));
+      expect(sansNote.body.error).toMatch(/note : note de 1 à 5/);
+      // Le minimum accepté : quelques mots (les espaces autour sont retirés).
+      expect((await envoyer({ note: 4, commentaire: '  Utile ! ' })).status).toBe(201);
+      expect((await prisma.avis.findFirstOrThrow()).commentaire).toBe('Utile !');
     });
 
     it('refuse une note absente ou hors de 1 à 5, un texte trop long, une page ou un profil inconnus', async () => {
@@ -106,8 +121,9 @@ describe('Avis des visiteurs sur le site', () => {
 
     it('limite : 5 avis par 10 minutes, puis message clair (429)', async () => {
       const a = createApp({ prisma });
-      for (let i = 0; i < 5; i++) expect((await envoyer({ note: 3 }, a)).status).toBe(201);
-      const trop = await envoyer({ note: 3 }, a);
+      const avis = { note: 3, commentaire: 'Plutôt clair, merci.' };
+      for (let i = 0; i < 5; i++) expect((await envoyer(avis, a)).status).toBe(201);
+      const trop = await envoyer(avis, a);
       expect(trop.status).toBe(429);
       expect(trop.body.error).toMatch(/Trop d’avis/);
       expect(await prisma.avis.count()).toBe(5);

@@ -28,8 +28,19 @@ export default function Avis() {
 
   async function envoyer(e) {
     e.preventDefault();
+    // Un avis vide n'a aucun sens : on le refuse avec un message clair et on place le curseur sur le champ à remplir.
     if (champs.note === 0) {
       setEtat({ envoi: false, succes: false, erreur: 'Choisissez une note de 1 à 5.' });
+      document.querySelector('input[name="note"]')?.focus();
+      return;
+    }
+    if (champs.commentaire.trim().length < 5) {
+      setEtat({
+        envoi: false,
+        succes: false,
+        erreur: 'Racontez votre expérience en quelques mots avant d’envoyer votre avis.',
+      });
+      document.getElementById('avis-commentaire')?.focus();
       return;
     }
     setEtat({ envoi: true, succes: false, erreur: null });
@@ -38,7 +49,7 @@ export default function Avis() {
         '/avis',
         {
           note: champs.note,
-          commentaire: champs.commentaire,
+          commentaire: champs.commentaire.trim(),
           page,
           ...(champs.profil && { profil: champs.profil }),
           siteWeb: champs.siteWeb,
@@ -76,7 +87,8 @@ export default function Avis() {
             {etat.erreur}
           </p>
         )}
-        <form onSubmit={envoyer}>
+        {/* noValidate : les messages de validation sont les nôtres (clairs, en français, avec le curseur sur le champ). */}
+        <form onSubmit={envoyer} noValidate>
           <fieldset className="groupe">
             <legend>Votre note</legend>
             <div className="notes">
@@ -105,10 +117,11 @@ export default function Avis() {
           </fieldset>
 
           <div className="champ">
-            <label htmlFor="avis-commentaire">Racontez votre expérience (facultatif)</label>
+            <label htmlFor="avis-commentaire">Racontez votre expérience</label>
             <textarea
               id="avis-commentaire"
               rows={6}
+              required
               maxLength={1500}
               value={champs.commentaire}
               onChange={(e) => setChamps((c) => ({ ...c, commentaire: e.target.value }))}

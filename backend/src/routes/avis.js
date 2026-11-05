@@ -15,14 +15,17 @@ export const PAGES_AVIS = [
 export const PROFILS_AVIS = ['fr_ue', 'boursier', 'intl'];
 
 const avisSchema = z.object({
-  note: z.number().int('note de 1 à 5').min(1, 'note de 1 à 5').max(5, 'note de 1 à 5'),
-  // Facultatif : une note seule suffit. Un texte vide est traité comme « pas de commentaire ».
+  note: z
+    .number('note de 1 à 5')
+    .int('note de 1 à 5')
+    .min(1, 'note de 1 à 5')
+    .max(5, 'note de 1 à 5'),
+  // Obligatoire : une note sans un mot d'explication ne dit rien (un avis « vide » est refusé).
   commentaire: z
-    .string()
+    .string('racontez votre expérience en quelques mots')
     .trim()
-    .max(1500)
-    .optional()
-    .transform((t) => t || undefined),
+    .min(5, 'racontez votre expérience en quelques mots')
+    .max(1500),
   page: z.enum(PAGES_AVIS).optional(),
   profil: z.enum(PROFILS_AVIS).optional(),
   // Champ piège (honeypot) : invisible pour un humain, rempli par les robots.

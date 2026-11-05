@@ -39,6 +39,31 @@ describe('Contact', () => {
     expect(screen.getByLabelText('Objet')).toHaveValue(''); // formulaire vidé
   });
 
+  it('objet ou message rempli d’espaces : refusé avec un message clair, le curseur va sur le champ, rien n’est envoyé', async () => {
+    const mock = vi.fn(async () => ({ ok: true, status: 201, json: async () => ({}) }));
+    vi.stubGlobal('fetch', mock);
+    rendreApp('/contact');
+    await userEvent.type(screen.getByLabelText('Votre adresse e-mail'), 'etudiant@exemple.fr');
+    await userEvent.type(screen.getByLabelText('Objet'), '   ');
+    await userEvent.type(screen.getByLabelText('Message'), 'Bonjour');
+    await userEvent.click(screen.getByRole('button', { name: 'Envoyer' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Renseignez l’objet avant d’envoyer.',
+    );
+    expect(document.activeElement).toBe(screen.getByLabelText('Objet'));
+
+    await userEvent.clear(screen.getByLabelText('Objet'));
+    await userEvent.type(screen.getByLabelText('Objet'), 'Question');
+    await userEvent.clear(screen.getByLabelText('Message'));
+    await userEvent.type(screen.getByLabelText('Message'), '    ');
+    await userEvent.click(screen.getByRole('button', { name: 'Envoyer' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Renseignez le message avant d’envoyer.',
+    );
+    expect(document.activeElement).toBe(screen.getByLabelText('Message'));
+    expect(mock).not.toHaveBeenCalled();
+  });
+
   it('trop de messages (429) → message clair, rien n’est perdu', async () => {
     vi.stubGlobal(
       'fetch',

@@ -37,40 +37,69 @@ describe('Donner mon avis', () => {
     expect(screen.getByRole('radio', { name: /4 sur 5/ })).not.toBeChecked();
   });
 
-  it('une note seule suffit ; le profil non précisé n’est pas envoyé ; page inconnue → « autre »', async () => {
+  it('un avis vide est refusé : sans note, avec une note seule ou des espaces ; le curseur va sur le champ à corriger', async () => {
+    const mock = reponse();
+    vi.stubGlobal('fetch', mock);
+    rendreApp('/avis');
+    const envoyerAvis = () =>
+      userEvent.click(screen.getByRole('button', { name: 'Envoyer mon avis' }));
+    const commentaire = () => screen.getByLabelText(/Racontez votre expérience/);
+
+    // 1. Rien du tout : on demande la note, et le focus va sur la première note.
+    await envoyerAvis();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Choisissez une note de 1 à 5');
+    expect(document.activeElement).toBe(screen.getAllByRole('radio')[0]);
+
+    // 2. Une note seule : on demande quelques mots, et le focus va sur le commentaire.
+    await userEvent.click(screen.getByRole('radio', { name: /5 sur 5/ }));
+    await envoyerAvis();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Racontez votre expérience');
+    expect(document.activeElement).toBe(commentaire());
+
+    // 3. Des espaces ne comptent pas comme un commentaire.
+    await userEvent.type(commentaire(), '      ');
+    await envoyerAvis();
+    expect(screen.getByRole('alert')).toHaveTextContent('Racontez votre expérience');
+    expect(mock).not.toHaveBeenCalled(); // rien n'est parti
+
+    // 4. Trop court (moins de 5 caractères) : refusé aussi.
+    await userEvent.clear(commentaire());
+    await userEvent.type(commentaire(), 'ok');
+    await envoyerAvis();
+    expect(mock).not.toHaveBeenCalled();
+
+    // 5. Quelques mots : envoyé, espaces autour retirés.
+    await userEvent.clear(commentaire());
+    await userEvent.type(commentaire(), '  Très utile  ');
+    await envoyerAvis();
+    expect(await screen.findByRole('status')).toHaveTextContent('Merci pour votre avis');
+    expect(JSON.parse(mock.mock.calls[0][1].body).commentaire).toBe('Très utile');
+  });
+
+  it('le profil non précisé n’est pas envoyé ; page inconnue → « autre »', async () => {
     const mock = reponse();
     vi.stubGlobal('fetch', mock);
     rendreApp('/avis?page=<script>');
     await userEvent.click(screen.getByRole('radio', { name: /5 sur 5/ }));
+    await userEvent.type(screen.getByLabelText(/Racontez votre expérience/), 'Bien fait');
     await userEvent.click(screen.getByRole('button', { name: 'Envoyer mon avis' }));
     await screen.findByRole('status');
     expect(JSON.parse(mock.mock.calls[0][1].body)).toEqual({
       note: 5,
-      commentaire: '',
+      commentaire: 'Bien fait',
       page: 'autre',
       siteWeb: '',
     });
-  });
-
-  it('sans note : message clair, rien n’est envoyé, le texte déjà écrit est conservé', async () => {
-    const mock = reponse();
-    vi.stubGlobal('fetch', mock);
-    rendreApp('/avis');
-    await userEvent.type(screen.getByLabelText(/Racontez votre expérience/), 'Mon texte');
-    await userEvent.click(screen.getByRole('button', { name: 'Envoyer mon avis' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Choisissez une note de 1 à 5');
-    expect(mock).not.toHaveBeenCalled();
-    expect(screen.getByLabelText(/Racontez votre expérience/)).toHaveValue('Mon texte');
   });
 
   it('trop d’avis (429) → message clair ; serveur injoignable → message clair, rien n’est perdu', async () => {
     vi.stubGlobal('fetch', reponse(429, {}));
     rendreApp('/avis');
     await userEvent.click(screen.getByRole('radio', { name: /3 sur 5/ }));
-    await userEvent.type(screen.getByLabelText(/Racontez votre expérience/), 'Bien');
+    await userEvent.type(screen.getByLabelText(/Racontez votre expérience/), 'Plutôt bien');
     await userEvent.click(screen.getByRole('button', { name: 'Envoyer mon avis' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/Trop d’avis/);
-    expect(screen.getByLabelText(/Racontez votre expérience/)).toHaveValue('Bien');
+    expect(screen.getByLabelText(/Racontez votre expérience/)).toHaveValue('Plutôt bien');
     cleanup();
 
     vi.stubGlobal(
@@ -81,6 +110,7 @@ describe('Donner mon avis', () => {
     );
     rendreApp('/avis');
     await userEvent.click(screen.getByRole('radio', { name: /3 sur 5/ }));
+    await userEvent.type(screen.getByLabelText(/Racontez votre expérience/), 'Pas mal du tout');
     await userEvent.click(screen.getByRole('button', { name: 'Envoyer mon avis' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/momentanément indisponibles/);
   });
