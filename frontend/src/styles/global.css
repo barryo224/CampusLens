@@ -1582,3 +1582,10 @@ a {
   display: grid;
   gap: 12px;
 }
+
+.page-titre-centre {
+  text-align: center;
+}
+.page-titre-centre p {
+  margin-inline: auto;
+}
