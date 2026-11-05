@@ -20,6 +20,9 @@ export default function Pied() {
             <Link to="/contact">Contact</Link>
           </li>
           <li>
+            <Link to="/avis">Donner mon avis</Link>
+          </li>
+          <li>
             <Link to="/mentions-legales">Mentions légales et confidentialité</Link>
           </li>
         </ul>

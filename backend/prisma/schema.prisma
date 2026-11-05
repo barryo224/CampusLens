@@ -393,6 +393,21 @@ model MessageContact {
   @@map("message_contact")
 }
 
+/// Avis des visiteurs sur le site : anonymes (aucune donnée d'identité), supprimés automatiquement.
+model Avis {
+  id             Int       @id @default(autoincrement())
+  note           Int // de 1 à 5 (contrainte en base)
+  commentaire    String?
+  page           String? // page d'où vient l'avis (evaluer, aides, budget…)
+  profil         String? // profil indiqué par le visiteur (fr_ue, boursier, intl), facultatif
+  creeLe         DateTime  @default(now()) @map("cree_le")
+  supprimerApres DateTime  @map("supprimer_apres")
+  luLe           DateTime? @map("lu_le")
+
+  @@index([supprimerApres])
+  @@map("avis")
+}
+
 /// Sessions de l'espace admin (stockées en base : elles survivent à un redémarrage du serveur).
 model SessionAdmin {
   sid     String   @id

@@ -8,6 +8,7 @@ import Budget from './pages/Budget.jsx';
 import Ressources from './pages/Ressources.jsx';
 import APropos from './pages/APropos.jsx';
 import Contact from './pages/Contact.jsx';
+import Avis from './pages/Avis.jsx';
 import MentionsLegales from './pages/MentionsLegales.jsx';
 
 // L'administration n'est téléchargée que lorsqu'on l'ouvre : les visiteurs du site public ne la chargent jamais.
@@ -17,6 +18,7 @@ const PageChangements = page('PageChangements');
 const PageSources = page('PageSources');
 const PageHistorique = page('PageHistorique');
 const PageMessages = page('PageMessages');
+const PageAvis = page('PageAvis');
 const PageVerification = page('PageVerification');
 const PageCompte = page('PageCompte');
 const AccueilAdmin = page('AccueilAdmin');
@@ -40,6 +42,7 @@ export default function App() {
           <Route path="historique" element={<PageHistorique />} />
           <Route path="verification" element={<PageVerification />} />
           <Route path="messages" element={<PageMessages />} />
+          <Route path="avis" element={<PageAvis />} />
           <Route path="compte" element={<PageCompte />} />
           <Route path="*" element={<AccueilAdmin />} />
         </Route>
@@ -51,6 +54,7 @@ export default function App() {
           <Route path="ressources" element={<Ressources />} />
           <Route path="a-propos" element={<APropos />} />
           <Route path="contact" element={<Contact />} />
+          <Route path="avis" element={<Avis />} />
           <Route path="mentions-legales" element={<MentionsLegales />} />
           <Route path="*" element={<Bientot titre="Page introuvable" />} />
         </Route>

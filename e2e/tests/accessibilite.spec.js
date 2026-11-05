@@ -27,6 +27,7 @@ const PAGES_PUBLIQUES = [
   ['Ressources', '/ressources'],
   ['À propos', '/a-propos'],
   ['Contact', '/contact'],
+  ['Donner mon avis', '/avis'],
   ['Mentions légales', '/mentions-legales'],
 ];
 
@@ -166,7 +167,43 @@ test.describe('administration (réponses simulées)', () => {
         ],
       }),
     );
-    await page.route('**/api/admin/messages/non-lus', (r) => r.fulfill({ json: { nombre: 2 } }));
+    await page.route('**/api/admin/messages/non-lus', (r) =>
+      r.fulfill({ json: { nombre: 2, avis: 1 } }),
+    );
+    await page.route('**/api/admin/avis', (r) =>
+      r.fulfill({
+        json: {
+          stats: {
+            total: 2,
+            nonLus: 1,
+            moyenne: 4.5,
+            repartition: { 1: 0, 2: 0, 3: 0, 4: 1, 5: 1 },
+          },
+          avis: [
+            {
+              id: 2,
+              note: 5,
+              commentaire: 'Très utile',
+              page: 'evaluer',
+              profil: 'intl',
+              creeLe: '2026-11-05T10:00:00Z',
+              supprimerApres: '2027-11-05T10:00:00Z',
+              luLe: null,
+            },
+            {
+              id: 1,
+              note: 4,
+              commentaire: null,
+              page: null,
+              profil: null,
+              creeLe: '2026-11-04T10:00:00Z',
+              supprimerApres: '2027-11-04T10:00:00Z',
+              luLe: '2026-11-05T08:00:00Z',
+            },
+          ],
+        },
+      }),
+    );
     await page.route('**/api/admin/messages', (r) =>
       r.fulfill({
         json: [
@@ -187,6 +224,7 @@ test.describe('administration (réponses simulées)', () => {
     ['État des sources', '/admin/sources'],
     ['Historique', '/admin/historique'],
     ['Messages', '/admin/messages'],
+    ['Avis', '/admin/avis'],
   ]) {
     test(`axe-core : admin — ${nom}`, async ({ page }) => {
       await page.goto(chemin);

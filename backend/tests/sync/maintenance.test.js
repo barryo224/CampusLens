@@ -196,13 +196,14 @@ describe('Maintenance et planification', () => {
     expect((await prisma.sessionAdmin.findMany()).map((s) => s.sid)).toEqual(['valide']);
   });
 
-  it('la maintenance quotidienne enchaîne les 5 tâches', async () => {
+  it('la maintenance quotidienne enchaîne les 6 tâches', async () => {
     const r = await maintenanceQuotidienne(prisma, new Date('2026-11-05'));
     expect(r).toEqual({
       anneePreparee: null, // novembre : trop tôt pour préparer l'année suivante
       anneeEnCours: '2026-2027',
       sourcesPerimees: expect.any(Number),
       messagesSupprimes: 0,
+      avisSupprimes: 0,
       sessionsSupprimees: 0,
     });
   });

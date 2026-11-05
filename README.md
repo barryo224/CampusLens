@@ -98,6 +98,15 @@ que nous avons enregistrés disparaît (le réseau a changé son tarif), les tar
 et une alerte apparaît dans « À valider ». Les autres réseaux (page bloquée aux robots ou chargée par script) se revérifient à
 la main tous les 90 jours. Les prix changent à des dates variables (juillet, août, septembre, janvier…), d'où la veille quotidienne.
 
+## Avis des visiteurs
+
+La page `/avis` (lien « Donner mon avis » dans le pied de page et sous le résultat de l'évaluation) permet de noter le site de
+1 à 5 et de raconter son expérience. Les avis sont **anonymes** (ni nom, ni e-mail, ni adresse IP : la limite de 5 avis par
+10 minutes se fait en mémoire), protégés par un champ piège anti-robot, et **supprimés automatiquement après 12 mois**
+(`AVIS_RETENTION_MONTHS`). Ils arrivent dans l'onglet **Avis** de l'administration (rôle `admin` seulement) : moyenne,
+répartition des notes, pastille des avis non lus, suppression à la demande. Ils ne sont jamais affichés au public : n'importe qui
+peut en envoyer, ce n'est pas une mesure fiable.
+
 ## Espace administration
 
 Page non publique : `/admin`. Créer un compte :

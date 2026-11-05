@@ -522,6 +522,171 @@ function Messages({ surChangement }) {
   );
 }
 
+const LIBELLES_PAGE_AVIS = {
+  accueil: 'Accueil',
+  evaluer: 'Évaluer ma situation',
+  aides: 'Mes aides',
+  budget: 'Préparer mon budget',
+  ressources: 'Ressources',
+  a_propos: 'À propos',
+  autre: 'Autre page',
+};
+const LIBELLES_PROFIL_AVIS = {
+  fr_ue: 'Étudiant français ou UE',
+  boursier: 'Étudiant boursier',
+  intl: 'Étudiant international hors UE',
+};
+
+/** Avis des visiteurs sur le site : anonymes (aucun nom, e-mail ni adresse IP), supprimés automatiquement. */
+function AvisVisiteurs({ surChangement }) {
+  const { data, erreur, recharger } = useApi('/admin/avis', { garderAnciennes: true });
+  const [message, setMessage] = useState(null);
+  if (erreur) return <MessageErreur erreur={erreur} surReessayer={recharger} />;
+  if (!data)
+    return (
+      <p className="message" role="status">
+        Chargement…
+      </p>
+    );
+  const { stats, avis } = data;
+  const maxRepartition = Math.max(...Object.values(stats.repartition), 1);
+
+  async function agir(action, succes) {
+    setMessage(null);
+    try {
+      await action();
+      if (succes) setMessage(succes);
+      recharger();
+      surChangement?.();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  return (
+    <>
+      <p className="fraicheur" style={{ marginBottom: 12 }}>
+        Avis anonymes : aucun nom, e-mail ni adresse IP n’est enregistré. Chaque avis est supprimé
+        automatiquement à la date indiquée (12 mois après l’envoi). C’est un ressenti, pas une
+        mesure : n’importe qui peut en envoyer, avec une limite par visiteur.
+      </p>
+      {message && (
+        <p className="message" role="status">
+          {message}
+        </p>
+      )}
+
+      <section className="carte" aria-labelledby="titre-stats-avis" style={{ marginBottom: 16 }}>
+        <h2 id="titre-stats-avis" className="titre-carte">
+          Vue d’ensemble
+        </h2>
+        {stats.total === 0 ? (
+          <p>Aucun avis reçu pour l’instant.</p>
+        ) : (
+          <div className="stats-avis">
+            <p data-testid="moyenne-avis">
+              <strong className="indicateur-valeur">
+                {String(stats.moyenne).replace('.', ',')} / 5
+              </strong>
+              <br />
+              <span className="fraicheur">
+                moyenne sur {stats.total} avis
+                {stats.nonLus > 0
+                  ? `, dont ${stats.nonLus} non lu${stats.nonLus > 1 ? 's' : ''}`
+                  : ''}
+              </span>
+            </p>
+            <ul className="repartition" aria-label="Répartition des notes">
+              {[5, 4, 3, 2, 1].map((n) => (
+                <li key={n}>
+                  <span>
+                    {n} ★<span className="sr-only"> : {stats.repartition[n]} avis</span>
+                  </span>
+                  <span className="barre" aria-hidden="true">
+                    <span style={{ width: `${(stats.repartition[n] / maxRepartition) * 100}%` }} />
+                  </span>
+                  <strong aria-hidden="true">{stats.repartition[n]}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+
+      {stats.nonLus > 0 && (
+        <p className="barre-admin">
+          <strong>
+            {stats.nonLus} avis non lu{stats.nonLus > 1 ? 's' : ''}
+          </strong>
+          <button
+            type="button"
+            className="bouton bouton-secondaire"
+            onClick={() =>
+              agir(() => post('/admin/avis/tout-lire', {}), 'Tous les avis sont marqués comme lus.')
+            }
+          >
+            Tout marquer comme lu
+          </button>
+        </p>
+      )}
+
+      {avis.length > 0 && (
+        <>
+          <h2 className="sr-only">Avis reçus</h2>
+          <ul className="grille" style={{ listStyle: 'none', padding: 0 }}>
+            {avis.map((a) => (
+              <li key={a.id} className={`carte changement${a.luLe ? '' : ' message-non-lu'}`}>
+                <h3>
+                  <span aria-hidden="true">{'★'.repeat(a.note)}</span>
+                  <span className="sr-only">Note : {a.note} sur 5</span>
+                  <span className="fraicheur" aria-hidden="true">
+                    {' '}
+                    {a.note} / 5
+                  </span>
+                  {!a.luLe && <span className="badge badge-orange badge-nouveau">Nouveau</span>}
+                </h3>
+                <p className="fraicheur">
+                  {LIBELLES_PAGE_AVIS[a.page] ?? 'Page non précisée'}
+                  {a.profil ? ` · ${LIBELLES_PROFIL_AVIS[a.profil] ?? a.profil}` : ''} · reçu le{' '}
+                  {formaterDateHeure(a.creeLe)} · supprimé automatiquement le{' '}
+                  {formaterDate(a.supprimerApres)}
+                </p>
+                <p className="message-texte">
+                  {a.commentaire ?? <em>Aucun commentaire, note seule.</em>}
+                </p>
+                <div
+                  className="resultat-actions"
+                  style={{ gridTemplateColumns: 'repeat(2, auto)', justifyContent: 'start' }}
+                >
+                  {!a.luLe && (
+                    <button
+                      type="button"
+                      className="bouton bouton-secondaire"
+                      onClick={() => agir(() => post(`/admin/avis/${a.id}/lu`, {}))}
+                    >
+                      Marquer comme lu<span className="sr-only"> : avis {a.note} sur 5</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="bouton bouton-secondaire"
+                    onClick={() => {
+                      if (!window.confirm('Supprimer définitivement cet avis ?')) return;
+                      agir(() => supprimer(`/admin/avis/${a.id}`), 'Avis supprimé.');
+                    }}
+                  >
+                    Supprimer<span className="sr-only"> : avis {a.note} sur 5</span>
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
 function MonCompte() {
   const { admin } = useOutletContext();
   const [champs, setChamps] = useState({ ancien: '', nouveau: '', confirmation: '' });
@@ -774,6 +939,7 @@ const SECTIONS = [
   { chemin: 'verification', libelle: 'Données à vérifier' },
   { chemin: 'historique', libelle: 'Historique' },
   { chemin: 'messages', libelle: 'Messages', roleRequis: 'admin' }, // données personnelles : admin seulement
+  { chemin: 'avis', libelle: 'Avis', roleRequis: 'admin' },
   { chemin: 'compte', libelle: 'Mon compte' },
 ];
 
@@ -787,6 +953,11 @@ export function PageMessages() {
   if (admin.role !== 'admin') return <Navigate to="/admin/changements" replace />;
   return <Messages surChangement={rafraichirNonLus} />;
 }
+export function PageAvis() {
+  const { admin, rafraichirNonLus } = useOutletContext();
+  if (admin.role !== 'admin') return <Navigate to="/admin/changements" replace />;
+  return <AvisVisiteurs surChangement={rafraichirNonLus} />;
+}
 export const PageVerification = () => <Verification />;
 export const PageCompte = () => <MonCompte />;
 export const AccueilAdmin = () => <Navigate to="/admin/changements" replace />;
@@ -799,13 +970,25 @@ export default function AdminLayout() {
   const [admin, setAdmin] = useState(undefined); // undefined = on vérifie ; null = non connecté
   const [erreur, setErreur] = useState(null);
   const [nonLus, setNonLus] = useState(0);
+  const [avisNonLus, setAvisNonLus] = useState(0);
   const { pathname } = useLocation();
   // « (2) Espace administration » : on voit qu'un message attend, même depuis un autre onglet du navigateur.
-  usePageTitre(nonLus > 0 ? `(${nonLus}) Espace administration` : 'Espace administration');
+  usePageTitre(
+    nonLus + avisNonLus > 0
+      ? `(${nonLus + avisNonLus}) Espace administration`
+      : 'Espace administration',
+  );
+
+  // Pastille d'une section : messages ou avis jamais ouverts.
+  const compteur = (chemin) =>
+    chemin === 'messages' ? nonLus : chemin === 'avis' ? avisNonLus : 0;
 
   const rafraichirNonLus = useCallback(() => {
     get('/admin/messages/non-lus')
-      .then((r) => setNonLus(Number(r?.nombre) || 0))
+      .then((r) => {
+        setNonLus(Number(r?.nombre) || 0);
+        setAvisNonLus(Number(r?.avis) || 0);
+      })
       .catch(() => {}); // une erreur passagère ne doit pas gêner : on garde le dernier nombre connu
   }, []);
 
@@ -865,16 +1048,17 @@ export default function AdminLayout() {
             {SECTIONS.filter((o) => !o.roleRequis || o.roleRequis === admin.role).map((o) => (
               <NavLink key={o.chemin} to={`/admin/${o.chemin}`}>
                 {o.libelle}
-                {o.chemin === 'messages' && nonLus > 0 && ' '}
-                {o.chemin === 'messages' && nonLus > 0 && (
+                {compteur(o.chemin) > 0 && ' '}
+                {compteur(o.chemin) > 0 && (
                   <>
                     {/* Pastille visuelle (décorative) + phrase complète pour les lecteurs d'écran. */}
                     <span className="pastille-compteur" aria-hidden="true">
-                      {nonLus > 99 ? '99+' : nonLus}
+                      {compteur(o.chemin) > 99 ? '99+' : compteur(o.chemin)}
                     </span>
                     <span className="sr-only">
                       {' '}
-                      {nonLus > 99 ? '99+' : nonLus} non lu{nonLus > 1 ? 's' : ''}
+                      {compteur(o.chemin) > 99 ? '99+' : compteur(o.chemin)} non lu
+                      {compteur(o.chemin) > 1 ? 's' : ''}
                     </span>
                   </>
                 )}

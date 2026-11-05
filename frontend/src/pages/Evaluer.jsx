@@ -382,6 +382,10 @@ export default function Evaluer() {
                       </p>
                     )}
                   </div>
+                  <p className="fraicheur" style={{ marginBottom: 12 }}>
+                    Ce résultat vous a aidé ?{' '}
+                    <Link to="/avis?page=evaluer">Donnez votre avis sur le site</Link>.
+                  </p>
                   <div className="resultat-actions">
                     <Link to={`/aides?profil=${codeProfilAides}`} className="bouton">
                       Voir les aides pour moi <span aria-hidden="true">→</span>

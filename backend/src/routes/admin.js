@@ -225,7 +225,10 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
 
   // Pastille « non lus » : le nombre de messages jamais ouverts.
   r.get('/messages/non-lus', exigerRoleAdmin, async (_req, res) => {
-    res.json({ nombre: await prisma.messageContact.count({ where: { luLe: null } }) });
+    res.json({
+      nombre: await prisma.messageContact.count({ where: { luLe: null } }),
+      avis: await prisma.avis.count({ where: { luLe: null } }), // pastille de l'onglet « Avis »
+    });
   });
 
   r.post('/messages/tout-lire', exigerRoleAdmin, async (_req, res) => {
@@ -252,6 +255,56 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
     const id = valider(idSchema, req.params.id);
     const { count } = await prisma.messageContact.deleteMany({ where: { id } });
     if (count === 0) return res.status(404).json({ error: 'Message introuvable.' });
+    res.status(204).end();
+  });
+
+  // ───── Avis des visiteurs sur le site (anonymes, supprimés automatiquement) ─────
+  // Réponse : des statistiques sur TOUS les avis (moyenne, répartition des notes) et les 200 plus récents.
+  r.get('/avis', exigerRoleAdmin, async (_req, res) => {
+    const [total, groupes, nonLus, avis] = await Promise.all([
+      prisma.avis.count(),
+      prisma.avis.groupBy({ by: ['note'], _count: { _all: true } }),
+      prisma.avis.count({ where: { luLe: null } }),
+      prisma.avis.findMany({ orderBy: { id: 'desc' }, take: 200 }),
+    ]);
+    const repartition = Object.fromEntries([1, 2, 3, 4, 5].map((n) => [n, 0]));
+    let somme = 0;
+    for (const g of groupes) {
+      repartition[g.note] = g._count._all;
+      somme += g.note * g._count._all;
+    }
+    res.json({
+      stats: {
+        total,
+        nonLus,
+        moyenne: total ? Math.round((somme / total) * 10) / 10 : null,
+        repartition,
+      },
+      avis,
+    });
+  });
+
+  r.post('/avis/tout-lire', exigerRoleAdmin, async (_req, res) => {
+    const { count } = await prisma.avis.updateMany({
+      where: { luLe: null },
+      data: { luLe: new Date() },
+    });
+    res.json({ marques: count });
+  });
+
+  r.post('/avis/:id/lu', exigerRoleAdmin, async (req, res) => {
+    const id = valider(idSchema, req.params.id);
+    if (!(await prisma.avis.findUnique({ where: { id }, select: { id: true } }))) {
+      return res.status(404).json({ error: 'Avis introuvable.' });
+    }
+    await prisma.avis.updateMany({ where: { id, luLe: null }, data: { luLe: new Date() } });
+    res.status(204).end();
+  });
+
+  r.delete('/avis/:id', exigerRoleAdmin, async (req, res) => {
+    const id = valider(idSchema, req.params.id);
+    const { count } = await prisma.avis.deleteMany({ where: { id } });
+    if (count === 0) return res.status(404).json({ error: 'Avis introuvable.' });
     res.status(204).end();
   });
 

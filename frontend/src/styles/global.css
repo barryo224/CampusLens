@@ -1409,3 +1409,72 @@ a {
     align-items: flex-start;
   }
 }
+
+/* ───── Avis : note de 1 à 5 (boutons radio mis en forme) ───── */
+.notes {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.note {
+  position: relative;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  padding: 10px 6px;
+}
+.note-chiffre {
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+}
+.note-libelle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+@media (max-width: 560px) {
+  .notes {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .note {
+    padding: 8px 2px;
+  }
+  .note-libelle {
+    font-size: 0.7rem;
+  }
+}
+
+/* ───── Administration : vue d'ensemble des avis ───── */
+.stats-avis {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr;
+  gap: 24px;
+  align-items: center;
+}
+.repartition {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.repartition li {
+  display: grid;
+  grid-template-columns: 48px 1fr 32px;
+  gap: 10px;
+  align-items: center;
+}
+@media (max-width: 560px) {
+  .stats-avis {
+    grid-template-columns: 1fr;
+  }
+}
+.champ select {
+  font: inherit;
+  padding: 12px 14px;
+  border: 1px solid #b9c4c9;
+  border-radius: 10px;
+  background: #fff;
+  width: 100%;
+}

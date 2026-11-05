@@ -12,6 +12,7 @@ const TABLES = [
   'historique_valeur',
   'synchronisation',
   'message_contact',
+  'avis',
   'administrateur',
   'ressource',
   'association',

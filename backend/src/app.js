@@ -5,6 +5,7 @@ import session from 'express-session';
 import rateLimit from 'express-rate-limit';
 import { routesPubliques } from './routes/publiques.js';
 import { routeContact } from './routes/contact.js';
+import { routeAvis } from './routes/avis.js';
 import { routeSimulation } from './routes/simulation.js';
 import { notificateurDepuisEnv } from './notifications/courriel.js';
 import { routesAdmin } from './routes/admin.js';
@@ -29,6 +30,7 @@ export function createApp({
   limiteParMinute = Number(process.env.API_LIMITE_PAR_MINUTE) ||
     (process.env.NODE_ENV === 'production' ? 600 : 5000),
   moisConservationContact = Number(process.env.CONTACT_RETENTION_MONTHS) || 6,
+  moisConservationAvis = Number(process.env.AVIS_RETENTION_MONTHS) || 12,
 } = {}) {
   if (production && !sessionSecret) {
     throw new Error('SESSION_SECRET est obligatoire en production.');
@@ -71,6 +73,18 @@ export function createApp({
     }),
   );
 
+  // Avis : 5 par 10 minutes et par IP (on ne conserve pas l'adresse IP : le compteur est en mémoire).
+  app.use(
+    '/api/avis',
+    rateLimit({
+      windowMs: 10 * 60_000,
+      limit: 5,
+      standardHeaders: 'draft-7',
+      legacyHeaders: false,
+      message: { error: 'Trop d’avis envoyés. Réessayez dans quelques minutes.' },
+    }),
+  );
+
   // Sessions : uniquement pour l'espace admin (aucun cookie n'est posé aux visiteurs).
   app.use(
     '/api/admin',
@@ -97,6 +111,7 @@ export function createApp({
     '/api',
     routeSimulation(prisma, { fetchImpl, maintenant, ...(urlOpenfisca && { urlOpenfisca }) }),
   );
+  app.use('/api', routeAvis(prisma, { moisConservation: moisConservationAvis }));
   app.use(
     '/api',
     routeContact(prisma, { moisConservation: moisConservationContact, notificateur }),

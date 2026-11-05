@@ -192,6 +192,42 @@ const A_VERIFIER = [
   },
 ];
 
+const AVIS = {
+  stats: { total: 3, nonLus: 2, moyenne: 3.7, repartition: { 1: 0, 2: 1, 3: 0, 4: 1, 5: 1 } },
+  avis: [
+    {
+      id: 3,
+      note: 5,
+      commentaire: '<b>Super</b> : le simulateur m’a aidé.',
+      page: 'evaluer',
+      profil: 'intl',
+      creeLe: '2026-11-05T09:30:00Z',
+      supprimerApres: '2027-11-05T09:30:00Z',
+      luLe: null,
+    },
+    {
+      id: 2,
+      note: 4,
+      commentaire: null,
+      page: null,
+      profil: null,
+      creeLe: '2026-11-04T08:00:00Z',
+      supprimerApres: '2027-11-04T08:00:00Z',
+      luLe: null,
+    },
+    {
+      id: 1,
+      note: 2,
+      commentaire: 'Je n’ai pas compris le budget.',
+      page: 'budget',
+      profil: 'fr_ue',
+      creeLe: '2026-11-03T08:00:00Z',
+      supprimerApres: '2027-11-03T08:00:00Z',
+      luLe: '2026-11-04T08:00:00Z',
+    },
+  ],
+};
+
 const connecte = (role = 'admin', extra = {}) =>
   simulerApi({
     '/admin/me': { email: 'admin@campuslens.test', role },
@@ -199,7 +235,8 @@ const connecte = (role = 'admin', extra = {}) =>
     '/admin/sources': SOURCES,
     '/admin/historique': HISTORIQUE,
     '/admin/messages': MESSAGES,
-    '/admin/messages/non-lus': { nombre: 2 },
+    '/admin/messages/non-lus': { nombre: 2, avis: 0 },
+    '/admin/avis': AVIS,
     '/admin/verification': A_VERIFIER,
     ...extra,
   });
@@ -623,6 +660,104 @@ describe('Espace administration', () => {
 
     it('accessibilité : aucune violation axe-core', async () => {
       await ouvrirVerification();
+      expect(await violationsAxe(document.body)).toEqual([]);
+    });
+  });
+
+  describe('Avis des visiteurs', () => {
+    it('onglet réservé à l’admin, pastille des avis non lus, titre de l’onglet du navigateur', async () => {
+      connecte('admin', { '/admin/messages/non-lus': { nombre: 2, avis: 2 } });
+      rendreApp('/admin/sources');
+      const lien = await screen.findByRole('link', { name: /^Avis/ });
+      await vi.waitFor(() => expect(lien).toHaveAccessibleName('Avis 2 non lus'));
+      // Messages (2) + avis (2) : « (4) » dans le titre.
+      await vi.waitFor(() => expect(document.title).toBe('(4) Espace administration · CampusLens'));
+      cleanup();
+
+      connecte('relecteur');
+      rendreApp('/admin');
+      await screen.findByRole('navigation', { name: 'Sections de l’administration' });
+      expect(screen.queryByRole('link', { name: /^Avis/ })).not.toBeInTheDocument();
+    });
+
+    it('un relecteur qui tape l’adresse à la main est renvoyé vers « À valider »', async () => {
+      connecte('relecteur');
+      rendreApp('/admin/avis');
+      const lien = await screen.findByRole('link', { name: 'À valider' });
+      await vi.waitFor(() => expect(lien).toHaveAttribute('aria-current', 'page')); // redirection effectuée
+      expect(screen.queryByTestId('moyenne-avis')).not.toBeInTheDocument();
+    });
+
+    it('affiche la moyenne, la répartition des notes et chaque avis (texte jamais interprété)', async () => {
+      connecte();
+      rendreApp('/admin/avis');
+      expect(await screen.findByTestId('moyenne-avis')).toHaveTextContent('3,7 / 5');
+      expect(screen.getByTestId('moyenne-avis')).toHaveTextContent(
+        'moyenne sur 3 avis, dont 2 non lus',
+      );
+      const repartition = screen.getByRole('list', { name: 'Répartition des notes' });
+      expect(within(repartition).getByText(/5 ★/)).toHaveTextContent('1 avis');
+      expect(within(repartition).getByText(/1 ★/)).toHaveTextContent('0 avis');
+
+      // Le contenu envoyé par un visiteur reste du texte : jamais de HTML injecté.
+      expect(screen.getByText('<b>Super</b> : le simulateur m’a aidé.')).toBeInTheDocument();
+      expect(document.querySelector('.message-texte b')).toBeNull();
+      expect(screen.getByText(/Aucun commentaire, note seule/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Évaluer ma situation · Étudiant international hors UE/),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Page non précisée/)).toBeInTheDocument();
+      expect(screen.getAllByText('Nouveau')).toHaveLength(2); // seuls les non lus
+    });
+
+    it('sans avis : message clair, pas de moyenne inventée', async () => {
+      connecte('admin', {
+        '/admin/avis': {
+          stats: {
+            total: 0,
+            nonLus: 0,
+            moyenne: null,
+            repartition: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          },
+          avis: [],
+        },
+      });
+      rendreApp('/admin/avis');
+      expect(await screen.findByText('Aucun avis reçu pour l’instant.')).toBeInTheDocument();
+      expect(screen.queryByTestId('moyenne-avis')).not.toBeInTheDocument();
+    });
+
+    it('« Marquer comme lu », « Tout marquer » et « Supprimer » (avec confirmation) appellent l’API', async () => {
+      const mock = connecte('admin', {
+        '/admin/avis/3/lu': { __status: 204 },
+        '/admin/avis/tout-lire': { marques: 2 },
+      });
+      vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValue(true);
+      rendreApp('/admin/avis');
+      await screen.findByTestId('moyenne-avis');
+      const appels = (methode, fin) =>
+        mock.mock.calls.filter(([u, o]) => u.endsWith(fin) && (o?.method ?? 'GET') === methode);
+
+      await userEvent.click(screen.getByRole('button', { name: /Marquer comme lu.*avis 5 sur 5/ }));
+      await vi.waitFor(() => expect(appels('POST', '/admin/avis/3/lu')).toHaveLength(1));
+
+      await userEvent.click(screen.getByRole('button', { name: 'Tout marquer comme lu' }));
+      await vi.waitFor(() => expect(appels('POST', '/admin/avis/tout-lire')).toHaveLength(1));
+      expect(await screen.findByText('Tous les avis sont marqués comme lus.')).toBeInTheDocument();
+
+      // Suppression : refusée à la première confirmation, acceptée à la seconde.
+      const supprimer = () => screen.getByRole('button', { name: /Supprimer.*avis 2 sur 5/ });
+      await userEvent.click(supprimer());
+      expect(appels('DELETE', '/admin/avis/1')).toHaveLength(0);
+      await userEvent.click(supprimer());
+      await vi.waitFor(() => expect(appels('DELETE', '/admin/avis/1')).toHaveLength(1));
+      window.confirm.mockRestore();
+    });
+
+    it('accessibilité : aucune violation axe-core', async () => {
+      connecte();
+      rendreApp('/admin/avis');
+      await screen.findByTestId('moyenne-avis');
       expect(await violationsAxe(document.body)).toEqual([]);
     });
   });

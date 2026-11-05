@@ -117,6 +117,14 @@ export async function purgerMessagesContact(prisma, maintenant = new Date()) {
   return count;
 }
 
+/** RGPD : supprime les avis arrivés à leur date de suppression. */
+export async function purgerAvis(prisma, maintenant = new Date()) {
+  const { count } = await prisma.avis.deleteMany({
+    where: { supprimerApres: { lte: maintenant } },
+  });
+  return count;
+}
+
 export async function purgerSessionsExpirees(prisma, maintenant = new Date()) {
   const { count } = await prisma.sessionAdmin.deleteMany({
     where: { expire: { lte: maintenant } },
@@ -130,6 +138,7 @@ export async function maintenanceQuotidienne(prisma, maintenant = new Date()) {
     anneeEnCours: await mettreAJourAnneeEnCours(prisma, maintenant),
     sourcesPerimees: await marquerSourcesPerimees(prisma, maintenant),
     messagesSupprimes: await purgerMessagesContact(prisma, maintenant),
+    avisSupprimes: await purgerAvis(prisma, maintenant),
     sessionsSupprimees: await purgerSessionsExpirees(prisma, maintenant),
   };
 }

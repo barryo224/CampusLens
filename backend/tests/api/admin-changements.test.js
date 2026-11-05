@@ -235,13 +235,13 @@ describe('API admin : sources, changements, historique', () => {
       const a = await creer('A');
       await creer('B');
       await creer('C');
-      expect((await admin.get('/api/admin/messages/non-lus')).body).toEqual({ nombre: 3 });
+      expect((await admin.get('/api/admin/messages/non-lus')).body).toMatchObject({ nombre: 3 });
       expect((await admin.get('/api/admin/messages')).body.every((m) => m.luLe === null)).toBe(
         true,
       );
 
       expect((await admin.post(`/api/admin/messages/${a.id}/lu`)).status).toBe(204);
-      expect((await admin.get('/api/admin/messages/non-lus')).body).toEqual({ nombre: 2 });
+      expect((await admin.get('/api/admin/messages/non-lus')).body).toMatchObject({ nombre: 2 });
       expect(
         (await admin.get('/api/admin/messages')).body.find((m) => m.id === a.id).luLe,
       ).not.toBeNull();
@@ -254,7 +254,7 @@ describe('API admin : sources, changements, historique', () => {
       );
 
       expect((await admin.post('/api/admin/messages/tout-lire')).body).toEqual({ marques: 2 });
-      expect((await admin.get('/api/admin/messages/non-lus')).body).toEqual({ nombre: 0 });
+      expect((await admin.get('/api/admin/messages/non-lus')).body).toMatchObject({ nombre: 0 });
     });
 
     it('non lus : réservé au rôle admin ; message inconnu → 404 ; identifiant invalide → 400 ; sans session → 401', async () => {
@@ -279,7 +279,7 @@ describe('API admin : sources, changements, historique', () => {
         .post('/api/contact')
         .send({ objet: 'Bourse', email: 'x@exemple.fr', message: 'Comment faire ?' })
         .expect(201);
-      expect((await admin.get('/api/admin/messages/non-lus')).body).toEqual({ nombre: 1 });
+      expect((await admin.get('/api/admin/messages/non-lus')).body).toMatchObject({ nombre: 1 });
     });
 
     it('suppression anticipée (droit à l’effacement) : le message disparaît ; inconnu → 404 ; id invalide → 400', async () => {
