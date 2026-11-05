@@ -1,5 +1,4 @@
 import Icone from '../components/Icone.jsx';
-import Pied from '../components/Pied.jsx';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import photoMission from '../assets/mission-etudiants.webp';
 
@@ -70,21 +69,6 @@ export default function APropos() {
           </strong>
         </div>
       </section>
-
-      <p className="fraicheur credit-photo">
-        Photo de la page d’accueil : fournie par l’équipe. Photo de la mission : RDNE Stock project,
-        via{' '}
-        <a
-          href="https://www.pexels.com/photo/college-students-studying-together-7683734/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Pexels<span className="sr-only"> (nouvel onglet)</span>
-        </a>
-        .
-      </p>
-
-      <Pied />
     </>
   );
 }

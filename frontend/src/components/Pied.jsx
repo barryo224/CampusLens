@@ -29,6 +29,13 @@ export default function Pied() {
         <p>Projet étudiant · Licence MIASHS</p>
         <p>© 2026 CampusLens</p>
       </div>
+      <p className="pied-credit">
+        Photos du bandeau d’accueil et de la page À propos :{' '}
+        <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer">
+          Pexels<span className="sr-only"> (nouvel onglet)</span>
+        </a>
+        , licence libre. Données publiques : CROUS, CAF, ministère, service-public.fr.
+      </p>
     </footer>
   );
 }

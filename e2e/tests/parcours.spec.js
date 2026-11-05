@@ -21,7 +21,7 @@ test('E2E-01 : Accueil → Évaluer → saisie → « Voir les aides pour moi »
 }) => {
   await page.goto('/');
   await page
-    .getByRole('region', { name: /Comprendre pour agir ensemble/ })
+    .getByRole('region', { name: /La précarité étudiante en France/ })
     .getByRole('link', { name: /Évaluer ma situation/ })
     .click();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Évaluez votre situation');

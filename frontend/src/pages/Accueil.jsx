@@ -4,8 +4,8 @@ import MessageErreur from '../components/MessageErreur.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { PROFILS } from '../lib/profils.js';
-import photoHero from '../assets/hero-etudiants.webp';
-import photoHeroPetite from '../assets/hero-etudiants-480.webp';
+import photoGrande from '../assets/hero-1600.webp';
+import photoMoyenne from '../assets/hero-900.webp';
 
 const ICONE_CATEGORIE = {
   etudes: 'chapeau',
@@ -36,38 +36,39 @@ export default function Accueil() {
 
   return (
     <>
-      <section className="carte hero" aria-labelledby="titre-hero">
-        <div className="hero-texte">
-          <h1 id="titre-hero">
-            Comprendre pour <span>agir ensemble.</span>
-          </h1>
-          <p>
-            CampusLens aide chaque étudiant en France à évaluer son budget et à découvrir les aides
-            auxquelles il a droit, simplement et gratuitement.
-          </p>
-          <div className="hero-actions">
-            <Link to="/evaluer" className="bouton">
-              Évaluer ma situation <Icone nom="fleche" taille={18} />
-            </Link>
-            <Link to="/aides" className="bouton bouton-secondaire">
-              Découvrir mes aides
-            </Link>
+      <div className="hero-cadre">
+        <section className="hero" aria-labelledby="titre-hero">
+          <div className="hero-texte">
+            <p className="hero-accroche">Comprendre pour agir ensemble</p>
+            <h1 id="titre-hero">La précarité étudiante en France</h1>
+            <p className="hero-description">
+              CampusLens aide chaque étudiant en France à évaluer son budget et à découvrir les
+              aides auxquelles il a droit, simplement et gratuitement.
+            </p>
+            <div className="hero-actions">
+              <Link to="/evaluer" className="bouton">
+                Évaluer ma situation <Icone nom="fleche" taille={18} />
+              </Link>
+              <Link to="/aides" className="bouton bouton-secondaire">
+                Découvrir mes aides
+              </Link>
+            </div>
           </div>
-        </div>
-        <div className="hero-photo">
-          {/* Image du bandeau : chargée en priorité (c'est le plus gros élément visible). */}
-          <img
-            src={photoHero}
-            srcSet={`${photoHeroPetite} 480w, ${photoHero} 720w`}
-            sizes="(max-width: 900px) 100vw, 45vw"
-            width="720"
-            height="720"
-            alt="Trois étudiants assis sur des marches, qui consultent un ordinateur portable en souriant"
-            fetchPriority="high"
-            decoding="async"
-          />
-        </div>
-      </section>
+          <div className="hero-photo">
+            {/* Photo du bandeau : chargée en priorité (c'est le plus gros élément visible). */}
+            <img
+              src={photoGrande}
+              srcSet={`${photoMoyenne} 900w, ${photoGrande} 1600w`}
+              sizes="(max-width: 900px) 100vw, 1500px"
+              width="1600"
+              height="1067"
+              alt="Trois étudiants souriants assis sur la pelouse d’un campus, qui lisent et travaillent sur un ordinateur"
+              fetchPriority="high"
+              decoding="async"
+            />
+          </div>
+        </section>
+      </div>
 
       <section aria-labelledby="titre-etapes">
         <h2 id="titre-etapes" className="titre-section">

@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import MessageErreur from '../components/MessageErreur.jsx';
 import ZoneDefilante from '../components/ZoneDefilante.jsx';
-import Pied from '../components/Pied.jsx';
 import Icone from '../components/Icone.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
@@ -159,7 +158,6 @@ export default function Ressources() {
             )}
           </section>
         )}
-        {(data || erreur) && <Pied />}
       </div>
     </>
   );

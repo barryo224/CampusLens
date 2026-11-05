@@ -14,9 +14,9 @@ describe('Page Accueil', () => {
     simulerApi({ '/aides': AIDES_ACCUEIL });
     rendreApp('/');
     expect(
-      screen.getByRole('heading', { level: 1, name: /Comprendre pour agir ensemble/ }),
+      screen.getByRole('heading', { level: 1, name: /La précarité étudiante en France/ }),
     ).toBeInTheDocument();
-    const hero = within(screen.getByRole('region', { name: /Comprendre pour agir ensemble/ }));
+    const hero = within(screen.getByRole('region', { name: /La précarité étudiante en France/ }));
     expect(hero.getByRole('link', { name: /Évaluer ma situation/ })).toHaveAttribute(
       'href',
       '/evaluer',
@@ -31,6 +31,24 @@ describe('Page Accueil', () => {
     );
     expect(etapes).toHaveLength(3);
     await screen.findByText('Garantie Visale'); // laisse finir le chargement
+  });
+
+  it('le bandeau : grand titre « La précarité étudiante en France », accroche « Comprendre pour agir ensemble » en petit', async () => {
+    simulerApi({ '/aides': AIDES_ACCUEIL });
+    rendreApp('/');
+    const titre = screen.getByRole('heading', { level: 1 });
+    expect(titre).toHaveTextContent('La précarité étudiante en France');
+    expect(titre).not.toHaveTextContent('Comprendre pour agir ensemble'); // l'accroche n'est PAS le titre
+    const accroche = screen.getByText('Comprendre pour agir ensemble');
+    expect(accroche.tagName).toBe('P');
+    expect(accroche).toHaveClass('hero-accroche');
+    // La photo décrit la scène et réserve sa place (dimensions) : pas de saut de page au chargement.
+    const photo = screen.getByRole('img', { name: /Trois étudiants souriants/ });
+    expect(photo).toHaveAttribute('width');
+    expect(photo).toHaveAttribute('height');
+    expect(photo).toHaveAttribute('fetchpriority', 'high'); // c'est l'élément le plus visible : chargé en priorité
+    expect(photo.getAttribute('srcset')).toMatch(/900w.*1600w/); // version plus légère pour les écrans moyens et mobiles
+    await screen.findByText('Garantie Visale');
   });
 
   it('charge les aides mises en avant depuis l’API (rien d’écrit en dur)', async () => {
