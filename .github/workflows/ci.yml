@@ -80,7 +80,8 @@ jobs:
         run: npx playwright install --with-deps ${{ github.event_name == 'push' && 'chromium' || 'chromium firefox webkit' }}
       - name: Tests de bout en bout — Chromium (à chaque push)
         if: github.event_name == 'push'
-        run: npm run test:e2e -- --project=chromium
+        working-directory: e2e
+        run: npx playwright test --project=chromium
         env:
           CORS_ORIGIN: http://localhost:5173
       - name: Tests de bout en bout — Chrome, Firefox, Safari et mobile (site de développement)
