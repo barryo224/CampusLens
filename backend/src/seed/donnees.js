@@ -614,8 +614,9 @@ export const TARIFS_TRANSPORT = [
     reseau: 'Tisséo',
     libelle: 'Annuel étudiant 20-25 ans',
     montantAnnuel: 169.6,
+    montantMensuel: 16,
     conditions:
-      '20 à 25 ans révolus, justificatif d’inscription. Paiement comptant ; carte Pastel 10 € si besoin.',
+      '20 à 25 ans révolus, justificatif d’inscription. Pass 31 jours à 16 € ; l’annuel (169,60 €) se paie comptant. Carte Pastel 10 € si besoin.',
     urlTarifs: 'https://eboutique.tisseo.fr/fr/produits/annuel-niveau-3-etudiants-20-25ans',
   },
   {

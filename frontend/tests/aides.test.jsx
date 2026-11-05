@@ -269,6 +269,40 @@ describe('Mes aides', () => {
     expect(ligne).toHaveTextContent('vérification en cours');
   });
 
+  it('comparateur de villes : le pass mensuel prime sur l’annuel ÷ 12 quand le réseau en propose un', async () => {
+    apiAides({
+      '/villes': [
+        {
+          id: 1,
+          nom: 'Toulouse',
+          region: 'Occitanie',
+          loyerStudioEstime: 327,
+          nbLogementsCrous: 32,
+          loyerCrousDesA: null,
+          abonnementTransport: 16,
+          transport: {
+            reseau: 'Tisséo',
+            libelle: 'Étudiant 20-25 ans',
+            montantAnnuel: 169.6,
+            montantMensuel: 16,
+            urlTarifs: 'https://eboutique.tisseo.fr/',
+            source: { organisme: 'Tisséo' },
+            verifieLe: null,
+            aVerifier: true,
+          },
+          source: { organisme: 'ANIL' },
+          verifieLe: '2026-09-01T00:00:00Z',
+          aVerifier: false,
+        },
+      ],
+    });
+    rendreApp('/aides?onglet=villes');
+    const ligne = (await screen.findByRole('rowheader', { name: /Toulouse/ })).closest('tr');
+    expect(ligne).toHaveTextContent('16');
+    expect(ligne).toHaveTextContent('pass mensuel');
+    expect(ligne).not.toHaveTextContent('14,13');
+  });
+
   it('accessibilité : aucune violation axe-core', async () => {
     apiAides();
     const { container } = rendreApp('/aides');

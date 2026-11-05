@@ -237,7 +237,10 @@ function Villes() {
                       {nombre(v.abonnementTransport)} / mois
                       <span className="aide-organisme">
                         {v.transport.reseau} — {v.transport.libelle} (
-                        {formaterEuro(v.transport.montantAnnuel)} par an) ·{' '}
+                        {v.transport.montantMensuel
+                          ? `pass mensuel ; ${formaterEuro(v.transport.montantAnnuel)} par an en annuel`
+                          : `${formaterEuro(v.transport.montantAnnuel)} par an`}
+                        ) ·{' '}
                         <a href={v.transport.urlTarifs} target="_blank" rel="noopener noreferrer">
                           tarifs officiels<span className="sr-only"> (nouvel onglet)</span>
                         </a>

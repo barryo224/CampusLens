@@ -302,12 +302,16 @@ function formaterTransport(t, maintenant) {
   if (!t) return { abonnementTransport: null, transport: null };
   const annuel = nombre(t.montantAnnuel);
   return {
-    abonnementTransport: Math.round((annuel / 12) * 100) / 100,
+    // Le prix du pass mensuel s'il existe (c'est ce que paie un étudiant sans engagement), sinon l'annuel ÷ 12.
+    abonnementTransport: t.montantMensuel
+      ? nombre(t.montantMensuel)
+      : Math.round((annuel / 12) * 100) / 100,
     transport: avecSource(
       {
         reseau: t.reseau,
         libelle: t.libelle,
         montantAnnuel: annuel,
+        montantMensuel: nombre(t.montantMensuel),
         conditions: t.conditions,
         urlTarifs: t.urlTarifs,
         verifieLe: t.verifieLe,
