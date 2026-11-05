@@ -78,6 +78,27 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.getByRole('img', { name: /Reste-à-vivre : -125,58/ })).toBeInTheDocument();
   });
 
+  it('international : compare les ressources déclarées au seuil du visa ; rien pour un Français', async () => {
+    simulerApi({ '/parametres': PARAMETRES_API });
+    rendreApp('/evaluer');
+    await screen.findByText('Votre profil');
+    await userEvent.type(screen.getByLabelText('Aide de la famille'), '700');
+    expect(screen.queryByTestId('ressources-visa')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', { name: /international hors UE/ }));
+    const bloc = await screen.findByTestId('ressources-visa');
+    expect(bloc).toHaveTextContent('877,50');
+    expect(bloc).toHaveTextContent('700,00');
+    expect(bloc).toHaveTextContent('en dessous du seuil');
+
+    await userEvent.type(screen.getByLabelText('Job étudiant (net)'), '200');
+    expect(screen.getByTestId('ressources-visa')).toHaveTextContent('atteint le seuil');
+    expect(screen.getByRole('link', { name: 'le budget de rentrée' })).toHaveAttribute(
+      'href',
+      '/budget?profil=intl',
+    );
+  });
+
   it('UI-02 : le profil international affiche « exonéré » et le rappel 964 h ; masqués sinon', async () => {
     await ouvrir();
     expect(screen.queryByLabelText(/exonéré des droits différenciés/)).not.toBeInTheDocument();

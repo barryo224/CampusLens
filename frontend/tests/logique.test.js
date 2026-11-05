@@ -59,6 +59,35 @@ describe('choisirRecommandations', () => {
     expect(ids({ ...intl, exonere: true }, {})).not.toContain('exoneration');
     expect(ids(intl, { job: 5000 })).not.toContain('urgence');
   });
+  it('international : l’exonération est le premier conseil (jamais coupée) et la bourse mentionne ses conditions', () => {
+    const intl = { ...FR, statut: 'intl' };
+    const r = choisirRecommandations({
+      profil: intl,
+      resultat: calcul(intl, { loyer: 800, job: 300 }),
+      parametres: PARAMS,
+    });
+    expect(r[0].id).toBe('exoneration');
+    expect(r.find((x) => x.id === 'bourse').texte).toMatch(/sous conditions/);
+    const fr = choisirRecommandations({
+      profil: FR,
+      resultat: calcul(FR, { loyer: 800, job: 300 }),
+      parametres: PARAMS,
+    });
+    expect(fr.find((x) => x.id === 'bourse').texte).not.toMatch(/sous conditions/);
+  });
+  it('ressources à justifier pour le visa : seulement pour un étudiant étranger, comparées sans l’APL', () => {
+    const avec = [
+      ...PARAMS,
+      { cle: 'ressources_mensuelles_visa', niveau: 'aucun', profil: 'intl', valeur: 877.5 },
+    ];
+    const intl = { ...FR, statut: 'intl' };
+    const juste = calcul(intl, { job: 400, famille: 477.5, aideLogement: 200 }, avec);
+    expect(juste.ressourcesVisa).toEqual({ exigees: 877.5, declarees: 877.5, suffisantes: true });
+    const trop = calcul(intl, { job: 400, famille: 477, aideLogement: 500 }, avec);
+    expect(trop.ressourcesVisa.suffisantes).toBe(false); // l'APL ne compte pas
+    expect(calcul(FR, { job: 100 }, avec).ressourcesVisa).toBeNull();
+    expect(calcul(intl, { job: 100 }, PARAMS).ressourcesVisa).toBeNull(); // paramètre absent : pas de seuil inventé
+  });
   it('budget équilibré : message positif, ni urgence ni courses', () => {
     const r = ids(FR, { job: 5000, loyer: 300 });
     expect(r).toContain('equilibre');

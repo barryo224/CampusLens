@@ -343,6 +343,21 @@ export default function Evaluer() {
                         </>
                       )}
                     </p>
+                    {resultat.ressourcesVisa && (
+                      <p data-testid="ressources-visa">
+                        <strong>Visa et titre de séjour.</strong> L’administration demande{' '}
+                        {formaterEuroCentimes(resultat.ressourcesVisa.exigees)} de ressources par
+                        mois. Vous déclarez{' '}
+                        {formaterEuroCentimes(resultat.ressourcesVisa.declarees)} (job, famille et
+                        bourse, hors aide au logement) :{' '}
+                        {resultat.ressourcesVisa.suffisantes
+                          ? 'ce montant atteint le seuil.'
+                          : 'ce montant est en dessous du seuil.'}{' '}
+                        Indicatif : la préfecture apprécie votre situation. À l’arrivée s’ajoute une
+                        taxe de validation du visa : voir{' '}
+                        <Link to="/budget?profil=intl">le budget de rentrée</Link>.
+                      </p>
+                    )}
                     {resultat.tarif === 'international' && (
                       <p>
                         Une exonération des droits différenciés est possible : demandez-la à votre

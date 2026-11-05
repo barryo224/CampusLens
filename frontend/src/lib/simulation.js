@@ -108,6 +108,25 @@ export function calculerResteAVivre(profil, saisie, parametres) {
   }
   const seuilFragile = trouverParametre(parametres, 'seuil_fragile');
 
+  // Étudiant étranger : ressources demandées pour le visa et le titre de séjour (si le paramètre est connu).
+  // On compare avec ce que l'étudiant déclare, hors aide au logement (qui n'est pas une ressource de l'étudiant).
+  let ressourcesVisa = null;
+  if (statut === 'intl') {
+    try {
+      const exigees = trouverParametre(parametres, 'ressources_mensuelles_visa', {
+        profil: 'intl',
+      });
+      const declareesC = sommeCentimes(saisie, ['job', 'famille', 'bourse']);
+      ressourcesVisa = {
+        exigees,
+        declarees: declareesC / 100,
+        suffisantes: declareesC >= enCentimes(exigees),
+      };
+    } catch {
+      ressourcesVisa = null; // paramètre absent : on n'invente pas de seuil
+    }
+  }
+
   const revenusC = sommeCentimes(saisie, CHAMPS_REVENUS);
   const depensesC = sommeCentimes(saisie, CHAMPS_DEPENSES);
   const fraisC = (enCentimes(droits) + enCentimes(cvec)) / 12; // droits + CVEC lissés sur 12 mois
@@ -132,6 +151,7 @@ export function calculerResteAVivre(profil, saisie, parametres) {
     niveau: niveauSituation,
     libelleNiveau: LIBELLES_NIVEAU[niveauSituation],
     tarif,
+    ressourcesVisa,
     // Part du loyer dans les revenus (sert aux recommandations) ; null si aucun revenu.
     partLoyer: totalRevenus > 0 ? loyer / totalRevenus : null,
   };

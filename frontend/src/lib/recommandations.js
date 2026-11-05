@@ -11,12 +11,29 @@ import { trouverParametre } from './simulation.js';
 export function choisirRecommandations({ profil, resultat, parametres }) {
   const liste = [];
 
+  const etranger = profil.statut === 'intl';
+
+  // Un étudiant étranger a d'abord intérêt à demander l'exonération des droits différenciés (c'est son plus gros poste).
+  if (etranger && !profil.exonere && !profil.boursier) {
+    liste.push({
+      id: 'exoneration',
+      titre: 'Demander une exonération',
+      texte: 'Votre université peut ramener vos droits d’inscription au tarif national.',
+      lien: { vers: '/aides?profil=intl', libelle: 'Voir les aides' },
+    });
+  }
+
   if (!profil.boursier) {
     liste.push({
       id: 'bourse',
       titre: 'Tester la bourse CROUS',
-      texte: 'Elle offre aussi les droits d’inscription et la CVEC.',
-      lien: { vers: '/aides?profil=boursier', libelle: 'Voir les aides' },
+      texte: etranger
+        ? 'Les étudiants étrangers y ont droit sous conditions (domicile fiscal en France depuis 2 ans). Elle offre aussi les droits d’inscription et la CVEC.'
+        : 'Elle offre aussi les droits d’inscription et la CVEC.',
+      lien: {
+        vers: etranger ? '/aides?profil=intl' : '/aides?profil=boursier',
+        libelle: 'Voir les aides',
+      },
     });
   }
 
@@ -52,15 +69,6 @@ export function choisirRecommandations({ profil, resultat, parametres }) {
       titre: 'Réduire les courses',
       texte: 'Épiceries solidaires, distributions alimentaires et repas CROUS à tarif social.',
       lien: { vers: '/aides?onglet=associations', libelle: 'Voir les associations' },
-    });
-  }
-
-  if (profil.statut === 'intl' && !profil.exonere && !profil.boursier) {
-    liste.push({
-      id: 'exoneration',
-      titre: 'Demander une exonération',
-      texte: 'Votre université peut ramener vos droits d’inscription au tarif national.',
-      lien: { vers: '/aides?profil=intl', libelle: 'Voir les aides' },
     });
   }
 
