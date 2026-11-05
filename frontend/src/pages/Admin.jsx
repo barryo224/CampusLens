@@ -8,6 +8,8 @@ import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { formaterDateHeure, formaterDate } from '../lib/format.js';
 import LienExterne from '../components/LienExterne.jsx';
+import BoutonMenu from '../components/BoutonMenu.jsx';
+import { useMenuRepliable } from '../lib/useMenuRepliable.js';
 
 const LIBELLE_STATUT_SOURCE = { ok: 'À jour', a_verifier: 'À vérifier', erreur: 'En erreur' };
 const CLASSE_STATUT_SOURCE = {
@@ -1293,6 +1295,11 @@ export default function AdminLayout() {
   const [nonLus, setNonLus] = useState(0);
   const [avisNonLus, setAvisNonLus] = useState(0);
   const { pathname } = useLocation();
+  const {
+    ouvert: menuOuvert,
+    basculer: basculerMenu,
+    conteneur: conteneurMenu,
+  } = useMenuRepliable();
   // « (2) Espace administration » : on voit qu'un message attend, même depuis un autre onglet du navigateur.
   usePageTitre(
     nonLus + avisNonLus > 0
@@ -1364,51 +1371,59 @@ export default function AdminLayout() {
       <a className="lien-evitement" href="#contenu-admin">
         Aller au contenu
       </a>
-      <header className="admin-barre">
+      <header className={`admin-barre${menuOuvert ? ' menu-ouvert' : ''}`} ref={conteneurMenu}>
         <Link to="/admin" className="admin-marque">
           <Logo taille={34} />
           <span>
             CampusLens <small>Administration</small>
           </span>
         </Link>
-        {admin && (
-          <nav aria-label="Sections de l’administration" className="admin-nav">
-            {SECTIONS.filter((o) => !o.roleRequis || o.roleRequis === admin.role).map((o) => (
-              <NavLink key={o.chemin} to={`/admin/${o.chemin}`}>
-                {o.libelle}
-                {compteur(o.chemin) > 0 && ' '}
-                {compteur(o.chemin) > 0 && (
-                  <>
-                    {/* Pastille visuelle (décorative) + phrase complète pour les lecteurs d'écran. */}
-                    <span className="pastille-compteur" aria-hidden="true">
-                      {compteur(o.chemin) > 99 ? '99+' : compteur(o.chemin)}
-                    </span>
-                    <span className="sr-only">
-                      {' '}
-                      {compteur(o.chemin) > 99 ? '99+' : compteur(o.chemin)} non lu
-                      {compteur(o.chemin) > 1 ? 's' : ''}
-                    </span>
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-        )}
-        <div className="admin-droite">
+        <BoutonMenu
+          ouvert={menuOuvert}
+          surClic={basculerMenu}
+          controle="admin-menu"
+          signal={nonLus + avisNonLus > 0}
+        />
+        <div className="admin-menu" id="admin-menu">
           {admin && (
-            <span className="admin-qui">
-              {admin.email} ({admin.role})
-            </span>
+            <nav aria-label="Sections de l’administration" className="admin-nav">
+              {SECTIONS.filter((o) => !o.roleRequis || o.roleRequis === admin.role).map((o) => (
+                <NavLink key={o.chemin} to={`/admin/${o.chemin}`}>
+                  {o.libelle}
+                  {compteur(o.chemin) > 0 && ' '}
+                  {compteur(o.chemin) > 0 && (
+                    <>
+                      {/* Pastille visuelle (décorative) + phrase complète pour les lecteurs d'écran. */}
+                      <span className="pastille-compteur" aria-hidden="true">
+                        {compteur(o.chemin) > 99 ? '99+' : compteur(o.chemin)}
+                      </span>
+                      <span className="sr-only">
+                        {' '}
+                        {compteur(o.chemin) > 99 ? '99+' : compteur(o.chemin)} non lu
+                        {compteur(o.chemin) > 1 ? 's' : ''}
+                      </span>
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </nav>
           )}
-          {/* Nouvel onglet : on garde la vue de l'administration ouverte à côté du site. */}
-          <LienExterne href="/" className="bouton bouton-clair">
-            Voir le site
-          </LienExterne>
-          {admin && (
-            <button type="button" className="bouton bouton-clair" onClick={deconnecter}>
-              Se déconnecter
-            </button>
-          )}
+          <div className="admin-droite">
+            {admin && (
+              <span className="admin-qui">
+                {admin.email} ({admin.role})
+              </span>
+            )}
+            {/* Nouvel onglet : on garde la vue de l'administration ouverte à côté du site. */}
+            <LienExterne href="/" className="bouton bouton-clair">
+              Voir le site
+            </LienExterne>
+            {admin && (
+              <button type="button" className="bouton bouton-clair" onClick={deconnecter}>
+                Se déconnecter
+              </button>
+            )}
+          </div>
         </div>
       </header>
 

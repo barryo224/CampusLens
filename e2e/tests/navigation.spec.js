@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { ouvrirMenu } from './menu.js';
 
 const PAGES = [
   { lien: 'Évaluer ma situation', titre: /Évaluez votre situation/ },
@@ -12,11 +13,14 @@ const PAGES = [
 test('E2E-03 : navigation entre les 6 pages, élément actif correct', async ({ page }) => {
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Navigation principale' });
+  await ouvrirMenu(page);
   await expect(nav.getByRole('link', { name: 'Accueil' })).toHaveAttribute('aria-current', 'page');
 
   for (const { lien, titre } of PAGES) {
+    await ouvrirMenu(page);
     await nav.getByRole('link', { name: lien }).click();
     await expect(page.getByRole('heading', { level: 1 })).toContainText(titre);
+    await ouvrirMenu(page);
     await expect(nav.getByRole('link', { name: lien })).toHaveAttribute('aria-current', 'page');
     await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
   }
@@ -32,6 +36,7 @@ test('E2E-06 : aucun défilement horizontal à 390 px, menu utilisable', async (
     );
     expect(debordement, chemin).toBeLessThanOrEqual(0);
   }
+  await ouvrirMenu(page);
   await page
     .getByRole('navigation', { name: 'Navigation principale' })
     .getByRole('link', { name: 'Mes aides' })

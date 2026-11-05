@@ -125,6 +125,17 @@ test('E2E-07 : lien d’évitement, puis un budget complet saisi au clavier jusq
 
   // 2. Aller à « Évaluer ma situation » avec le clavier uniquement.
   await page.goto('/');
+  // Sur téléphone et tablette, le menu est replié : on atteint le bouton « trois tirets » au clavier, Entrée l'ouvre.
+  const boutonMenu = page.getByRole('button', { name: /^(Ouvrir|Fermer) le menu$/ });
+  if (await boutonMenu.isVisible()) {
+    for (let i = 0; i < 4; i++) {
+      await tab(page);
+      if (await boutonMenu.evaluate((e) => e === document.activeElement)) break;
+    }
+    await expect(boutonMenu).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(boutonMenu).toHaveAttribute('aria-expanded', 'true');
+  }
   for (let i = 0; i < 8; i++) {
     await tab(page);
     if (

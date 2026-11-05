@@ -1,6 +1,8 @@
 import { NavLink, Link } from 'react-router-dom';
 import Icone from './Icone.jsx';
 import Logo from './Logo.jsx';
+import BoutonMenu from './BoutonMenu.jsx';
+import { useMenuRepliable } from '../lib/useMenuRepliable.js';
 
 const LIENS = [
   { vers: '/', libelle: 'Accueil', icone: 'accueil', fin: true },
@@ -12,13 +14,17 @@ const LIENS = [
 ];
 
 export default function Sidebar() {
+  const { ouvert, basculer, conteneur } = useMenuRepliable();
   return (
-    <aside className="sidebar">
-      <Link to="/" className="logo" aria-label="CampusLens, retour à l’accueil">
-        <Logo />
-        <span>CampusLens</span>
-      </Link>
-      <nav className="nav" aria-label="Navigation principale">
+    <aside className={`sidebar${ouvert ? ' menu-ouvert' : ''}`} ref={conteneur}>
+      <div className="sidebar-tete">
+        <Link to="/" className="logo" aria-label="CampusLens, retour à l’accueil">
+          <Logo />
+          <span>CampusLens</span>
+        </Link>
+        <BoutonMenu ouvert={ouvert} surClic={basculer} controle="nav-principale" />
+      </div>
+      <nav className="nav" id="nav-principale" aria-label="Navigation principale">
         {LIENS.map((l) => (
           <NavLink key={l.vers} to={l.vers} end={l.fin}>
             <Icone nom={l.icone} />

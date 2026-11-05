@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { ouvrirMenu } from './menu.js';
 import AxeBuilder from '@axe-core/playwright';
 
 // Contrôle d'accessibilité dans un VRAI navigateur (couleurs, contrastes, focus réels) :
@@ -228,6 +229,7 @@ test.describe('administration (réponses simulées)', () => {
   ]) {
     test(`axe-core : admin — ${nom}`, async ({ page }) => {
       await page.goto(chemin);
+      await ouvrirMenu(page);
       await expect(
         page.getByRole('navigation', { name: 'Sections de l’administration' }),
       ).toBeVisible();

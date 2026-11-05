@@ -7,6 +7,7 @@ import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { formaterEuro, formaterEuroCentimes } from '../lib/format.js';
 import { rechercherVilles } from '../lib/rechercheVilles.js';
+import ChampVille from '../components/ChampVille.jsx';
 import LienExterne from '../components/LienExterne.jsx';
 
 const PROFILS = [
@@ -163,6 +164,7 @@ function Associations() {
 function Villes() {
   const { data, erreur, chargement, recharger } = useApi('/villes');
   const [recherche, setRecherche] = useState('');
+  const [choix, setChoix] = useState(null); // ville touchée dans les suggestions : on n'affiche qu'elle
   if (erreur) return <MessageErreur erreur={erreur} surReessayer={recharger} />;
   if (chargement || !data)
     return (
@@ -178,24 +180,23 @@ function Villes() {
       </p>
     );
   }
-  const filtrees = rechercherVilles(data, recherche);
+  const filtrees = choix ? data.filter((v) => v.id === choix) : rechercherVilles(data, recherche);
   const nombre = (n) => (n === null || n === undefined ? '—' : formaterEuro(n));
   return (
     <div>
-      <div className="champ" style={{ maxWidth: 360 }}>
-        <label htmlFor="recherche-ville">Rechercher une ville</label>
-        <input
-          id="recherche-ville"
-          type="search"
-          aria-describedby="aide-recherche-ville"
-          placeholder="Nom, code postal, département ou région"
-          value={recherche}
-          onChange={(e) => setRecherche(e.target.value)}
-        />
-        <p className="fraicheur" id="aide-recherche-ville">
-          Exemples : « rennes », « 35000 », « 35 », « corse ».
-        </p>
-      </div>
+      <ChampVille
+        villes={data}
+        valeur={recherche}
+        idResultats="resultats-villes"
+        surChangement={(texte) => {
+          setRecherche(texte);
+          setChoix(null);
+        }}
+        surChoix={(ville) => {
+          setRecherche(ville.nom);
+          setChoix(ville.id);
+        }}
+      />
       <p className="aide-organisme" id="note-villes">
         {data.length} villes. Le loyer du studio est une estimation : loyer d’annonce au m² pour les
         appartements de 1 ou 2 pièces (carte des loyers officielle), multiplié par la surface type
@@ -203,73 +204,76 @@ function Villes() {
         de transport sont relevés sur la page officielle de chaque réseau, ville après ville (« — »
         : pas encore relevé).
       </p>
-      <ZoneDefilante libelle="Tableau du comparateur de villes">
-        <table className="tableau">
-          <caption className="sr-only">Comparateur de villes</caption>
-          <thead>
-            <tr>
-              <th scope="col">Ville</th>
-              <th scope="col">Loyer d’un studio (estimé)</th>
-              <th scope="col">Résidences CROUS dans la commune</th>
-              <th scope="col">Loyer en résidence CROUS</th>
-              <th scope="col">Abonnement transport</th>
-              <th scope="col">Source</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtrees.map((v) => (
-              <tr key={v.id}>
-                <th scope="row">
-                  {v.nom} <span className="aide-organisme">{v.region}</span>
-                </th>
-                <td>{nombre(v.loyerStudioEstime)}</td>
-                <td>{v.nbLogementsCrous ?? '—'}</td>
-                <td>
-                  {v.loyerCrousDesA === null || v.loyerCrousDesA === undefined
-                    ? '—'
-                    : `dès ${formaterEuro(v.loyerCrousDesA)}`}
-                </td>
-                <td>
-                  {v.transport ? (
-                    <>
-                      {formaterEuroCentimes(v.abonnementTransport)} / mois
-                      {/* Nature du tarif : réservé aux étudiants, ou tarif « jeunes » (selon l'âge seulement). */}
-                      <span
-                        className={`badge type-tarif ${v.transport.typeTarif === 'etudiant' ? 'badge-vert' : 'badge-gris'}`}
-                        data-testid="type-tarif"
-                      >
-                        {v.transport.typeTarif === 'etudiant'
-                          ? 'Tarif étudiant'
-                          : 'Tarif jeunes, sans condition d’études'}
-                      </span>
-                      <span className="aide-organisme">
-                        {v.transport.reseau} — {v.transport.libelle} (
-                        {v.transport.montantAnnuel === null ||
-                        v.transport.montantAnnuel === undefined
-                          ? 'abonnement mensuel'
-                          : v.transport.montantMensuel
-                            ? `pass mensuel ; ${formaterEuroCentimes(v.transport.montantAnnuel)} par an en annuel`
-                            : `${formaterEuroCentimes(v.transport.montantAnnuel)} par an`}
-                        ) · <LienExterne href={v.transport.urlTarifs}>tarifs officiels</LienExterne>
-                      </span>
-                      <Fraicheur
-                        source={v.transport.source}
-                        verifieLe={v.transport.verifieLe}
-                        aVerifier={v.transport.aVerifier}
-                      />
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td>
-                  <Fraicheur source={v.source} verifieLe={v.verifieLe} aVerifier={v.aVerifier} />
-                </td>
+      <div id="resultats-villes" className="resultats-villes">
+        <ZoneDefilante libelle="Tableau du comparateur de villes">
+          <table className="tableau">
+            <caption className="sr-only">Comparateur de villes</caption>
+            <thead>
+              <tr>
+                <th scope="col">Ville</th>
+                <th scope="col">Loyer d’un studio (estimé)</th>
+                <th scope="col">Résidences CROUS dans la commune</th>
+                <th scope="col">Loyer en résidence CROUS</th>
+                <th scope="col">Abonnement transport</th>
+                <th scope="col">Source</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </ZoneDefilante>
+            </thead>
+            <tbody>
+              {filtrees.map((v) => (
+                <tr key={v.id}>
+                  <th scope="row">
+                    {v.nom} <span className="aide-organisme">{v.region}</span>
+                  </th>
+                  <td>{nombre(v.loyerStudioEstime)}</td>
+                  <td>{v.nbLogementsCrous ?? '—'}</td>
+                  <td>
+                    {v.loyerCrousDesA === null || v.loyerCrousDesA === undefined
+                      ? '—'
+                      : `dès ${formaterEuro(v.loyerCrousDesA)}`}
+                  </td>
+                  <td>
+                    {v.transport ? (
+                      <>
+                        {formaterEuroCentimes(v.abonnementTransport)} / mois
+                        {/* Nature du tarif : réservé aux étudiants, ou tarif « jeunes » (selon l'âge seulement). */}
+                        <span
+                          className={`badge type-tarif ${v.transport.typeTarif === 'etudiant' ? 'badge-vert' : 'badge-gris'}`}
+                          data-testid="type-tarif"
+                        >
+                          {v.transport.typeTarif === 'etudiant'
+                            ? 'Tarif étudiant'
+                            : 'Tarif jeunes, sans condition d’études'}
+                        </span>
+                        <span className="aide-organisme">
+                          {v.transport.reseau} — {v.transport.libelle} (
+                          {v.transport.montantAnnuel === null ||
+                          v.transport.montantAnnuel === undefined
+                            ? 'abonnement mensuel'
+                            : v.transport.montantMensuel
+                              ? `pass mensuel ; ${formaterEuroCentimes(v.transport.montantAnnuel)} par an en annuel`
+                              : `${formaterEuroCentimes(v.transport.montantAnnuel)} par an`}
+                          ) ·{' '}
+                          <LienExterne href={v.transport.urlTarifs}>tarifs officiels</LienExterne>
+                        </span>
+                        <Fraicheur
+                          source={v.transport.source}
+                          verifieLe={v.transport.verifieLe}
+                          aVerifier={v.transport.aVerifier}
+                        />
+                      </>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                  <td>
+                    <Fraicheur source={v.source} verifieLe={v.verifieLe} aVerifier={v.aVerifier} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ZoneDefilante>
+      </div>
       {filtrees.length === 0 && (
         <p className="message" role="status">
           Aucune ville ne correspond à « {recherche.trim()} ». Essayez le nom d’une ville, un code
