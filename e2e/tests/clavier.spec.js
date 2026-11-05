@@ -95,13 +95,14 @@ for (const chemin of PAGES) {
         continue;
       }
       if (!f.ok) sansContour.push(f.quoi);
-      vus.add(
-        await page.evaluate(() => {
-          const el = document.activeElement;
-          if (!el.dataset.kb) el.dataset.kb = String(Math.random());
-          return el.dataset.kb;
-        }),
-      );
+      const id = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el.dataset.kb) el.dataset.kb = String(Math.random());
+        return el.dataset.kb;
+      });
+      // Firefox sous Linux (sans barre d'adresse) reboucle sur le début de la page au lieu de sortir : même preuve.
+      if (vus.has(id) && vus.size >= attendus) sortiDeLaPage = true;
+      vus.add(id);
     }
     expect(sansContour, 'éléments sans focus visible').toEqual([]);
     // On a visité au moins autant d'arrêts distincts que d'éléments attendus (pas de piège, rien d'inatteignable).
