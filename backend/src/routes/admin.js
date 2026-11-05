@@ -10,6 +10,12 @@ import {
   annulerModification,
   lireSuggestions,
 } from '../admin/changements.js';
+import {
+  listerAVerifier,
+  verifierUneDonnee,
+  verifierToutesLesDonneesDeLaSource,
+  TYPES_VERIFIABLES,
+} from '../admin/verification.js';
 import { synchroniser } from '../sync/moteur.js';
 import { ROBOTS } from '../sync/robots/index.js';
 
@@ -247,6 +253,24 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
     const { count } = await prisma.messageContact.deleteMany({ where: { id } });
     if (count === 0) return res.status(404).json({ error: 'Message introuvable.' });
     res.status(204).end();
+  });
+
+  // ───── Données à vérifier à la main (aides, postes de rentrée, associations, réglages…) ─────
+  r.get('/verification', async (_req, res) => {
+    res.json(await listerAVerifier(prisma));
+  });
+
+  r.post('/verification/source/:id', async (req, res) => {
+    const id = valider(idSchema, req.params.id);
+    res.json(await verifierToutesLesDonneesDeLaSource(prisma, id));
+  });
+
+  r.post('/verification/:type/:id', async (req, res) => {
+    const { type } = valider(z.object({ type: z.enum(TYPES_VERIFIABLES) }), {
+      type: req.params.type,
+    });
+    const id = valider(idSchema, req.params.id);
+    res.json(await verifierUneDonnee(prisma, type, id));
   });
 
   // Lancer un robot tout de suite (admin).

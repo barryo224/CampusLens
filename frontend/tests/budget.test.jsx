@@ -31,7 +31,7 @@ describe('Préparer mon budget', () => {
     expect(within(postes).getAllByRole('listitem')).toHaveLength(3);
     expect(within(postes).getByText('Avance Loca-Pass ou FSL')).toBeInTheDocument();
     expect(within(postes).getByText(/Source : FAGE/)).toBeInTheDocument();
-    expect(within(postes).getByText('à vérifier')).toBeInTheDocument();
+    expect(within(postes).getByText('vérification en cours')).toBeInTheDocument();
   });
 
   it('les indicateurs de droits changent avec le profil (boursier : 0 €, international : tarif différencié)', async () => {

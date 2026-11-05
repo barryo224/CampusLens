@@ -51,12 +51,82 @@ describe('Base de données et seed', () => {
     for (const a of aides) expect(a.eligibilites).toHaveLength(3);
   });
 
-  it('chaque donnée est rattachée à une source, sans date de vérification (« à vérifier »)', async () => {
+  it('chaque paramètre a une source ; seuls les choix éditoriaux de CampusLens sont validés d’emblée', async () => {
     const params = await prisma.parametre.findMany({ include: { source: true } });
     for (const p of params) {
       expect(p.source).toBeTruthy();
-      expect(p.verifieLe).toBeNull();
+      const editorial = p.source.organisme === 'CampusLens';
+      expect(p.verifieLe === null, `${p.cle} (${p.source.organisme})`).toBe(!editorial);
     }
+    const editoriaux = params
+      .filter((p) => p.source.organisme === 'CampusLens')
+      .map((p) => p.cle)
+      .sort();
+    expect(editoriaux).toEqual(['seuil_fragile', 'seuil_part_loyer', 'surface_studio_m2']);
+  });
+
+  it('les aides citent leur vraie source officielle quand elle a été consultée', async () => {
+    const source = async (slug) =>
+      (await prisma.aide.findUniqueOrThrow({ where: { slug }, include: { source: true } })).source;
+    expect((await source('avance-loca-pass')).url).toBe(
+      'https://www.actionlogement.fr/l-avance-loca-pass',
+    );
+    expect((await source('bourse-criteres-sociaux')).url).toContain(
+      'service-public.fr/particuliers/vosdroits/F12214',
+    );
+    expect((await source('repas-crous-tarif-social')).url).toContain(
+      'etudiant.gouv.fr/fr/restauration-universitaire',
+    );
+    const heures = await prisma.parametre.findFirstOrThrow({
+      where: { cle: 'heures_travail_max' },
+      include: { source: true },
+    });
+    expect(heures.source.organisme).toBe('Campus France');
+  });
+
+  it('contenu corrigé d’après les pages officielles : Loca-Pass réservée aux salariés/boursiers, repas à 1 €, bourse des internationaux', async () => {
+    const loca = await prisma.aide.findUniqueOrThrow({
+      where: { slug: 'avance-loca-pass' },
+      include: { eligibilites: { include: { profil: true } } },
+    });
+    expect(loca.description).toContain('1 200 €');
+    expect(loca.description).toMatch(/salariés ou boursiers d’État/);
+    expect(loca.commentDemander).not.toMatch(/2 mois/); // affirmation non retrouvée sur la source : retirée
+    const precision = (aide, code) => aide.eligibilites.find((e) => e.profil.code === code);
+    expect(precision(loca, 'boursier')).toMatchObject({ statut: 'oui' });
+    expect(precision(loca, 'fr_ue').precision).toMatch(/salarié ou boursier/i);
+    const repas = await prisma.aide.findUniqueOrThrow({
+      where: { slug: 'repas-crous-tarif-social' },
+    });
+    expect(repas.nom).toBe('Repas Crous à 1 €');
+    expect(repas.description).toContain('1 €');
+    const bourse = await prisma.aide.findUniqueOrThrow({
+      where: { slug: 'bourse-criteres-sociaux' },
+      include: { eligibilites: { include: { profil: true } } },
+    });
+    expect(bourse.eligibilites.find((e) => e.profil.code === 'intl').precision).toContain('2 ans');
+  });
+
+  it('le seed corrige une aide NON vérifiée, mais ne touche JAMAIS une aide déjà vérifiée par un humain', async () => {
+    const loca = await prisma.aide.findUniqueOrThrow({ where: { slug: 'avance-loca-pass' } });
+    const visale = await prisma.aide.findUniqueOrThrow({ where: { slug: 'garantie-visale' } });
+    await prisma.aide.update({
+      where: { id: loca.id },
+      data: { description: 'Ancien texte erroné' },
+    }); // non vérifiée
+    await prisma.aide.update({
+      where: { id: visale.id },
+      data: { description: 'Texte validé par un humain', verifieLe: new Date() },
+    });
+
+    await seed(prisma);
+
+    expect((await prisma.aide.findUniqueOrThrow({ where: { id: loca.id } })).description).toContain(
+      '1 200 €',
+    ); // corrigée
+    const v = await prisma.aide.findUniqueOrThrow({ where: { id: visale.id } });
+    expect(v.description).toBe('Texte validé par un humain'); // intacte
+    expect(v.verifieLe).not.toBeNull();
   });
 
   it('les postes de rentrée totalisent 2 095 €', async () => {

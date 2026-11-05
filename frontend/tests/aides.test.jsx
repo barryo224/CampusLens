@@ -119,7 +119,7 @@ describe('Mes aides', () => {
       'true',
     );
     expect(await screen.findByText('AGORAé')).toBeInTheDocument();
-    expect(screen.getByText('à vérifier')).toBeVisible();
+    expect(screen.getByText('vérification en cours')).toBeVisible();
   });
 
   it('les onglets : flèches du clavier pour passer de l’un à l’autre', async () => {

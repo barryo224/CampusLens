@@ -17,6 +17,7 @@ const PageChangements = page('PageChangements');
 const PageSources = page('PageSources');
 const PageHistorique = page('PageHistorique');
 const PageMessages = page('PageMessages');
+const PageVerification = page('PageVerification');
 const PageCompte = page('PageCompte');
 const AccueilAdmin = page('AccueilAdmin');
 import Bientot from './pages/Bientot.jsx';
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="changements" element={<PageChangements />} />
           <Route path="sources" element={<PageSources />} />
           <Route path="historique" element={<PageHistorique />} />
+          <Route path="verification" element={<PageVerification />} />
           <Route path="messages" element={<PageMessages />} />
           <Route path="compte" element={<PageCompte />} />
           <Route path="*" element={<AccueilAdmin />} />

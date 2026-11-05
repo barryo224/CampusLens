@@ -74,6 +74,18 @@ validés strictement (tout champ en plus est refusé) et limités à 10 demandes
   `aide_logement` a la forme attendue, et note la version du moteur dans l'historique.
 - Test en ligne (hors CI) : `E2E_LIVE=1 npx playwright test --project=chromium estimation`.
 
+## Vérification des données
+
+Le site affiche « vérification en cours » à côté de toute donnée qui n'a pas été confirmée par sa source. Pour la
+faire disparaître **honnêtement** :
+
+- données gérées par un robot (loyers, résidences, liens) : automatique ; droits d'inscription et CVEC : onglet
+  **À valider** de l'administration ;
+- données saisies à la main (aides, postes de rentrée, associations, 964 h…) : onglet **Données à vérifier** — ouvrir
+  la source officielle indiquée, comparer, puis « J'ai vérifié ». La mention revient seule après le délai de la source
+  (30 jours pour les aides) : il faut alors revérifier ;
+- réglages propres à CampusLens (seuils, surface d'un studio) : validés d'office, ce sont des choix éditoriaux.
+
 ## Espace administration
 
 Page non publique : `/admin`. Créer un compte :

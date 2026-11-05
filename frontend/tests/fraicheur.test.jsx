@@ -14,12 +14,12 @@ describe('Fraicheur (source et date)', () => {
       />,
     );
     expect(screen.getByText(/Source : FAGE/)).toHaveTextContent('vérifié le 12 septembre 2026');
-    expect(screen.queryByText('à vérifier')).not.toBeInTheDocument();
+    expect(screen.queryByText('vérification en cours')).not.toBeInTheDocument();
   });
 
   it('UI-07 : donnée « à vérifier » → mention visible à côté de la valeur', () => {
     render(<Fraicheur source={{ organisme: 'FAGE' }} verifieLe={null} aVerifier />);
-    expect(screen.getByText('à vérifier')).toBeVisible();
+    expect(screen.getByText('vérification en cours')).toBeVisible();
     expect(screen.getByText(/Source : FAGE/)).toBeInTheDocument();
   });
 

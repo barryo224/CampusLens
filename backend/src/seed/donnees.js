@@ -48,26 +48,59 @@ export const SOURCES = {
     frequenceHeures: 24 * 30,
   },
   reglages: {
+    // Choix éditoriaux de CampusLens (seuils, surface type d'un studio…) : ce ne sont pas des faits à vérifier
+    // auprès d'une source externe, ils sont validés par l'éditeur et ne « périment » pas.
     nom: 'Réglages de calcul CampusLens',
     organisme: 'CampusLens',
     url: 'https://github.com/',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 365 * 5,
+    valideParEditeur: true,
   },
+  // Aides dont la page officielle n'a pas encore été relevée : on ne prétend pas à une source précise.
   fiches: {
-    nom: 'Fiches pratiques Service-Public',
-    organisme: 'DILA',
-    url: 'https://www.data.gouv.fr/',
-    type: 'jeu_ouvert',
-    frequenceHeures: 24,
-    licence: 'Licence Ouverte 2.0',
+    nom: 'Aides : organismes concernés',
+    anciensNoms: ['Fiches pratiques Service-Public'],
+    organisme: 'CAF, CROUS, universités, départements',
+    url: 'https://www.etudiant.gouv.fr',
+    type: 'page_web',
+    frequenceHeures: 24 * 30,
+  },
+  // Pages officielles réellement consultées le 5 novembre 2026 (vérification manuelle, refaite chaque mois).
+  bourseServicePublic: {
+    nom: 'Étudiant : bourse sur critères sociaux',
+    organisme: 'Service-Public.fr',
+    url: 'https://www.service-public.fr/particuliers/vosdroits/F12214',
+    type: 'page_web',
+    frequenceHeures: 24 * 30,
+  },
+  locaPass: {
+    nom: 'Avance Loca-Pass',
+    organisme: 'Action Logement',
+    url: 'https://www.actionlogement.fr/l-avance-loca-pass',
+    type: 'page_web',
+    frequenceHeures: 24 * 30,
+  },
+  repasCrous: {
+    nom: 'Restauration universitaire (repas Crous à 1 €)',
+    organisme: 'Étudiant.gouv.fr',
+    url: 'https://www.etudiant.gouv.fr/fr/restauration-universitaire',
+    type: 'page_web',
+    frequenceHeures: 24 * 30,
+  },
+  travailEtranger: {
+    nom: 'Travailler pendant ses études (étudiants étrangers)',
+    organisme: 'Campus France',
+    url: 'https://www.campusfrance.org/en/working-student',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
   },
   associations: {
     nom: 'Sites des associations d’entraide',
     organisme: 'Associations',
     url: 'https://www.agoraes.fr',
     type: 'page_web',
-    frequenceHeures: 24 * 7,
+    frequenceHeures: 24 * 90,
   },
   ressources: {
     cle: 'liens_ressources',
@@ -209,7 +242,7 @@ export const PARAMETRES = [
     profil: 'intl',
     valeur: 964,
     unite: 'heures / an',
-    source: 'droits',
+    source: 'travailEtranger',
   },
 ];
 
@@ -219,6 +252,7 @@ const UNIVERSEL = ['fr_ue', 'boursier', 'intl'];
 export const AIDES = [
   {
     slug: 'bourse-criteres-sociaux',
+    source: 'bourseServicePublic',
     miseEnAvant: true,
     nom: 'Bourse sur critères sociaux',
     organisme: 'CROUS',
@@ -232,7 +266,7 @@ export const AIDES = [
     elig: [
       ['sous_conditions', 'Selon vos ressources'],
       ['oui', 'Vous en bénéficiez'],
-      ['sous_conditions', 'Selon vos ressources et votre situation'],
+      ['sous_conditions', 'Domicile fiscal en France depuis 2 ans'],
     ],
   },
   {
@@ -264,25 +298,27 @@ export const AIDES = [
     commentDemander: 'Créez votre visa sur visale.fr AVANT de signer le bail.',
     lienDemarche: 'https://www.visale.fr',
     elig: [
-      ['oui', 'Vous y avez droit'],
-      ['oui', 'Vous y avez droit'],
-      ['oui', 'Vous y avez droit'],
+      ['oui', 'Jusqu’à 30 ans'],
+      ['oui', 'Jusqu’à 30 ans'],
+      ['sous_conditions', 'Titre de séjour étudiant, jusqu’à 30 ans'],
     ],
   },
   {
     slug: 'avance-loca-pass',
+    source: 'locaPass',
     nom: 'Avance Loca-Pass',
     organisme: 'Action Logement',
-    description: 'Un prêt sans intérêt pour avancer votre dépôt de garantie.',
+    description:
+      'Un prêt à 0 % (jusqu’à 1 200 €, remboursable en 25 mois) pour avancer votre dépôt de garantie. Pour les étudiants salariés ou boursiers d’État.',
     categorie: 'logement',
     frequence: 'ponctuelle',
     commentDemander:
-      'Demandez-la sur actionlogement.fr, au plus tard 2 mois après l’entrée dans le logement.',
-    lienDemarche: 'https://www.actionlogement.fr',
+      'Faites votre demande en ligne sur actionlogement.fr, avec les justificatifs demandés : contrat de travail ou convention de stage de 3 mois minimum, ou attestation de bourse.',
+    lienDemarche: 'https://www.actionlogement.fr/l-avance-loca-pass',
     elig: [
-      ['sous_conditions', 'Sous conditions'],
-      ['sous_conditions', 'Sous conditions'],
-      ['sous_conditions', 'Sous conditions'],
+      ['sous_conditions', 'Étudiant salarié ou boursier d’État'],
+      ['oui', 'Boursier d’État'],
+      ['sous_conditions', 'Salarié (3 mois min.) ou boursier d’État'],
     ],
   },
   {
@@ -319,12 +355,16 @@ export const AIDES = [
   },
   {
     slug: 'repas-crous-tarif-social',
-    nom: 'Repas CROUS à tarif social',
+    source: 'repasCrous',
+    nom: 'Repas Crous à 1 €',
     organisme: 'CROUS',
-    description: 'Un repas complet au restaurant universitaire à petit prix.',
+    description:
+      'Un repas complet à 1 € pour tous les étudiants, dans les restaurants universitaires des Crous.',
     categorie: 'alimentation',
     frequence: 'ponctuelle',
-    commentDemander: 'Présentez votre carte d’étudiant (Izly) au restaurant universitaire.',
+    commentDemander:
+      'Rendez-vous dans un restaurant universitaire Crous avec votre carte d’étudiant. Les modalités pratiques sont détaillées sur etudiant.gouv.fr.',
+    lienDemarche: 'https://www.etudiant.gouv.fr/fr/restauration-universitaire',
     elig: [
       ['oui', 'Ouvert à tous'],
       ['oui', 'Ouvert à tous'],

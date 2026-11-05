@@ -633,11 +633,144 @@ function MonCompte() {
   );
 }
 
+const TYPES_LIBELLE = {
+  parametre: 'Valeur de calcul',
+  aide: 'Aide',
+  poste: 'Poste de rentrée',
+  association: 'Association',
+};
+
+function Verification() {
+  const { data, erreur, recharger } = useApi('/admin/verification', { garderAnciennes: true });
+  const [message, setMessage] = useState(null);
+  if (erreur) return <MessageErreur erreur={erreur} surReessayer={recharger} />;
+  if (!data)
+    return (
+      <p className="message" role="status">
+        Chargement…
+      </p>
+    );
+
+  // On regroupe par source : on vérifie une source officielle, puis toutes ses données.
+  const groupes = new Map();
+  for (const item of data) {
+    if (!groupes.has(item.source.id))
+      groupes.set(item.source.id, { source: item.source, items: [] });
+    groupes.get(item.source.id).items.push(item);
+  }
+
+  async function verifier(item) {
+    if (!window.confirm(`Avez-vous comparé « ${item.libelle} » à sa source officielle ?`)) return;
+    setMessage(null);
+    try {
+      await post(`/admin/verification/${item.type}/${item.id}`, {});
+      setMessage(`« ${item.libelle} » est marqué comme vérifié.`);
+      recharger();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  async function toutVerifier(source, nombre) {
+    if (
+      !window.confirm(
+        `Avez-vous vérifié les ${nombre} données de « ${source.nom} » sur la source officielle ?`,
+      )
+    )
+      return;
+    setMessage(null);
+    try {
+      const r = await post(`/admin/verification/source/${source.id}`, {});
+      setMessage(
+        `${r.verifiees} donnée${r.verifiees > 1 ? 's' : ''} de « ${source.nom} » marquée${r.verifiees > 1 ? 's' : ''} comme vérifiée${r.verifiees > 1 ? 's' : ''}.`,
+      );
+      recharger();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  return (
+    <>
+      <p className="fraicheur" style={{ marginBottom: 12 }}>
+        Tant qu’une donnée n’est pas vérifiée, le site affiche « vérification en cours » à côté
+        d’elle. Ouvrez la source officielle, comparez, puis cliquez sur « J’ai vérifié ». La mention
+        revient toute seule après le délai propre à chaque source : il faut alors revérifier.
+      </p>
+      {message && (
+        <p className="message" role="status">
+          {message}
+        </p>
+      )}
+      {data.length === 0 ? (
+        <p className="message message-succes">
+          Toutes les données sont vérifiées. Rien à faire pour l’instant.
+        </p>
+      ) : (
+        <>
+          <h2 className="sr-only">Données à vérifier, par source</h2>
+          <p className="barre-admin">
+            <strong>
+              {data.length} donnée{data.length > 1 ? 's' : ''} à vérifier
+            </strong>
+          </p>
+          <ul className="grille" style={{ listStyle: 'none', padding: 0 }}>
+            {[...groupes.values()].map(({ source, items }) => (
+              <li key={source.id} className="carte changement">
+                <h3>{source.nom}</h3>
+                <p className="fraicheur">
+                  {source.organisme} ·{' '}
+                  <a href={source.url} target="_blank" rel="noopener noreferrer">
+                    Ouvrir la source officielle<span className="sr-only"> (nouvel onglet)</span>
+                  </a>{' '}
+                  · à revérifier tous les {Math.max(1, Math.round(source.frequenceHeures / 24))}{' '}
+                  jours
+                </p>
+                <ul className="liste-verification">
+                  {items.map((item) => (
+                    <li key={`${item.type}-${item.id}`}>
+                      <div>
+                        <strong>{item.libelle}</strong>{' '}
+                        <span className="badge badge-gris">{TYPES_LIBELLE[item.type]}</span>
+                        <p className="fraicheur">{item.detail}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="bouton bouton-secondaire"
+                        onClick={() => verifier(item)}
+                      >
+                        J’ai vérifié<span className="sr-only"> : {item.libelle}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {items.length > 1 && (
+                  <div>
+                    <button
+                      type="button"
+                      className="bouton"
+                      onClick={() => toutVerifier(source, items.length)}
+                    >
+                      J’ai tout vérifié pour cette source
+                      <span className="sr-only"> : {source.nom}</span>
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
 // Sections de l'administration : chacune a sa propre adresse (/admin/sources…), donc elle est conservée
 // quand on recharge la page ou qu'on revient en arrière.
 const SECTIONS = [
   { chemin: 'changements', libelle: 'À valider' },
   { chemin: 'sources', libelle: 'État des sources' },
+  { chemin: 'verification', libelle: 'Données à vérifier' },
   { chemin: 'historique', libelle: 'Historique' },
   { chemin: 'messages', libelle: 'Messages', roleRequis: 'admin' }, // données personnelles : admin seulement
   { chemin: 'compte', libelle: 'Mon compte' },
@@ -653,6 +786,7 @@ export function PageMessages() {
   if (admin.role !== 'admin') return <Navigate to="/admin/changements" replace />;
   return <Messages surChangement={rafraichirNonLus} />;
 }
+export const PageVerification = () => <Verification />;
 export const PageCompte = () => <MonCompte />;
 export const AccueilAdmin = () => <Navigate to="/admin/changements" replace />;
 

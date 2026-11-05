@@ -153,3 +153,48 @@ export async function preparerAdminCompte() {
     },
   };
 }
+
+/** Une source manuelle de test avec une association à vérifier (supprimées par `nettoyer`). */
+export async function preparerDonneeAVerifier() {
+  const prisma = creerPrisma();
+  await prisma.administrateur.upsert({
+    where: { email: ADMIN.email },
+    update: { motDePasseHash: bcrypt.hashSync(ADMIN.motDePasse, 4), role: 'admin' },
+    create: {
+      email: ADMIN.email,
+      motDePasseHash: bcrypt.hashSync(ADMIN.motDePasse, 4),
+      role: 'admin',
+    },
+  });
+  const nom = `Source E2E ${Date.now()}`;
+  const source = await prisma.source.create({
+    data: {
+      nom,
+      organisme: 'Organisme E2E',
+      url: 'https://exemple.test/source',
+      type: 'page_web',
+      frequenceHeures: 720,
+      statut: 'a_verifier',
+    },
+  });
+  const association = await prisma.association.create({
+    data: {
+      nom: `Association E2E ${source.id}`,
+      description: 'Association de test.',
+      lien: 'https://exemple.test',
+      sourceId: source.id,
+    },
+  });
+  return {
+    nom,
+    association,
+    async nettoyer() {
+      await prisma.historiqueValeur.deleteMany({
+        where: { tableCible: 'association', ligneId: String(association.id) },
+      });
+      await prisma.association.deleteMany({ where: { id: association.id } });
+      await prisma.source.deleteMany({ where: { id: source.id } });
+      await prisma.$disconnect();
+    },
+  };
+}

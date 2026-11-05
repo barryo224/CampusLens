@@ -145,6 +145,27 @@ test.describe('administration (réponses simulées)', () => {
         ],
       }),
     );
+    await page.route('**/api/admin/verification', (r) =>
+      r.fulfill({
+        json: [
+          {
+            type: 'aide',
+            id: 1,
+            libelle: 'Avance Loca-Pass — Action Logement',
+            detail: 'Un prêt à 0 %',
+            verifieLe: null,
+            source: {
+              id: 7,
+              nom: 'Avance Loca-Pass',
+              organisme: 'Action Logement',
+              url: 'https://www.actionlogement.fr',
+              statut: 'a_verifier',
+              frequenceHeures: 720,
+            },
+          },
+        ],
+      }),
+    );
     await page.route('**/api/admin/messages/non-lus', (r) => r.fulfill({ json: { nombre: 2 } }));
     await page.route('**/api/admin/messages', (r) =>
       r.fulfill({

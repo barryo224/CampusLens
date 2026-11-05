@@ -150,21 +150,30 @@ describe('API publique : lecture', () => {
   });
 
   it('API-06 bis : « à vérifier » tant que la donnée n’a pas été vérifiée par une source à jour', async () => {
+    const EDITORIAUX = ['seuil_fragile', 'seuil_part_loyer', 'surface_studio_m2']; // choix de CampusLens : validés par l'éditeur
     const avant = await request(app).get('/api/parametres');
-    expect(avant.body.parametres.every((p) => p.aVerifier)).toBe(true);
+    // Les valeurs issues de sources externes sont « à vérifier » ; les choix éditoriaux de CampusLens ne le sont pas.
+    expect(
+      avant.body.parametres.filter((p) => !EDITORIAUX.includes(p.cle)).every((p) => p.aVerifier),
+    ).toBe(true);
+    expect(
+      avant.body.parametres.filter((p) => EDITORIAUX.includes(p.cle)).every((p) => !p.aVerifier),
+    ).toBe(true);
 
     const maintenant = new Date();
     await prisma.source.updateMany({ data: { statut: 'ok', dernierControle: maintenant } });
     await prisma.parametre.updateMany({ where: { cle: 'cvec' }, data: { verifieLe: maintenant } });
     const apres = await request(app).get('/api/parametres');
     expect(apres.body.parametres.find((p) => p.cle === 'cvec').aVerifier).toBe(false);
-    expect(apres.body.parametres.find((p) => p.cle === 'seuil_fragile').aVerifier).toBe(true);
+    expect(apres.body.parametres.find((p) => p.cle === 'heures_travail_max').aVerifier).toBe(true); // jamais vérifiée
 
     // Délai de vérification dépassé : la source redevient « à vérifier ».
     const trèsVieux = new Date(Date.now() - 24 * 3_600_000 * 365);
     await prisma.source.updateMany({ data: { dernierControle: trèsVieux } });
     const perime = await request(app).get('/api/parametres');
     expect(perime.body.parametres.find((p) => p.cle === 'cvec').aVerifier).toBe(true);
+    // Les réglages éditoriaux ne « périment » pas (délai de plusieurs années).
+    expect(perime.body.parametres.find((p) => p.cle === 'seuil_fragile').aVerifier).toBe(false);
   });
 
   it('/api/villes/:id : inconnue → 404, invalide → 400', async () => {

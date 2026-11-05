@@ -115,7 +115,7 @@ describe('construireBilan', () => {
   });
   it('n’utilise pas d’espaces insécables (illisibles dans le PDF) et signale « à vérifier »', () => {
     expect(JSON.stringify(bilan)).not.toMatch(new RegExp('[\u202f\u00a0]'));
-    expect(bilan.sources[0]).toBe('FAGE (à vérifier)');
+    expect(bilan.sources[0]).toBe('FAGE (vérification en cours)');
     expect(bilan.sources[1]).toMatch(/DILA, vérifié le 1 septembre 2026/);
   });
   it('décrit les profils boursier, master et exonéré', () => {

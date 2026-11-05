@@ -121,7 +121,7 @@ export function construireBilan({
     recommandations: recommandations.map((r) => `${r.titre} — ${r.texte}`),
     sources: sources.map(
       (s) =>
-        `${s.organisme}${s.verifieLe ? `, vérifié le ${formaterDate(s.verifieLe)}` : ' (à vérifier)'}`,
+        `${s.organisme}${s.verifieLe ? `, vérifié le ${formaterDate(s.verifieLe)}` : ' (vérification en cours)'}`,
     ),
     avertissement:
       'Simulation indicative, calculée sur votre appareil : rien n’a été envoyé ni enregistré. Elle ne remplace ni le CROUS, ni la CAF, ni un service social.',

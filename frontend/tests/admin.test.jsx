@@ -129,6 +129,69 @@ const MESSAGES = [
   },
 ];
 
+const A_VERIFIER = [
+  {
+    type: 'aide',
+    id: 1,
+    libelle: 'Avance Loca-Pass — Action Logement',
+    detail: 'Un prêt à 0 % · Comment la demander : en ligne · Éligibilité : boursier = oui',
+    verifieLe: null,
+    source: {
+      id: 7,
+      nom: 'Avance Loca-Pass',
+      organisme: 'Action Logement',
+      url: 'https://www.actionlogement.fr/l-avance-loca-pass',
+      statut: 'a_verifier',
+      frequenceHeures: 720,
+    },
+  },
+  {
+    type: 'aide',
+    id: 2,
+    libelle: 'Bourse sur critères sociaux — CROUS',
+    detail: 'Une aide mensuelle',
+    verifieLe: null,
+    source: {
+      id: 8,
+      nom: 'Étudiant : bourse sur critères sociaux',
+      organisme: 'Service-Public.fr',
+      url: 'https://www.service-public.fr/particuliers/vosdroits/F12214',
+      statut: 'a_verifier',
+      frequenceHeures: 720,
+    },
+  },
+  {
+    type: 'poste',
+    id: 5,
+    libelle: 'Dépôt de garantie',
+    detail: 'Montant : 637 €',
+    verifieLe: null,
+    source: {
+      id: 9,
+      nom: 'Indicateur du coût de la rentrée',
+      organisme: 'FAGE',
+      url: 'https://www.fage.org',
+      statut: 'a_verifier',
+      frequenceHeures: 720,
+    },
+  },
+  {
+    type: 'poste',
+    id: 6,
+    libelle: 'Matériel pédagogique',
+    detail: 'Montant : 502 €',
+    verifieLe: null,
+    source: {
+      id: 9,
+      nom: 'Indicateur du coût de la rentrée',
+      organisme: 'FAGE',
+      url: 'https://www.fage.org',
+      statut: 'a_verifier',
+      frequenceHeures: 720,
+    },
+  },
+];
+
 const connecte = (role = 'admin', extra = {}) =>
   simulerApi({
     '/admin/me': { email: 'admin@campuslens.test', role },
@@ -137,6 +200,7 @@ const connecte = (role = 'admin', extra = {}) =>
     '/admin/historique': HISTORIQUE,
     '/admin/messages': MESSAGES,
     '/admin/messages/non-lus': { nombre: 2 },
+    '/admin/verification': A_VERIFIER,
     ...extra,
   });
 
@@ -440,6 +504,127 @@ describe('Espace administration', () => {
     await userEvent.click(within(tableau).getByRole('button', { name: /Annuler/ }));
     expect(await screen.findByRole('status')).toHaveTextContent('Valeur restaurée : 254.');
     expect(mock.mock.calls.some(([u]) => u === '/api/admin/historique/9/annuler')).toBe(true);
+  });
+
+  describe('Données à vérifier', () => {
+    const ouvrirVerification = async (role = 'admin', extra = {}) => {
+      const mock = connecte(role, extra);
+      rendreApp('/admin/verification');
+      await screen.findByText(/données? à vérifier/);
+      return mock;
+    };
+
+    it('le lien existe dans le menu, pour tous les rôles, et la page explique la démarche', async () => {
+      for (const role of ['admin', 'relecteur']) {
+        connecte(role);
+        rendreApp('/admin');
+        expect(await screen.findByRole('link', { name: 'Données à vérifier' })).toHaveAttribute(
+          'href',
+          '/admin/verification',
+        );
+        cleanup();
+      }
+      await ouvrirVerification();
+      expect(
+        screen.getByText(
+          /Tant qu’une donnée n’est pas vérifiée, le site affiche « vérification en cours »/,
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText('4 données à vérifier')).toBeInTheDocument();
+    });
+
+    it('regroupe par source officielle, avec un lien pour l’ouvrir et le délai de revérification', async () => {
+      await ouvrirVerification();
+      const loca = screen.getByRole('heading', { name: 'Avance Loca-Pass' }).closest('li');
+      const lien = within(loca).getByRole('link', { name: /Ouvrir la source officielle/ });
+      expect(lien).toHaveAttribute('href', 'https://www.actionlogement.fr/l-avance-loca-pass');
+      expect(lien).toHaveAttribute('target', '_blank');
+      expect(lien).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(loca).toHaveTextContent('Action Logement');
+      expect(loca).toHaveTextContent('à revérifier tous les 30 jours');
+      expect(within(loca).getByText(/boursier = oui/)).toBeInTheDocument(); // ce qu'il faut comparer
+      const fage = screen
+        .getByRole('heading', { name: 'Indicateur du coût de la rentrée' })
+        .closest('li');
+      expect(within(fage).getByText('Dépôt de garantie')).toBeInTheDocument();
+      expect(within(fage).getByText('Matériel pédagogique')).toBeInTheDocument();
+      expect(within(fage).getAllByText('Poste de rentrée')).toHaveLength(2);
+    });
+
+    it('« J’ai vérifié » : demande confirmation, envoie POST, confirme, recharge la liste', async () => {
+      let fait = false;
+      const mock = await ouvrirVerification('admin', {
+        '/admin/verification': () => (fait ? A_VERIFIER.filter((i) => i.id !== 1) : A_VERIFIER),
+        '/admin/verification/aide/1': () => {
+          fait = true;
+          return { verifiee: 1 };
+        },
+      });
+      const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await userEvent.click(screen.getByRole('button', { name: /J’ai vérifié.*Avance Loca-Pass/ }));
+      expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Avance Loca-Pass'));
+      expect(await screen.findByRole('status')).toHaveTextContent('est marqué comme vérifié');
+      expect(mock.mock.calls.find(([u]) => u === '/api/admin/verification/aide/1')[1].method).toBe(
+        'POST',
+      );
+      await vi.waitFor(() => expect(screen.getByText('3 données à vérifier')).toBeInTheDocument());
+      confirmation.mockRestore();
+    });
+
+    it('si l’on refuse la confirmation, rien n’est envoyé', async () => {
+      const mock = await ouvrirVerification();
+      const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      await userEvent.click(
+        screen.getByRole('button', { name: /J’ai vérifié.*Dépôt de garantie/ }),
+      );
+      expect(mock.mock.calls.some(([, o]) => o?.method === 'POST')).toBe(false);
+      confirmation.mockRestore();
+    });
+
+    it('« J’ai tout vérifié pour cette source » : seulement pour les sources qui ont plusieurs données', async () => {
+      const mock = await ouvrirVerification('admin', {
+        '/admin/verification/source/9': { verifiees: 2 },
+      });
+      expect(
+        screen.getAllByRole('button', { name: /J’ai tout vérifié pour cette source/ }),
+      ).toHaveLength(1); // FAGE (2 postes) seulement
+      const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await userEvent.click(
+        screen.getByRole('button', { name: /J’ai tout vérifié pour cette source/ }),
+      );
+      expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('2 données'));
+      expect(await screen.findByRole('status')).toHaveTextContent(
+        '2 données de « Indicateur du coût de la rentrée » marquées comme vérifiées.',
+      );
+      expect(mock.mock.calls.some(([u]) => u === '/api/admin/verification/source/9')).toBe(true);
+      confirmation.mockRestore();
+    });
+
+    it('rien à vérifier : message positif', async () => {
+      connecte('admin', { '/admin/verification': [] });
+      rendreApp('/admin/verification');
+      expect(await screen.findByText(/Toutes les données sont vérifiées/)).toBeInTheDocument();
+    });
+
+    it('une erreur du serveur est affichée sans planter', async () => {
+      await ouvrirVerification('admin', {
+        '/admin/verification/aide/1': {
+          __status: 422,
+          corps: {
+            error: 'Cette donnée est mise à jour par un robot : validez-la depuis « À valider ».',
+          },
+        },
+      });
+      const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await userEvent.click(screen.getByRole('button', { name: /J’ai vérifié.*Avance Loca-Pass/ }));
+      expect(await screen.findByRole('status')).toHaveTextContent('mise à jour par un robot');
+      confirmation.mockRestore();
+    });
+
+    it('accessibilité : aucune violation axe-core', async () => {
+      await ouvrirVerification();
+      expect(await violationsAxe(document.body)).toEqual([]);
+    });
   });
 
   describe('messages non lus : pastille, titre de l’onglet, marquer comme lu', () => {

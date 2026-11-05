@@ -38,7 +38,9 @@ export async function seed(prisma) {
   // robot, la configuration (adresse, fréquence…) est remise à jour : ce n'est pas une
   // « valeur » modifiée par les robots, c'est le réglage du robot lui-même.
   const sources = {};
-  for (const [cle, { anciensNoms = [], ...s }] of Object.entries(SOURCES)) {
+  for (const [cle, { anciensNoms = [], valideParEditeur = false, ...s }] of Object.entries(
+    SOURCES,
+  )) {
     let existante = s.cle ? await prisma.source.findUnique({ where: { cle: s.cle } }) : null;
     existante ??= await prisma.source.findFirst({
       where: {
@@ -49,14 +51,21 @@ export async function seed(prisma) {
     existante ??= anciensNoms.length
       ? await prisma.source.findFirst({ where: { nom: { in: anciensNoms } } })
       : null;
-    if (existante && s.cle) {
-      const { cle: cleRobot, ...config } = s;
-      existante = await prisma.source.update({
-        where: { id: existante.id },
-        data: { ...config, cle: cleRobot },
+    // Configuration seulement (nom, adresse, type, fréquence, licence) : jamais l'état ni l'empreinte.
+    if (existante) existante = await prisma.source.update({ where: { id: existante.id }, data: s });
+    sources[cle] = existante ?? (await prisma.source.create({ data: s }));
+    // Réglages éditoriaux de CampusLens : validés par l'éditeur (ils ne dépendent d'aucune source externe).
+    if (valideParEditeur && !sources[cle].dernierControle) {
+      const maintenant = new Date();
+      sources[cle] = await prisma.source.update({
+        where: { id: sources[cle].id },
+        data: { statut: 'ok', dernierControle: maintenant },
+      });
+      await prisma.parametre.updateMany({
+        where: { sourceId: sources[cle].id, verifieLe: null },
+        data: { verifieLe: maintenant },
       });
     }
-    sources[cle] = existante ?? (await prisma.source.create({ data: s }));
   }
 
   // Paramètres de calcul.
@@ -75,25 +84,36 @@ export async function seed(prisma) {
           valeur: p.valeur,
           unite: p.unite,
           sourceId: sources[p.source].id,
+          // Réglage éditorial : validé d'office par l'éditeur.
+          ...(SOURCES[p.source].valideParEditeur && { verifieLe: new Date() }),
         },
+      });
+    } else if (!existant.verifieLe && existant.sourceId !== sources[p.source].id) {
+      // Pas encore vérifié : on peut corriger sa source (jamais celle d'une valeur déjà vérifiée).
+      await prisma.parametre.update({
+        where: { id: existant.id },
+        data: { sourceId: sources[p.source].id },
       });
     }
   }
 
   // Aides et éligibilités.
   const aides = {};
-  for (const { elig, ...a } of AIDES) {
-    aides[a.slug] = await prisma.aide.upsert({
-      where: { slug: a.slug },
-      update: {},
-      create: { ...a, sourceId: sources.fiches.id },
-    });
+  for (const { elig, source: cleSource = 'fiches', ...a } of AIDES) {
+    const donnees = { ...a, sourceId: sources[cleSource].id };
+    let aide = await prisma.aide.findUnique({ where: { slug: a.slug } });
+    // Une aide déjà vérifiée par un humain n'est JAMAIS modifiée par le seed ; sinon on applique les corrections.
+    if (!aide) aide = await prisma.aide.create({ data: donnees });
+    else if (!aide.verifieLe)
+      aide = await prisma.aide.update({ where: { id: aide.id }, data: donnees });
+    aides[a.slug] = aide;
+    const modifiable = !aide.verifieLe;
     for (const [i, code] of UNIVERSEL.entries()) {
       const [statut, precision] = elig[i];
       await prisma.eligibilite.upsert({
-        where: { aideId_profilId: { aideId: aides[a.slug].id, profilId: profils[code].id } },
-        update: {},
-        create: { aideId: aides[a.slug].id, profilId: profils[code].id, statut, precision },
+        where: { aideId_profilId: { aideId: aide.id, profilId: profils[code].id } },
+        update: modifiable ? { statut, precision } : {},
+        create: { aideId: aide.id, profilId: profils[code].id, statut, precision },
       });
     }
   }

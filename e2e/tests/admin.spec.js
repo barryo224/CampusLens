@@ -3,13 +3,17 @@ import {
   preparerChangementCvec,
   preparerMessageContact,
   preparerAdminCompte,
+  preparerDonneeAVerifier,
   supprimerAdminDeTest,
   ADMIN,
 } from '../support/base.js';
 
 // Les deux parcours partagent un même compte de test : on les joue l'un après l'autre, et on le supprime à la fin.
 test.describe.configure({ mode: 'serial' });
-test.afterAll(async () => {
+test.afterAll(async ({ browserName }, testInfo) => {
+  // Seul le projet qui a réellement joué ces parcours supprime le compte de test : les autres projets (mobile…)
+  // ignorent ces tests, mais leur nettoyage s'exécuterait quand même, en parallèle, et supprimerait le compte en cours d'usage.
+  if (browserName !== 'chromium' || testInfo.project.name !== 'chromium') return;
   await supprimerAdminDeTest();
 });
 
@@ -194,5 +198,59 @@ test.describe('Espace administration : changer son mot de passe', () => {
     await page.getByLabel('Mot de passe').fill(NOUVEAU);
     await page.getByRole('button', { name: 'Se connecter' }).click();
     await expect(page.getByText(`${compte.email} (admin)`)).toBeVisible();
+  });
+});
+
+test.describe('Espace administration : données à vérifier', () => {
+  test.skip(
+    ({ browserName, isMobile }) => browserName !== 'chromium' || isMobile,
+    'Parcours joué sur Chromium bureau',
+  );
+
+  let donnees;
+  test.beforeAll(async () => {
+    donnees = await preparerDonneeAVerifier();
+  });
+  test.afterAll(async () => {
+    await donnees?.nettoyer();
+  });
+
+  test('vérifier une donnée : la mention « vérification en cours » disparaît du site public', async ({
+    page,
+    request,
+  }) => {
+    const publique = async () =>
+      (await (await request.get('/api/associations')).json()).find(
+        (a) => a.id === donnees.association.id,
+      );
+    expect((await publique()).aVerifier).toBe(true); // le public voit « vérification en cours »
+
+    await page.goto('/admin/verification');
+    await page.getByLabel('Adresse e-mail').fill(ADMIN.email);
+    await page.getByLabel('Mot de passe').fill(ADMIN.motDePasse);
+    await page.getByRole('button', { name: 'Se connecter' }).click();
+    await expect(page.getByRole('link', { name: 'Données à vérifier' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+
+    const carte = page
+      .getByRole('listitem')
+      .filter({ has: page.getByRole('heading', { name: donnees.nom }) });
+    await expect(carte).toContainText('Organisme E2E');
+    await expect(carte.getByRole('link', { name: /Ouvrir la source officielle/ })).toHaveAttribute(
+      'href',
+      'https://exemple.test/source',
+    );
+    await expect(carte).toContainText(donnees.association.nom);
+
+    page.once('dialog', (d) => d.accept()); // « Avez-vous comparé … à sa source officielle ? »
+    await carte.getByRole('button', { name: /J’ai vérifié/ }).click();
+    await expect(
+      page.getByRole('status').filter({ hasText: 'marqué comme vérifié' }),
+    ).toBeVisible();
+    await expect(carte).toHaveCount(0);
+
+    expect((await publique()).aVerifier).toBe(false); // plus de mention côté public
   });
 });

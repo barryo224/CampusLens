@@ -124,7 +124,7 @@ export default function Ressources() {
                         <td>{r.type}</td>
                         <td>
                           {r.organisme}
-                          {r.aVerifier && <span className="a-verifier">à vérifier</span>}
+                          {r.aVerifier && <span className="a-verifier">vérification en cours</span>}
                           {r.verifieLe && (
                             <span className="fraicheur">
                               <br />
