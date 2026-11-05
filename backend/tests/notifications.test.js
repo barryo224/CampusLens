@@ -56,6 +56,37 @@ describe('Notification par e-mail des nouveaux messages', () => {
     n.arreter();
   });
 
+  it('une SMTP_URL mal écrite ne fait pas planter le site, et son mot de passe n’est jamais écrit dans les journaux', () => {
+    const journal = { warn: vi.fn() };
+    for (const mauvaise of [
+      'mtps://resend:re_MOT_DE_PASSE_SECRET@smtp.resend.com:2465', // « s » du début perdu
+      'resend:re_MOT_DE_PASSE_SECRET@smtp.resend.com:2465',
+      '  http://smtp.exemple.fr  ',
+    ]) {
+      const n = notificateurDepuisEnv(
+        prisma,
+        { SMTP_URL: mauvaise, NOTIFICATION_EMAIL: 'moi@exemple.fr' },
+        journal,
+      );
+      expect(n.actif).toBe(false);
+    }
+    expect(journal.warn).toHaveBeenCalledTimes(3);
+    expect(JSON.stringify(journal.warn.mock.calls)).not.toContain('re_MOT_DE_PASSE_SECRET');
+  });
+
+  it('une adresse smtps:// valide (Resend, port 2465) active les notifications', () => {
+    const n = notificateurDepuisEnv(
+      prisma,
+      {
+        SMTP_URL: 'smtps://resend:re_cle@smtp.resend.com:2465',
+        NOTIFICATION_EMAIL: 'moi@exemple.fr',
+      },
+      { warn: vi.fn() },
+    );
+    expect(n.actif).toBe(true);
+    n.arreter();
+  });
+
   it('un nouveau message → un courriel avec le NOMBRE et un lien, jamais le contenu ni l’expéditeur', async () => {
     const { n, transport } = monter();
     await creerMessage('Sujet très privé');

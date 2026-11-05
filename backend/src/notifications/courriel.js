@@ -66,13 +66,31 @@ export function creerNotificateur({
   };
 }
 
-/** Construit le notificateur depuis les variables d'environnement (inactif si elles manquent). */
-export function notificateurDepuisEnv(prisma, env = process.env) {
+/**
+ * Construit le notificateur depuis les variables d'environnement (inactif si elles manquent).
+ * Une adresse d'envoi mal écrite ne doit JAMAIS empêcher le site de démarrer, ni s'afficher dans les journaux
+ * (elle contient un mot de passe) : on prévient, sans la citer, et les notifications restent désactivées.
+ */
+export function notificateurDepuisEnv(prisma, env = process.env, journal = console) {
   if (!env.SMTP_URL || !env.NOTIFICATION_EMAIL) return creerNotificateur({ prisma });
+  const adresse = String(env.SMTP_URL).trim();
+  if (!/^smtps?:\/\//i.test(adresse)) {
+    journal.warn(
+      '[notifications] SMTP_URL ignorée : elle doit commencer par « smtps:// » ou « smtp:// ». Notifications désactivées.',
+    );
+    return creerNotificateur({ prisma });
+  }
+  let transport;
+  try {
+    transport = nodemailer.createTransport(adresse);
+  } catch {
+    journal.warn('[notifications] SMTP_URL invalide. Notifications désactivées.');
+    return creerNotificateur({ prisma });
+  }
   const site = (env.SITE_URL ?? 'http://localhost:5173').replace(/\/$/, '');
   return creerNotificateur({
     prisma,
-    transport: nodemailer.createTransport(env.SMTP_URL),
+    transport,
     destinataire: env.NOTIFICATION_EMAIL,
     expediteur: env.SMTP_FROM,
     urlAdmin: `${site}/admin/messages`,
