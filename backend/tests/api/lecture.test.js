@@ -135,7 +135,7 @@ describe('API publique : lecture', () => {
     }
     const postes = await request(app).get('/api/postes-rentree?profil=boursier');
     expect(postes.body.postes.length).toBe(7);
-    expect(postes.body.total).toBe(2095);
+    expect(postes.body.total).toBe(1812); // boursier : droits (178 €) et CVEC (105 €) offerts
     for (const o of postes.body.postes) {
       expect(o.source).toBeTruthy();
       expect(o).toHaveProperty('verifieLe');
@@ -174,6 +174,45 @@ describe('API publique : lecture', () => {
     expect(perime.body.parametres.find((p) => p.cle === 'cvec').aVerifier).toBe(true);
     // Les réglages éditoriaux ne « périment » pas (délai de plusieurs années).
     expect(perime.body.parametres.find((p) => p.cle === 'seuil_fragile').aVerifier).toBe(false);
+  });
+
+  it('/api/postes-rentree : le budget de rentrée dépend du profil et de la situation', async () => {
+    const budget = async (q) => (await request(app).get(`/api/postes-rentree?${q}`)).body;
+    const poste = (b, nom) => b.postes.find((p) => p.nom === nom);
+
+    const fr = await budget('profil=fr_ue');
+    expect(fr.total).toBe(2095);
+    expect(fr.postes).toHaveLength(7); // pas de taxe de visa pour un Français
+    expect(poste(fr, 'Droits d’inscription').montant).toBe(178);
+
+    const bourse = await budget('profil=boursier');
+    expect(bourse.total).toBe(2095 - 178 - 105);
+    expect(poste(bourse, 'Droits d’inscription')).toMatchObject({
+      montant: 0,
+      offert: true,
+      montantSansBourse: 178,
+    });
+    expect(poste(bourse, 'CVEC')).toMatchObject({ montant: 0, offert: true });
+    expect(poste(bourse, 'Dépôt de garantie').offert).toBe(false); // seuls droits et CVEC sont offerts
+
+    const arrivee = await budget('profil=intl');
+    expect(poste(arrivee, 'Droits d’inscription').montant).toBe(2902); // tarif différencié, lu dans les paramètres
+    expect(poste(arrivee, 'Taxe de validation du visa (VLS-TS)').montant).toBe(100);
+    expect(arrivee.total).toBe(2095 - 178 + 2902 + 100);
+    expect(arrivee.situation).toBe('arrivee');
+
+    const surPlace = await budget('profil=intl&situation=sur_place');
+    expect(poste(surPlace, 'Taxe de validation du visa (VLS-TS)')).toBeUndefined(); // déjà en France : pas de VLS-TS
+    expect(surPlace.total).toBe(2095 - 178 + 2902);
+
+    expect(new Set([fr.total, bourse.total, arrivee.total]).size).toBe(3);
+    expect((await request(app).get('/api/postes-rentree?situation=nimporte')).status).toBe(400);
+
+    // Les ressources à justifier pour le visa sont un paramètre vérifiable comme les autres.
+    const params = (await request(app).get('/api/parametres')).body.parametres;
+    const ressources = params.find((p) => p.cle === 'ressources_mensuelles_visa');
+    expect(ressources).toMatchObject({ valeur: 877.5, profil: 'intl' });
+    expect(ressources.source.organisme).toBe('Service-Public.fr');
   });
 
   it('/api/villes : abonnement de transport = pass mensuel s’il existe, sinon annuel ÷ 12, avec sa source', async () => {

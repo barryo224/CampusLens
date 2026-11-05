@@ -260,6 +260,7 @@ describe('Mes aides', () => {
     });
     rendreApp('/aides?onglet=villes');
     const ligne = (await screen.findByRole('rowheader', { name: /Marseille/ })).closest('tr');
+    expect(ligne).toHaveTextContent('16,67');
     expect(ligne).toHaveTextContent('/ mois');
     expect(ligne).toHaveTextContent('RTM — Pass Annuel Étudiant');
     expect(within(ligne).getByRole('link', { name: /tarifs officiels/ })).toHaveAttribute(

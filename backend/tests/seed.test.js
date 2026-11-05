@@ -129,10 +129,17 @@ describe('Base de données et seed', () => {
     expect(v.verifieLe).not.toBeNull();
   });
 
-  it('les postes de rentrée totalisent 2 095 €', async () => {
+  it('les postes communs à tous totalisent 2 095 € ; la taxe de visa est réservée aux étudiants étrangers', async () => {
     const postes = await prisma.posteRentree.findMany();
-    const total = postes.reduce((s, p) => s + Number(p.montant), 0);
-    expect(total).toBe(2095);
+    const communs = postes.filter((p) => !p.profilCode);
+    expect(communs.reduce((s, p) => s + Number(p.montant), 0)).toBe(2095);
+    const visa = postes.filter((p) => p.profilCode);
+    expect(visa).toHaveLength(1);
+    expect(visa[0]).toMatchObject({
+      profilCode: 'intl',
+      situation: 'arrivee',
+      parametreCle: 'taxe_vls_ts',
+    });
   });
 
   it('est idempotent et n’écrase jamais une valeur mise à jour', async () => {
@@ -177,6 +184,7 @@ describe('Base de données et seed', () => {
         'veille_bourse',
         'veille_loca_pass',
         'veille_repas_crous',
+        'veille_visa',
       ].sort(),
     );
     const droits = await prisma.source.findUniqueOrThrow({ where: { cle: 'droits' } });

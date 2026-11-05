@@ -67,6 +67,7 @@ export const PARAMETRES_API = {
     p('seuil_fragile', 'aucun', null, 150, '€'),
     p('seuil_part_loyer', 'aucun', null, 40, '%'),
     p('heures_travail_max', 'aucun', 'intl', 964, 'heures / an'),
+    p('ressources_mensuelles_visa', 'aucun', 'intl', 877.5, '€ / mois'),
   ],
 };
 

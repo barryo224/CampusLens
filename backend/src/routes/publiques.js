@@ -114,36 +114,79 @@ export function routesPubliques(prisma) {
     );
   });
 
-  // GET /api/postes-rentree?profil=
+  // GET /api/postes-rentree?profil=&situation=
+  // Le budget de rentrée dépend du profil : droits et CVEC gratuits pour un boursier, droits différenciés et taxe de
+  // visa pour un étudiant étranger qui arrive. Les montants liés à un paramètre sont lus dans les paramètres de l'année.
   r.get('/postes-rentree', async (req, res) => {
-    const { profil: codeProfil } = valider(z.object({ profil: codeSchema.optional() }), req.query);
+    const { profil: codeProfil, situation = 'arrivee' } = valider(
+      z.object({
+        profil: codeSchema.optional(),
+        situation: z.enum(['arrivee', 'sur_place']).optional(),
+      }),
+      req.query,
+    );
     const profil = codeProfil ? await trouverProfil(prisma, codeProfil) : null;
     const annee = await trouverAnnee(prisma);
-    const postes = await prisma.posteRentree.findMany({
-      where: { anneeId: annee.id },
-      include: {
-        source: true,
-        aide: {
-          include: {
-            eligibilites: {
-              ...(profil && { where: { profilId: profil.id } }),
-              include: { profil: true },
+    const [postes, parametres] = await Promise.all([
+      prisma.posteRentree.findMany({
+        where: { anneeId: annee.id },
+        include: {
+          source: true,
+          aide: {
+            include: {
+              eligibilites: {
+                ...(profil && { where: { profilId: profil.id } }),
+                include: { profil: true },
+              },
             },
           },
         },
-      },
-      orderBy: { montant: 'desc' },
-    });
+        orderBy: { montant: 'desc' },
+      }),
+      prisma.parametre.findMany({ where: { anneeId: annee.id }, include: { profil: true } }),
+    ]);
+
+    /** Valeur d'un paramètre pour ce profil (la valeur propre au profil prime sur la valeur nationale). */
+    const valeurParametre = (cle) => {
+      const candidats = parametres.filter(
+        (p) => p.cle === cle && (p.niveau === 'licence' || p.niveau === 'aucun'),
+      );
+      const propre = candidats.find((p) => p.profil?.code === codeProfil);
+      const commun = candidats.find((p) => !p.profilId);
+      const retenu = propre ?? commun;
+      return retenu ? Number(retenu.valeur) : null;
+    };
+
+    const visibles = postes.filter(
+      (p) =>
+        (!p.profilCode || p.profilCode === codeProfil) &&
+        (!p.situation || p.situation === situation),
+    );
+    const calcules = visibles
+      .map((p) => {
+        const standard = p.parametreCle
+          ? (valeurParametre(p.parametreCle) ?? Number(p.montant))
+          : Number(p.montant);
+        const offert = p.gratuitBoursier && codeProfil === 'boursier';
+        return { p, montant: offert ? 0 : standard, offert, standard };
+      })
+      .sort((a, b) => b.montant - a.montant);
+
     const maintenant = new Date();
     res.json({
       annee: annee.libelle,
-      total: postes.reduce((s, p) => s + Number(p.montant), 0),
-      postes: postes.map((p) =>
+      profil: codeProfil ?? null,
+      situation,
+      total: calcules.reduce((s, c) => s + c.montant, 0),
+      postes: calcules.map(({ p, montant, offert, standard }) =>
         avecSource(
           {
             id: p.id,
             nom: p.nom,
-            montant: nombre(p.montant),
+            montant,
+            // Ce que paierait un étudiant non boursier : pour afficher « offert avec votre bourse ».
+            ...(offert && { montantSansBourse: standard }),
+            offert,
             astuce: p.astuce,
             aide: p.aide
               ? {

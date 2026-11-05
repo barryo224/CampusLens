@@ -15,6 +15,7 @@ export const CLES_VEILLE = [
   'veille_bourse',
   'veille_loca_pass',
   'veille_repas_crous',
+  'veille_visa',
 ];
 
 export const ROBOTS_VEILLE = Object.fromEntries(

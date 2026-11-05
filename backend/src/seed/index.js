@@ -124,6 +124,13 @@ export async function seed(prisma) {
     const existant = await prisma.posteRentree.findFirst({
       where: { nom: p.nom, anneeId: annee.id },
     });
+    // Règles de calcul par profil : de la configuration, mise à jour même si le montant a déjà été vérifié.
+    const regles = {
+      parametreCle: p.parametreCle ?? null,
+      gratuitBoursier: p.gratuitBoursier ?? false,
+      profilCode: p.profilCode ?? null,
+      situation: p.situation ?? null,
+    };
     if (!existant) {
       await prisma.posteRentree.create({
         data: {
@@ -132,9 +139,13 @@ export async function seed(prisma) {
           montant: p.montant,
           astuce: p.astuce,
           aideId: p.aide ? aides[p.aide].id : null,
-          sourceId: sources.fage.id,
+          // Les frais propres aux étudiants étrangers viennent du Service-Public, les autres de la FAGE.
+          sourceId: (p.profilCode === 'intl' ? sources.visaEtudiant : sources.fage).id,
+          ...regles,
         },
       });
+    } else {
+      await prisma.posteRentree.update({ where: { id: existant.id }, data: regles });
     }
   }
 

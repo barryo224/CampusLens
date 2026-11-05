@@ -6,7 +6,12 @@ import Fraicheur from '../components/Fraicheur.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { trouverParametre } from '../lib/simulation.js';
-import { formaterEuro } from '../lib/format.js';
+import { formaterEuro, formaterEuroCentimes } from '../lib/format.js';
+
+const SITUATIONS = [
+  { code: 'arrivee', libelle: 'Je viens d’arriver en France' },
+  { code: 'sur_place', libelle: 'Je suis déjà en France' },
+];
 
 const PROFILS = [
   { code: 'fr_ue', libelle: 'Étudiant français ou UE' },
@@ -34,7 +39,13 @@ export default function Budget() {
   const profil = PROFILS.some((p) => p.code === params.get('profil'))
     ? params.get('profil')
     : 'fr_ue';
-  const postes = useApi(`/postes-rentree?profil=${profil}`, { garderAnciennes: true });
+  // Pour un étudiant étranger, le budget n'est pas le même à l'arrivée (visa) et quand on est déjà en France.
+  const situation =
+    profil === 'intl' && params.get('situation') === 'sur_place' ? 'sur_place' : 'arrivee';
+  const postes = useApi(
+    `/postes-rentree?profil=${profil}${profil === 'intl' ? `&situation=${situation}` : ''}`,
+    { garderAnciennes: true },
+  );
   const parametres = useApi('/parametres?annee=en_cours');
   const aides = useApi('/aides?miseEnAvant=true&categorie=logement');
 
@@ -53,6 +64,11 @@ export default function Budget() {
     } catch {
       return null;
     }
+  }, [parametres.data]);
+
+  const ressourcesVisa = useMemo(() => {
+    const p = parametres.data?.parametres.find((x) => x.cle === 'ressources_mensuelles_visa');
+    return p ?? null;
   }, [parametres.data]);
 
   const montant = (n) => (n === null || n === undefined ? '—' : formaterEuro(n));
@@ -93,6 +109,22 @@ export default function Budget() {
           </button>
         ))}
       </div>
+      {profil === 'intl' && (
+        <div className="pastilles" role="group" aria-label="Ma situation">
+          <span>Ma situation :</span>
+          {SITUATIONS.map((s) => (
+            <button
+              key={s.code}
+              type="button"
+              className={`pastille${situation === s.code ? ' pastille-active' : ''}`}
+              aria-pressed={situation === s.code}
+              onClick={() => setParams({ profil, situation: s.code }, { replace: true })}
+            >
+              {s.libelle}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div
         className="zone-donnees"
@@ -112,7 +144,13 @@ export default function Budget() {
               <li className="carte">
                 <p className="indicateur-nom">Budget de rentrée à prévoir</p>
                 <p className="indicateur-valeur">{montant(postes.data.total)}</p>
-                <p className="fraicheur">total des frais ponctuels, année {postes.data.annee}</p>
+                <p className="fraicheur">
+                  frais ponctuels pour le profil « {PROFILS.find((p) => p.code === profil).libelle}
+                  {profil === 'intl'
+                    ? `, ${SITUATIONS.find((s) => s.code === situation).libelle.toLowerCase()}`
+                    : ''}
+                  », année {postes.data.annee}
+                </p>
               </li>
               <li className="carte">
                 <p className="indicateur-nom">Plus gros poste</p>
@@ -133,6 +171,35 @@ export default function Budget() {
               </li>
             </ul>
 
+            {profil === 'intl' && ressourcesVisa && (
+              <section
+                className="carte"
+                style={{ marginTop: 16 }}
+                aria-labelledby="titre-ressources"
+              >
+                <h2 id="titre-ressources" className="titre-carte">
+                  À justifier pour votre visa et votre titre de séjour
+                </h2>
+                <p className="indicateur-valeur">
+                  {formaterEuroCentimes(ressourcesVisa.valeur)} <small>par mois</small>
+                </p>
+                <p>
+                  Soit {formaterEuroCentimes(ressourcesVisa.valeur * 12)} sur une année. C’est le
+                  montant minimum de ressources que l’administration demande pour un visa ou un
+                  titre de séjour « étudiant ». Au renouvellement, il est apprécié selon votre
+                  situation particulière : renseignez-vous auprès de la préfecture sur la prise en
+                  compte d’un job étudiant (limité à{' '}
+                  {heuresMax !== null ? `${heuresMax} heures par an` : 'un nombre d’heures annuel'}
+                  ).
+                </p>
+                <Fraicheur
+                  source={ressourcesVisa.source}
+                  verifieLe={ressourcesVisa.verifieLe}
+                  aVerifier={ressourcesVisa.aVerifier}
+                />
+              </section>
+            )}
+
             <section className="carte" style={{ marginTop: 16 }} aria-labelledby="titre-postes">
               <h2 id="titre-postes" className="titre-carte">
                 Ce qu’il faut prévoir à la rentrée, et comment l’alléger
@@ -145,7 +212,11 @@ export default function Budget() {
                       <span style={{ width: `${(p.montant / maxPoste) * 100}%` }} />
                     </span>
                     <strong className="poste-montant">{montant(p.montant)}</strong>
-                    <span className="poste-astuce">{p.astuce ?? '—'}</span>
+                    <span className="poste-astuce">
+                      {p.offert
+                        ? `Offert avec votre bourse (${montant(p.montantSansBourse)} sinon)`
+                        : (p.astuce ?? '—')}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -220,6 +291,14 @@ export default function Budget() {
                             })}
                           </tr>
                         ))}
+                      {ressourcesVisa && (
+                        <tr>
+                          <th scope="row">Ressources à justifier (visa, titre de séjour)</th>
+                          <td>Non concerné</td>
+                          <td>Non concerné</td>
+                          <td>{formaterEuroCentimes(ressourcesVisa.valeur)} / mois</td>
+                        </tr>
+                      )}
                       {heuresMax !== null && (
                         <tr>
                           <th scope="row">Travail salarié</th>

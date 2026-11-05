@@ -66,6 +66,104 @@ describe('Préparer mon budget', () => {
     expect(ligne('Travail salarié')).toHaveTextContent('964 h / an max');
   });
 
+  // Un budget par profil, comme le fait le vrai backend.
+  const apiParProfil = () => {
+    const poste = (id, nom, montant, extra = {}) => ({
+      id,
+      nom,
+      montant,
+      offert: false,
+      astuce: null,
+      aide: null,
+      source: { id: 3, organisme: 'FAGE' },
+      verifieLe: null,
+      aVerifier: true,
+      ...extra,
+    });
+    return simulerApi({
+      '/postes-rentree': (chemin) => {
+        const q = new URLSearchParams(chemin.split('?')[1]);
+        const profil = q.get('profil');
+        const base = [poste(1, 'Dépôt de garantie', 637)];
+        if (profil === 'boursier')
+          return {
+            annee: '2026-2027',
+            total: 637,
+            postes: [
+              ...base,
+              poste(2, 'Droits d’inscription', 0, { offert: true, montantSansBourse: 178 }),
+            ],
+          };
+        if (profil === 'intl') {
+          const visa =
+            q.get('situation') === 'sur_place'
+              ? []
+              : [poste(9, 'Taxe de validation du visa (VLS-TS)', 100)];
+          return {
+            annee: '2026-2027',
+            total: 637 + 2902 + visa.length * 100,
+            postes: [...base, poste(2, 'Droits d’inscription', 2902), ...visa],
+          };
+        }
+        return {
+          annee: '2026-2027',
+          total: 815,
+          postes: [...base, poste(2, 'Droits d’inscription', 178)],
+        };
+      },
+      '/parametres': PARAMETRES_API,
+      '/aides': reponseAides,
+    });
+  };
+
+  it('le total change avec le profil : boursier (droits offerts) et international (droits différenciés + visa)', async () => {
+    apiParProfil();
+    rendreApp('/budget');
+    const total = async () =>
+      (await screen.findByText('Budget de rentrée à prévoir')).closest('li');
+    expect(await total()).toHaveTextContent('815');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Boursier' }));
+    await vi.waitFor(async () => expect(await total()).toHaveTextContent('637'));
+    expect(screen.getByText(/Offert avec votre bourse \(178/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'International hors UE' }));
+    await vi.waitFor(async () => expect(await total()).toHaveTextContent('3 639'));
+    expect(screen.getByText('Taxe de validation du visa (VLS-TS)')).toBeInTheDocument();
+  });
+
+  it('international : à l’arrivée (visa) ou déjà en France (pas de taxe de visa), avec les ressources à justifier', async () => {
+    apiParProfil();
+    rendreApp('/budget?profil=intl');
+    const arrivee = await screen.findByRole('button', { name: 'Je viens d’arriver en France' });
+    expect(arrivee).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByText('Taxe de validation du visa (VLS-TS)')).toBeInTheDocument();
+
+    const ressources = screen.getByRole('region', { name: /À justifier pour votre visa/ });
+    expect(ressources).toHaveTextContent('877,50');
+    expect(ressources).toHaveTextContent('10 530'); // 877,50 € × 12
+    expect(ressources).toHaveTextContent('964 heures par an');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Je suis déjà en France' }));
+    await vi.waitFor(() =>
+      expect(screen.queryByText('Taxe de validation du visa (VLS-TS)')).not.toBeInTheDocument(),
+    );
+    const total = screen.getByText('Budget de rentrée à prévoir').closest('li');
+    expect(total).toHaveTextContent('3 539');
+  });
+
+  it('les profils français et boursier n’affichent ni choix de situation ni ressources de visa', async () => {
+    apiParProfil();
+    rendreApp('/budget');
+    await screen.findByText('Budget de rentrée à prévoir');
+    expect(
+      screen.queryByRole('button', { name: 'Je suis déjà en France' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: /À justifier pour votre visa/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it('lien vers le simulateur', async () => {
     api();
     rendreApp('/budget');

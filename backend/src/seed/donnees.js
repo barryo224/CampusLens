@@ -117,6 +117,14 @@ export const SOURCES = {
     type: 'page_web',
     frequenceHeures: 24 * 3,
   },
+  visaEtudiant: {
+    cle: 'veille_visa',
+    nom: 'Étudiant étranger : visa, titre de séjour et ressources (Service-Public)',
+    organisme: 'Service-Public.fr',
+    url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F2231',
+    type: 'page_web',
+    frequenceHeures: 24 * 3, // veille quotidienne : voir sync/robots/veilleVerification.js
+  },
   transportParis: {
     nom: 'Tarifs Imagine R Étudiant (Île-de-France Mobilités)',
     organisme: 'Île-de-France Mobilités',
@@ -535,6 +543,24 @@ export const PARAMETRES = [
     unite: 'heures / an',
     source: 'travailEtranger',
   },
+  // Étudiants étrangers : ressources à justifier pour le visa et le titre de séjour (en vigueur depuis le 1er août 2026).
+  {
+    cle: 'ressources_mensuelles_visa',
+    niveau: 'aucun',
+    profil: 'intl',
+    valeur: 877.5,
+    unite: '€ / mois',
+    source: 'visaEtudiant',
+  },
+  // Taxe à payer en ligne lors de la validation du visa long séjour valant titre de séjour (VLS-TS « étudiant »).
+  {
+    cle: 'taxe_vls_ts',
+    niveau: 'aucun',
+    profil: 'intl',
+    valeur: 100,
+    unite: '€',
+    source: 'visaEtudiant',
+  },
 ];
 
 const UNIVERSEL = ['fr_ue', 'boursier', 'intl'];
@@ -714,13 +740,26 @@ export const POSTES_RENTREE = [
   {
     nom: 'Droits d’inscription',
     montant: 178,
+    parametreCle: 'droits_inscription',
+    gratuitBoursier: true,
     aide: 'bourse-criteres-sociaux',
     astuce: 'Offerts si vous êtes boursier',
   },
   { nom: 'Vêtements', montant: 133, aide: null, astuce: 'Friperies et ressourceries' },
   {
+    nom: 'Taxe de validation du visa (VLS-TS)',
+    montant: 100,
+    parametreCle: 'taxe_vls_ts',
+    profilCode: 'intl',
+    situation: 'arrivee',
+    aide: null,
+    astuce: 'À payer en ligne dans les 3 mois qui suivent l’arrivée en France',
+  },
+  {
     nom: 'CVEC',
     montant: 105,
+    parametreCle: 'cvec',
+    gratuitBoursier: true,
     aide: 'bourse-criteres-sociaux',
     astuce: 'Offerte si vous êtes boursier',
   },

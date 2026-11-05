@@ -197,6 +197,11 @@ model PosteRentree {
   montant   Decimal   @db.Decimal(12, 2)
   astuce    String? // « Avance Loca-Pass ou FSL »
   aideId    Int?      @map("aide_id") // l'aide qui allège ce poste
+  // Le montant dépend du profil : il est alors lu dans les paramètres (droits, CVEC, taxe de visa…).
+  parametreCle    String? @map("parametre_cle")
+  gratuitBoursier Boolean @default(false) @map("gratuit_boursier") // 0 € pour un boursier (droits, CVEC)
+  profilCode      String? @map("profil_code") // poste réservé à ce profil (ex. intl)
+  situation       String? // poste réservé à une situation (ex. arrivee : première année en France)
   sourceId  Int       @map("source_id")
   verifieLe DateTime? @map("verifie_le")
 

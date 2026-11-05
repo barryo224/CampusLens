@@ -5,7 +5,7 @@ import ZoneDefilante from '../components/ZoneDefilante.jsx';
 import Fraicheur from '../components/Fraicheur.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
-import { formaterEuro } from '../lib/format.js';
+import { formaterEuro, formaterEuroCentimes } from '../lib/format.js';
 
 const PROFILS = [
   { code: 'fr_ue', libelle: 'Étudiant français ou UE' },
@@ -234,15 +234,15 @@ function Villes() {
                 <td>
                   {v.transport ? (
                     <>
-                      {nombre(v.abonnementTransport)} / mois
+                      {formaterEuroCentimes(v.abonnementTransport)} / mois
                       <span className="aide-organisme">
                         {v.transport.reseau} — {v.transport.libelle} (
                         {v.transport.montantAnnuel === null ||
                         v.transport.montantAnnuel === undefined
                           ? 'abonnement mensuel'
                           : v.transport.montantMensuel
-                            ? `pass mensuel ; ${formaterEuro(v.transport.montantAnnuel)} par an en annuel`
-                            : `${formaterEuro(v.transport.montantAnnuel)} par an`}
+                            ? `pass mensuel ; ${formaterEuroCentimes(v.transport.montantAnnuel)} par an en annuel`
+                            : `${formaterEuroCentimes(v.transport.montantAnnuel)} par an`}
                         ) ·{' '}
                         <a href={v.transport.urlTarifs} target="_blank" rel="noopener noreferrer">
                           tarifs officiels<span className="sr-only"> (nouvel onglet)</span>
