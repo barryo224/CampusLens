@@ -35,13 +35,14 @@ describe('Base de données et seed', () => {
       return Number(p.valeur);
     };
     expect(await get('droits_inscription', 'licence', null)).toBe(178);
-    expect(await get('droits_inscription', 'master', null)).toBe(254);
+    expect(await get('droits_inscription', 'master', null)).toBe(255);
     expect(await get('droits_inscription', 'licence', 'intl')).toBe(2902);
     expect(await get('droits_inscription', 'master', 'intl')).toBe(3950);
     expect(await get('cvec', 'aucun', null)).toBe(105);
     expect(await get('seuil_fragile', 'aucun', null)).toBe(150);
     expect(await get('heures_travail_max', 'aucun', 'intl')).toBe(964);
     expect(await get('seuil_part_loyer', 'aucun', null)).toBe(40);
+    expect(await get('surface_studio_m2', 'aucun', null)).toBe(20);
   });
 
   it('chaque aide a une éligibilité pour chacun des 3 profils', async () => {
@@ -74,6 +75,24 @@ describe('Base de données et seed', () => {
     expect(await prisma.parametre.count()).toBe(avant);
     const apres = await prisma.parametre.findUniqueOrThrow({ where: { id: cvec.id } });
     expect(Number(apres.valeur)).toBe(111);
+  });
+
+  it('crée les 30 villes étudiantes sans aucun loyer (les robots les remplissent)', async () => {
+    const villes = await prisma.ville.findMany();
+    expect(villes).toHaveLength(30);
+    expect(villes.every((v) => v.loyerM2Appartement === null && v.verifieLe === null)).toBe(true);
+    expect(villes.find((v) => v.nom === 'Rennes').codeInsee).toBe('35238');
+  });
+
+  it('relie chaque robot à sa source (cle) avec une adresse officielle', async () => {
+    const cles = (await prisma.source.findMany({ where: { cle: { not: null } } }))
+      .map((s) => s.cle)
+      .sort();
+    expect(cles).toEqual(
+      ['cvec', 'droits', 'liens_ressources', 'loyers', 'logements_crous'].sort(),
+    );
+    const droits = await prisma.source.findUniqueOrThrow({ where: { cle: 'droits' } });
+    expect(droits.url).toContain('service-public.fr');
   });
 
   it('interdit deux paramètres identiques (index unique)', async () => {

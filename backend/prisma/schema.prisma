@@ -58,6 +58,7 @@ enum StatutLien {
 }
 
 enum StatutSynchronisation {
+  en_cours // verrou : une seule synchronisation en cours par source
   succes
   aucun_changement
   en_attente_validation
@@ -80,6 +81,7 @@ enum RoleAdmin {
 /// Chaque origine de données (site, API, document).
 model Source {
   id                Int          @id @default(autoincrement())
+  cle               String?      @unique // identifiant technique du robot (ex. « loyers »)
   nom               String
   organisme         String
   url               String
@@ -361,4 +363,14 @@ model MessageContact {
 
   @@index([supprimerApres])
   @@map("message_contact")
+}
+
+/// Sessions de l'espace admin (stockées en base : elles survivent à un redémarrage du serveur).
+model SessionAdmin {
+  sid     String   @id
+  donnees Json
+  expire  DateTime
+
+  @@index([expire])
+  @@map("session_admin")
 }

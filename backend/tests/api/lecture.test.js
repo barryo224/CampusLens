@@ -106,15 +106,7 @@ describe('API publique : lecture', () => {
 
   it('API-06 : chaque objet renvoyé contient source et verifieLe', async () => {
     const source = await prisma.source.findFirstOrThrow();
-    const ville = await prisma.ville.create({
-      data: {
-        codeInsee: '75056',
-        nom: 'Paris',
-        region: 'Île-de-France',
-        loyerM2Appartement: 27.5,
-        sourceId: source.id,
-      },
-    });
+    const ville = await prisma.ville.findFirstOrThrow({ where: { nom: 'Paris' } });
     await prisma.logementCrous.create({
       data: { villeId: ville.id, nomResidence: 'Résidence test', sourceId: source.id },
     });

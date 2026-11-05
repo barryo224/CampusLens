@@ -17,27 +17,35 @@ export const PROFILS = [
 ];
 
 // Clé = identifiant interne utilisé plus bas dans les paramètres, aides et postes.
+// `cle` (facultative) relie la source à son robot de synchronisation (backend/src/sync/).
+// `anciensNoms` : noms d'une version précédente du seed, pour corriger les lignes déjà créées.
+// Adresses vérifiées le 5 novembre 2026 (une source sans robot reste « à vérifier »).
 export const SOURCES = {
   droits: {
-    nom: 'Droits d’inscription différenciés',
+    cle: 'droits',
+    nom: 'Droits d’inscription nationaux (Service-Public)',
+    anciensNoms: ['Droits d’inscription différenciés'],
     organisme: 'Service-Public.fr',
-    url: 'https://www.service-public.fr/particuliers/vosdroits/F2965',
+    url: 'https://www.service-public.fr/particuliers/actualites/A14725',
     type: 'page_web',
-    frequenceHeures: 24 * 30,
+    frequenceHeures: 24 * 7,
   },
   cvec: {
+    cle: 'cvec',
     nom: 'Contribution de vie étudiante et de campus (CVEC)',
-    organisme: 'Service-Public.fr',
-    url: 'https://www.service-public.fr/particuliers/vosdroits/F34725',
+    organisme: 'CVEC — étudiant.gouv.fr',
+    anciensNoms: ['Contribution de vie étudiante et de campus (CVEC)'],
+    url: 'https://cvec.etudiant.gouv.fr',
     type: 'page_web',
-    frequenceHeures: 24 * 30,
+    frequenceHeures: 24 * 7,
   },
   fage: {
+    // Pas de robot : l'adresse du dossier de presse annuel est à fournir (voir README).
     nom: 'Indicateur du coût de la rentrée',
     organisme: 'FAGE',
     url: 'https://www.fage.org',
     type: 'pdf',
-    frequenceHeures: 24 * 7,
+    frequenceHeures: 24 * 30,
   },
   reglages: {
     nom: 'Réglages de calcul CampusLens',
@@ -62,13 +70,68 @@ export const SOURCES = {
     frequenceHeures: 24 * 7,
   },
   ressources: {
+    cle: 'liens_ressources',
     nom: 'Pages officielles des démarches',
     organisme: 'Organismes publics',
     url: 'https://www.messervices.etudiant.gouv.fr',
     type: 'page_web',
     frequenceHeures: 24 * 7,
   },
+  loyers: {
+    cle: 'loyers',
+    nom: 'Carte des loyers (indicateurs de loyers d’annonce par commune)',
+    organisme: 'Ministère du Logement — ANIL',
+    url: 'https://www.data.gouv.fr/api/1/datasets/',
+    type: 'jeu_ouvert',
+    frequenceHeures: 24 * 7,
+    licence: 'Licence Ouverte 2.0',
+  },
+  logementsCrous: {
+    cle: 'logements_crous',
+    nom: 'Logements proposés par les CROUS',
+    organisme: 'CNOUS',
+    url: 'https://data.enseignementsup-recherche.gouv.fr/api/explore/v2.1/catalog/datasets/fr_crous_logement_france_entiere',
+    type: 'jeu_ouvert',
+    frequenceHeures: 24 * 7,
+    licence: 'Licence Ouverte 2.0',
+  },
 };
+
+// Villes étudiantes suivies (code INSEE vérifié dans la carte des loyers 2025).
+// Paris, Lyon et Marseille n'apparaissent dans ce fichier que par arrondissement : leur loyer
+// reste vide (« — ») tant qu'on ne les agrège pas. Le robot remplit les valeurs ; on ne les écrit jamais ici.
+export const VILLES = [
+  ['75056', 'Paris', 'Île-de-France'],
+  ['69123', 'Lyon', 'Auvergne-Rhône-Alpes'],
+  ['13055', 'Marseille', 'Provence-Alpes-Côte d’Azur'],
+  ['31555', 'Toulouse', 'Occitanie'],
+  ['59350', 'Lille', 'Hauts-de-France'],
+  ['33063', 'Bordeaux', 'Nouvelle-Aquitaine'],
+  ['44109', 'Nantes', 'Pays de la Loire'],
+  ['67482', 'Strasbourg', 'Grand Est'],
+  ['34172', 'Montpellier', 'Occitanie'],
+  ['35238', 'Rennes', 'Bretagne'],
+  ['38185', 'Grenoble', 'Auvergne-Rhône-Alpes'],
+  ['06088', 'Nice', 'Provence-Alpes-Côte d’Azur'],
+  ['21231', 'Dijon', 'Bourgogne-Franche-Comté'],
+  ['49007', 'Angers', 'Pays de la Loire'],
+  ['51454', 'Reims', 'Grand Est'],
+  ['63113', 'Clermont-Ferrand', 'Auvergne-Rhône-Alpes'],
+  ['37261', 'Tours', 'Centre-Val de Loire'],
+  ['14118', 'Caen', 'Normandie'],
+  ['76540', 'Rouen', 'Normandie'],
+  ['54395', 'Nancy', 'Grand Est'],
+  ['57463', 'Metz', 'Grand Est'],
+  ['86194', 'Poitiers', 'Nouvelle-Aquitaine'],
+  ['87085', 'Limoges', 'Nouvelle-Aquitaine'],
+  ['45234', 'Orléans', 'Centre-Val de Loire'],
+  ['25056', 'Besançon', 'Bourgogne-Franche-Comté'],
+  ['80021', 'Amiens', 'Hauts-de-France'],
+  ['29019', 'Brest', 'Bretagne'],
+  ['66136', 'Perpignan', 'Occitanie'],
+  ['64445', 'Pau', 'Nouvelle-Aquitaine'],
+  ['42218', 'Saint-Étienne', 'Auvergne-Rhône-Alpes'],
+].map(([codeInsee, nom, region]) => ({ codeInsee, nom, region }));
 
 // profil: null = valeur nationale (tous les profils). niveau: 'aucun' si indépendant du niveau.
 export const PARAMETRES = [
@@ -84,7 +147,7 @@ export const PARAMETRES = [
     cle: 'droits_inscription',
     niveau: 'master',
     profil: null,
-    valeur: 254,
+    valeur: 255,
     unite: '€ / an',
     source: 'droits',
   },
@@ -111,6 +174,15 @@ export const PARAMETRES = [
     profil: null,
     valeur: 150,
     unite: '€',
+    source: 'reglages',
+  },
+  // Surface type d'un studio, pour estimer son loyer (loyer au m² × surface).
+  {
+    cle: 'surface_studio_m2',
+    niveau: 'aucun',
+    profil: null,
+    valeur: 20,
+    unite: 'm²',
     source: 'reglages',
   },
   // Part du loyer dans les revenus (en %) au-delà de laquelle on recommande de comparer les villes.

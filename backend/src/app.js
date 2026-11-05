@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { routesPubliques } from './routes/publiques.js';
 import { routeContact } from './routes/contact.js';
 import { routesAdmin } from './routes/admin.js';
+import { StockageSessions } from './admin/sessions.js';
 
 /**
  * Construit l'application Express.
@@ -15,6 +16,7 @@ import { routesAdmin } from './routes/admin.js';
  */
 export function createApp({
   prisma,
+  fetchImpl = fetch,
   corsOrigin = process.env.CORS_ORIGIN,
   sessionSecret = process.env.SESSION_SECRET,
   production = process.env.NODE_ENV === 'production',
@@ -56,11 +58,12 @@ export function createApp({
   );
 
   // Sessions : uniquement pour l'espace admin (aucun cookie n'est posé aux visiteurs).
-  // TODO phase 6 : remplacer le stockage mémoire par un stockage en base (connect-pg-simple).
   app.use(
     '/api/admin',
     session({
       name: 'campuslens.sid',
+      // En base si on a un vrai client Prisma ; sinon (tests sans base) mémoire.
+      ...(prisma?.sessionAdmin ? { store: new StockageSessions(prisma) } : {}),
       secret: sessionSecret ?? 'secret-de-developpement-uniquement',
       resave: false,
       saveUninitialized: false,
@@ -72,7 +75,7 @@ export function createApp({
         maxAge: 2 * 60 * 60 * 1000,
       },
     }),
-    routesAdmin(prisma),
+    routesAdmin(prisma, { fetchImpl }),
   );
 
   app.use('/api', routesPubliques(prisma));

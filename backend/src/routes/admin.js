@@ -2,7 +2,16 @@ import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
 import rateLimit from 'express-rate-limit';
-import { valider } from '../lib/validation.js';
+import { valider, idSchema } from '../lib/validation.js';
+import { estAVerifier } from '../lib/fraicheur.js';
+import {
+  validerChangement,
+  rejeterChangement,
+  annulerModification,
+  lireSuggestions,
+} from '../admin/changements.js';
+import { synchroniser } from '../sync/moteur.js';
+import { ROBOTS } from '../sync/robots/index.js';
 
 const loginSchema = z.object({
   email: z.email().max(254),
@@ -21,7 +30,7 @@ export function exigerAdmin(req, res, next) {
   next();
 }
 
-export function routesAdmin(prisma) {
+export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
   const r = Router();
 
   // 5 échecs de connexion par IP et par 15 min, puis blocage temporaire (429).
@@ -61,6 +70,133 @@ export function routesAdmin(prisma) {
       res.clearCookie('campuslens.sid');
       res.status(204).end();
     });
+  });
+
+  // Les actions sensibles sont réservées au rôle « admin » (le « relecteur » valide et consulte).
+  const exigerRoleAdmin = async (req, res, next) => {
+    const admin = await prisma.administrateur.findUnique({ where: { id: req.session.adminId } });
+    if (admin?.role !== 'admin')
+      return res.status(403).json({ error: 'Action réservée aux administrateurs.' });
+    next();
+  };
+
+  // État des sources : dernière vérification, statut, fréquence, changements en attente.
+  r.get('/sources', async (_req, res) => {
+    const sources = await prisma.source.findMany({
+      orderBy: { id: 'asc' },
+      include: {
+        synchronisations: { orderBy: { debut: 'desc' }, take: 1 },
+        _count: { select: { changementsDetectes: { where: { statut: 'a_valider' } } } },
+      },
+    });
+    const maintenant = new Date();
+    res.json(
+      sources.map((s) => ({
+        id: s.id,
+        cle: s.cle,
+        nom: s.nom,
+        organisme: s.organisme,
+        url: s.url,
+        type: s.type,
+        niveau: s.type === 'page_web' || s.type === 'pdf' ? 3 : s.type === 'moteur_calcul' ? 2 : 1,
+        frequenceHeures: s.frequenceHeures,
+        statut: s.statut,
+        aVerifier: estAVerifier(s, s.dernierControle, maintenant),
+        dernierControle: s.dernierControle,
+        dernierChangement: s.dernierChangement,
+        robot: Boolean(s.cle && ROBOTS[s.cle]),
+        derniereSynchronisation: s.synchronisations[0]
+          ? {
+              statut: s.synchronisations[0].statut,
+              debut: s.synchronisations[0].debut,
+              nbChangements: s.synchronisations[0].nbChangements,
+              messageErreur: s.synchronisations[0].messageErreur,
+            }
+          : null,
+        changementsEnAttente: s._count.changementsDetectes,
+      })),
+    );
+  });
+
+  // Changements détectés sur des pages web / PDF, avec les valeurs proposées et celles de la source.
+  r.get('/changements', async (req, res) => {
+    const { statut } = valider(
+      z.object({ statut: z.enum(['a_valider', 'valide', 'rejete']).default('a_valider') }),
+      req.query,
+    );
+    const changements = await prisma.changementDetecte.findMany({
+      where: { statut },
+      orderBy: { id: 'desc' },
+      take: 100,
+      include: { source: true, traitePar: { select: { email: true } } },
+    });
+    const sortie = [];
+    for (const c of changements) {
+      const parametres = await prisma.parametre.findMany({
+        where: { sourceId: c.sourceId, annee: { enCours: true } },
+        include: { profil: true },
+        orderBy: [{ cle: 'asc' }, { niveau: 'asc' }],
+      });
+      sortie.push({
+        id: c.id,
+        statut: c.statut,
+        resume: c.resume,
+        source: {
+          id: c.source.id,
+          nom: c.source.nom,
+          organisme: c.source.organisme,
+          url: c.source.url,
+        },
+        detecteLe: c.traiteLe ?? null,
+        traitePar: c.traitePar?.email ?? null,
+        suggestions: lireSuggestions(c),
+        parametres: parametres.map((p) => ({
+          id: p.id,
+          cle: p.cle,
+          niveau: p.niveau,
+          profil: p.profil?.code ?? null,
+          valeur: Number(p.valeur),
+          unite: p.unite,
+        })),
+      });
+    }
+    res.json(sortie);
+  });
+
+  r.post('/changements/:id/valider', async (req, res) => {
+    const id = valider(idSchema, req.params.id);
+    const { valeurs } = valider(
+      z.object({
+        valeurs: z.array(z.object({ parametreId: z.number(), valeur: z.number() })).default([]),
+      }),
+      req.body ?? {},
+    );
+    res.json(await validerChangement(prisma, id, req.session.adminId, valeurs));
+  });
+
+  r.post('/changements/:id/rejeter', async (req, res) => {
+    const id = valider(idSchema, req.params.id);
+    res.json(await rejeterChangement(prisma, id, req.session.adminId));
+  });
+
+  // Dernières modifications de données (pour afficher « mis à jour le… » et annuler une erreur).
+  r.get('/historique', async (_req, res) => {
+    const lignes = await prisma.historiqueValeur.findMany({ orderBy: { id: 'desc' }, take: 50 });
+    res.json(lignes);
+  });
+
+  r.post('/historique/:id/annuler', exigerRoleAdmin, async (req, res) => {
+    const id = valider(idSchema, req.params.id);
+    res.json(await annulerModification(prisma, id));
+  });
+
+  // Lancer un robot tout de suite (admin).
+  r.post('/sources/:id/synchroniser', exigerRoleAdmin, async (req, res) => {
+    const id = valider(idSchema, req.params.id);
+    const source = await prisma.source.findUnique({ where: { id } });
+    if (!source?.cle || !ROBOTS[source.cle])
+      return res.status(404).json({ error: 'Aucun robot pour cette source.' });
+    res.json(await synchroniser(prisma, ROBOTS[source.cle], { fetchImpl }));
   });
 
   r.get('/me', async (req, res) => {

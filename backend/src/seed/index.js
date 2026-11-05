@@ -7,6 +7,7 @@ import {
   POSTES_RENTREE,
   ASSOCIATIONS,
   RESSOURCES,
+  VILLES,
   UNIVERSEL,
 } from './donnees.js';
 
@@ -33,12 +34,28 @@ export async function seed(prisma) {
     });
   }
 
-  // Sources (pas de clé unique naturelle : on cherche par nom + organisme).
+  // Sources. Identifiées par `cle` (robot) ou par nom + organisme. Pour une source qui a un
+  // robot, la configuration (adresse, fréquence…) est remise à jour : ce n'est pas une
+  // « valeur » modifiée par les robots, c'est le réglage du robot lui-même.
   const sources = {};
-  for (const [cle, s] of Object.entries(SOURCES)) {
-    const existante = await prisma.source.findFirst({
-      where: { nom: s.nom, organisme: s.organisme },
+  for (const [cle, { anciensNoms = [], ...s }] of Object.entries(SOURCES)) {
+    let existante = s.cle ? await prisma.source.findUnique({ where: { cle: s.cle } }) : null;
+    existante ??= await prisma.source.findFirst({
+      where: {
+        OR: [{ nom: s.nom }, ...anciensNoms.map((nom) => ({ nom }))],
+        organisme: s.organisme,
+      },
     });
+    existante ??= anciensNoms.length
+      ? await prisma.source.findFirst({ where: { nom: { in: anciensNoms } } })
+      : null;
+    if (existante && s.cle) {
+      const { cle: cleRobot, ...config } = s;
+      existante = await prisma.source.update({
+        where: { id: existante.id },
+        data: { ...config, cle: cleRobot },
+      });
+    }
     sources[cle] = existante ?? (await prisma.source.create({ data: s }));
   }
 
@@ -114,5 +131,15 @@ export async function seed(prisma) {
     if (!existante) {
       await prisma.ressource.create({ data: { ...r, sourceId: sources.ressources.id } });
     }
+  }
+
+  // Villes étudiantes : identité seulement. Loyers et nombre de résidences CROUS sont remplis
+  // par les robots de synchronisation.
+  for (const v of VILLES) {
+    await prisma.ville.upsert({
+      where: { codeInsee: v.codeInsee },
+      update: {},
+      create: { ...v, sourceId: sources.loyers.id },
+    });
   }
 }

@@ -24,6 +24,7 @@ const TABLES = [
   'profil',
   'annee_universitaire',
   'source',
+  'session_admin',
 ];
 
 export async function viderBase(prisma) {
