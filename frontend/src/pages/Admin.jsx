@@ -215,6 +215,13 @@ function Changements() {
   );
 }
 
+/** Comment une source est suivie : la même phrase partout, pour ne jamais se demander « pourquoi pas de bouton ? ». */
+function typeDeSuivi(s) {
+  if (!s.robot) return 'Manuelle';
+  if (s.veille) return 'Veille (vous vérifiez)';
+  return s.niveau === 1 ? 'Robot automatique' : 'Robot (vous validez)';
+}
+
 function Sources({ role }) {
   // Pendant un rechargement (après une action), la liste précédente reste affichée : la confirmation apparaît tout de suite.
   const { data, erreur, recharger } = useApi('/admin/sources', { garderAnciennes: true });
@@ -269,7 +276,7 @@ function Sources({ role }) {
                   <br />
                   <span className="aide-organisme">{s.organisme}</span>
                 </th>
-                <td>{s.robot ? s.niveau : '—'}</td>
+                <td>{typeDeSuivi(s)}</td>
                 <td>
                   <span className={`badge ${CLASSE_STATUT_SOURCE[s.statut]}`}>
                     {LIBELLE_STATUT_SOURCE[s.statut]}
@@ -277,7 +284,7 @@ function Sources({ role }) {
                   {!s.robot && (
                     <span className="fraicheur">
                       <br />
-                      Pas de robot
+                      Pas de robot : à vérifier à la main
                     </span>
                   )}
                 </td>
@@ -300,7 +307,7 @@ function Sources({ role }) {
                 </td>
                 <td>{s.changementsEnAttente}</td>
                 <td>
-                  {s.robot && role === 'admin' ? (
+                  {s.robot && role === 'admin' && (
                     <button
                       type="button"
                       className="bouton bouton-secondaire"
@@ -308,8 +315,15 @@ function Sources({ role }) {
                     >
                       Lancer<span className="sr-only"> : {s.nom}</span>
                     </button>
-                  ) : (
-                    '—'
+                  )}
+                  {/* Une source sans robot (ou avec simple veille) se vérifie à la main : on dit où, au lieu d'un tiret. */}
+                  {s.verificationManuelle && (
+                    <Link to="/admin/verification" className="lien-action">
+                      Vérifier à la main<span className="sr-only"> : {s.nom}</span>
+                    </Link>
+                  )}
+                  {s.robot && role !== 'admin' && !s.verificationManuelle && (
+                    <span className="fraicheur">Réservé à l’administrateur</span>
                   )}
                 </td>
               </tr>
@@ -877,7 +891,13 @@ function Verification() {
           <p className="barre-admin">
             <strong>
               {data.length} donnée{data.length > 1 ? 's' : ''} à vérifier
-            </strong>
+            </strong>{' '}
+            <span data-testid="resume-verification">
+              dans {groupes.size} source{groupes.size > 1 ? 's' : ''} :{' '}
+              {Object.entries(data.reduce((n, i) => ({ ...n, [i.type]: (n[i.type] ?? 0) + 1 }), {}))
+                .map(([type, n]) => `${TYPES_LIBELLE[type] ?? type} ${n}`)
+                .join(' · ')}
+            </span>
           </p>
           <ul className="grille" style={{ listStyle: 'none', padding: 0 }}>
             {[...groupes.values()].map(({ source, items }) => (
@@ -885,8 +905,10 @@ function Verification() {
                 <h3>{source.nom}</h3>
                 <p className="fraicheur">
                   {source.organisme} ·{' '}
-                  <LienExterne href={source.url}>Ouvrir la source officielle</LienExterne> · à
-                  revérifier tous les {Math.max(1, Math.round(source.frequenceHeures / 24))} jours
+                  <LienExterne href={source.url}>Ouvrir la source officielle</LienExterne> ·{' '}
+                  {source.veille
+                    ? 'page surveillée chaque jour : votre vérification reste valable tant qu’elle ne change pas'
+                    : `à revérifier tous les ${Math.max(1, Math.round(source.frequenceHeures / 24))} jours`}
                 </p>
                 <ul className="liste-verification">
                   {items.map((item) => (

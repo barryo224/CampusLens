@@ -75,6 +75,8 @@ const sourcePublique = (s) => ({
   url: s.url,
   statut: s.statut,
   frequenceHeures: s.frequenceHeures,
+  // Surveillée : un robot relit la page chaque jour ; la vérification reste valable tant qu'elle ne change pas.
+  veille: Boolean(s.cle && ROBOTS[s.cle]?.veilleVerification),
 });
 
 /** Toutes les données à vérifier à la main (jamais vérifiées, ou source périmée), groupées par source. */

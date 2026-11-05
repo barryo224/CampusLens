@@ -243,6 +243,8 @@ describe('Maintenance et planification', () => {
         'api.fr.openfisca.org': () => variableAideLogement(),
         // pages officielles sous veille (aides vérifiées à la main)
         'service-public.': () => pageHtml(`<main><p>${'Contenu officiel. '.repeat(40)}</p></main>`),
+        'campusfrance.org': () =>
+          pageHtml(`<main><p>${'Contenu officiel. '.repeat(40)}</p></main>`),
         'actionlogement.fr': () =>
           pageHtml(`<main><p>${'Contenu officiel. '.repeat(40)}</p></main>`),
         'etudiant.gouv.fr/fr/restauration': () =>

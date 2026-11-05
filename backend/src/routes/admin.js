@@ -130,6 +130,10 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
         dernierControle: s.dernierControle,
         dernierChangement: s.dernierChangement,
         robot: Boolean(s.cle && ROBOTS[s.cle]),
+        // « Veille » : un robot relit la page chaque jour, mais c'est vous qui vérifiez les valeurs (« Données à vérifier »).
+        veille: Boolean(s.cle && ROBOTS[s.cle]?.veilleVerification),
+        // Sans robot, ou avec une simple veille : les valeurs se vérifient À LA MAIN dans « Données à vérifier ».
+        verificationManuelle: !s.cle || !ROBOTS[s.cle] || ROBOTS[s.cle].veilleVerification === true,
         derniereSynchronisation: s.synchronisations[0]
           ? {
               statut: s.synchronisations[0].statut,
@@ -331,7 +335,10 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
     const id = valider(idSchema, req.params.id);
     const source = await prisma.source.findUnique({ where: { id } });
     if (!source?.cle || !ROBOTS[source.cle])
-      return res.status(404).json({ error: 'Aucun robot pour cette source.' });
+      return res.status(404).json({
+        error:
+          'Cette source n’a pas de robot : ses données se vérifient à la main, dans « Données à vérifier ».',
+      });
     res.json(await synchroniser(prisma, ROBOTS[source.cle], { fetchImpl }));
   });
 

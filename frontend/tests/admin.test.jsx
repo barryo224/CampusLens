@@ -58,6 +58,8 @@ const SOURCES = [
     statut: 'ok',
     aVerifier: false,
     robot: true,
+    veille: false,
+    verificationManuelle: false,
     frequenceHeures: 168,
     dernierControle: '2026-11-05T10:00:00Z',
     derniereSynchronisation: {
@@ -76,6 +78,8 @@ const SOURCES = [
     statut: 'erreur',
     aVerifier: true,
     robot: true,
+    veille: false,
+    verificationManuelle: false,
     frequenceHeures: 168,
     dernierControle: null,
     derniereSynchronisation: { statut: 'echec', messageErreur: 'La source a répondu 500' },
@@ -90,6 +94,8 @@ const SOURCES = [
     statut: 'a_verifier',
     aVerifier: true,
     robot: false,
+    veille: false,
+    verificationManuelle: true,
     frequenceHeures: 720,
     dernierControle: null,
     derniereSynchronisation: null,
@@ -512,8 +518,15 @@ describe('Espace administration', () => {
     expect(ligne('Carte des loyers')).toHaveTextContent('La source a répondu 500');
     expect(ligne('Droits d’inscription')).toHaveTextContent('À jour');
     expect(ligne('Droits d’inscription')).toHaveTextContent('En attente de validation');
-    expect(ligne('Indicateur du coût')).toHaveTextContent('Pas de robot');
+    // Une source sans robot n'a pas de bouton, mais dit pourquoi et renvoie vers l'endroit où la vérifier.
+    expect(ligne('Indicateur du coût')).toHaveTextContent('Manuelle');
+    expect(ligne('Indicateur du coût')).toHaveTextContent('Pas de robot : à vérifier à la main');
     expect(within(ligne('Indicateur du coût')).queryByRole('button')).not.toBeInTheDocument();
+    expect(
+      within(ligne('Indicateur du coût')).getByRole('link', { name: /Vérifier à la main/ }),
+    ).toHaveAttribute('href', '/admin/verification');
+    expect(ligne('Carte des loyers')).toHaveTextContent('Robot automatique');
+    expect(ligne('Droits d’inscription')).toHaveTextContent('Robot (vous validez)');
 
     await userEvent.click(
       within(ligne('Carte des loyers')).getByRole('button', { name: /Lancer/ }),
@@ -587,6 +600,8 @@ describe('Espace administration', () => {
       expect(lien).toHaveAttribute('rel', 'noopener noreferrer');
       expect(loca).toHaveTextContent('Action Logement');
       expect(loca).toHaveTextContent('à revérifier tous les 30 jours');
+      // Résumé de ce qui reste, par type de donnée : on voit tout de suite où il reste du travail.
+      expect(screen.getByTestId('resume-verification')).toHaveTextContent(/dans \d+ sources? :/);
       expect(within(loca).getByText(/boursier = oui/)).toBeInTheDocument(); // ce qu'il faut comparer
       const fage = screen
         .getByRole('heading', { name: 'Indicateur du coût de la rentrée' })
@@ -670,6 +685,22 @@ describe('Espace administration', () => {
       await ouvrirVerification();
       expect(await violationsAxe(document.body)).toEqual([]);
     });
+  });
+
+  it('une source surveillée dit que la vérification reste valable tant que la page ne change pas', async () => {
+    const surveillee = {
+      ...A_VERIFIER[0],
+      source: { ...A_VERIFIER[0].source, veille: true, frequenceHeures: 72 },
+    };
+    connecte('admin', { '/admin/verification': [surveillee, A_VERIFIER[1]] });
+    rendreApp('/admin/verification');
+    const carte = (await screen.findByRole('heading', { name: 'Avance Loca-Pass' })).closest('li');
+    expect(carte).toHaveTextContent('page surveillée chaque jour');
+    expect(carte).toHaveTextContent('reste valable tant qu’elle ne change pas');
+    expect(carte).not.toHaveTextContent('à revérifier tous les 3 jours'); // faux : ce n'est pas un délai
+    // Une source non surveillée garde son délai.
+    const autre = screen.getByRole('heading', { name: /Étudiant : bourse/ }).closest('li');
+    expect(autre).toHaveTextContent('à revérifier tous les 30 jours');
   });
 
   describe('Avis des visiteurs', () => {

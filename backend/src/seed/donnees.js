@@ -22,6 +22,12 @@ export const PROFILS = [
 // `cle` (facultative) relie la source à son robot de synchronisation (backend/src/sync/).
 // `anciensNoms` : noms d'une version précédente du seed, pour corriger les lignes déjà créées.
 // Adresses vérifiées le 5 novembre 2026 (une source sans robot reste « à vérifier »).
+// Sources abandonnées (remplacées par des sources précises) : leur ligne est supprimée si plus aucune donnée n'en dépend.
+export const SOURCES_ABANDONNEES = [
+  'Aides : organismes concernés',
+  'Fiches pratiques Service-Public',
+];
+
 export const SOURCES = {
   droits: {
     cle: 'droits',
@@ -58,15 +64,6 @@ export const SOURCES = {
     type: 'page_web',
     frequenceHeures: 24 * 365 * 5,
     valideParEditeur: true,
-  },
-  // Aides dont la page officielle n'a pas encore été relevée : on ne prétend pas à une source précise.
-  fiches: {
-    nom: 'Aides : organismes concernés',
-    anciensNoms: ['Fiches pratiques Service-Public'],
-    organisme: 'CAF, CROUS, universités, départements',
-    url: 'https://www.etudiant.gouv.fr',
-    type: 'page_web',
-    frequenceHeures: 24 * 30,
   },
   // Pages officielles réellement consultées le 5 novembre 2026 (vérification manuelle, refaite chaque mois).
   bourseServicePublic: {
@@ -440,11 +437,12 @@ export const SOURCES = {
     frequenceHeures: 24 * 3,
   },
   travailEtranger: {
+    cle: 'veille_travail_etranger', // veille quotidienne de la page : voir sync/robots/veilleVerification.js
     nom: 'Travailler pendant ses études (étudiants étrangers)',
     organisme: 'Campus France',
     url: 'https://www.campusfrance.org/en/working-student',
     type: 'page_web',
-    frequenceHeures: 24 * 90,
+    frequenceHeures: 24 * 3,
   },
   associations: {
     nom: 'Sites des associations d’entraide',

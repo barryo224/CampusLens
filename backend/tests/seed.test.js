@@ -186,6 +186,7 @@ describe('Base de données et seed', () => {
         'veille_loca_pass',
         'veille_repas_crous',
         'veille_visa',
+        'veille_travail_etranger',
       ].sort(),
     );
     expect(cles.filter((c) => c.startsWith('veille_transport_'))).toHaveLength(25);

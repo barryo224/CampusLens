@@ -2,6 +2,7 @@ import {
   ANNEE,
   PROFILS,
   SOURCES,
+  SOURCES_ABANDONNEES,
   PARAMETRES,
   AIDES,
   POSTES_RENTREE,
@@ -100,7 +101,10 @@ export async function seed(prisma) {
 
   // Aides et éligibilités.
   const aides = {};
-  for (const { elig, source: cleSource = 'fiches', ...a } of AIDES) {
+  for (const { elig, source: cleSource, ...a } of AIDES) {
+    // Chaque aide doit citer sa source officielle : jamais de source « générique » par défaut.
+    if (!sources[cleSource])
+      throw new Error(`Aide « ${a.slug} » : source « ${cleSource} » inconnue ou absente.`);
     const donnees = { ...a, sourceId: sources[cleSource].id };
     let aide = await prisma.aide.findUnique({ where: { slug: a.slug } });
     // Une aide déjà vérifiée par un humain n'est JAMAIS modifiée par le seed ; sinon on applique les corrections.
@@ -207,6 +211,17 @@ export async function seed(prisma) {
           where: { id: existant.id },
           data: { typeTarif: donnees.typeTarif },
         });
+    }
+  }
+
+  // Nettoyage : une source abandonnée sans plus aucune donnée est supprimée (elle n'a rien à vérifier et brouillerait la liste).
+  for (const nom of SOURCES_ABANDONNEES) {
+    for (const orpheline of await prisma.source.findMany({ where: { nom } })) {
+      try {
+        await prisma.source.delete({ where: { id: orpheline.id } });
+      } catch {
+        /* encore utilisée par des données : on la garde */
+      }
     }
   }
 }

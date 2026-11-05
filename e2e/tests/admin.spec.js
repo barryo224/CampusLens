@@ -230,6 +230,67 @@ test.describe('Avis des visiteurs : du formulaire public jusqu’à l’administ
   });
 });
 
+test.describe('Espace administration : état des sources', () => {
+  test.skip(
+    ({ browserName, isMobile }) => browserName !== 'chromium' || isMobile,
+    'Parcours joué sur Chromium bureau',
+  );
+
+  let donnees;
+  test.beforeAll(async () => {
+    donnees = await preparerAvis(); // crée le compte admin de test
+  });
+  test.afterAll(async () => {
+    await donnees?.nettoyer();
+  });
+
+  test('chaque source offre une action claire, et « Lancer » fonctionne pour de vrai', async ({
+    page,
+  }) => {
+    await page.goto('/admin/sources');
+    await page.getByLabel('Adresse e-mail').fill(ADMIN.email);
+    await page.getByLabel('Mot de passe').fill(ADMIN.motDePasse);
+    await page.getByRole('button', { name: 'Se connecter' }).click();
+    const tableau = page.getByRole('table', { name: 'État des sources de données' });
+    await expect(tableau).toBeVisible();
+
+    // Aucune ligne sans action : un bouton « Lancer » (robot) ou un lien « Vérifier à la main » (ou les deux : veille).
+    const lignes = tableau.getByRole('row').filter({ has: page.getByRole('rowheader') });
+    const nombre = await lignes.count();
+    expect(nombre).toBeGreaterThan(30);
+    let sansAction = 0;
+    let sansRobot = 0;
+    for (let i = 0; i < nombre; i++) {
+      const ligne = lignes.nth(i);
+      const lancer = await ligne.getByRole('button', { name: /^Lancer/ }).count();
+      const manuel = await ligne.getByRole('link', { name: /^Vérifier à la main/ }).count();
+      if (lancer + manuel === 0) sansAction++;
+      if (lancer === 0) {
+        sansRobot++;
+        await expect(ligne).toContainText('Pas de robot : à vérifier à la main');
+      }
+    }
+    expect(sansAction).toBe(0);
+    expect(sansRobot).toBeGreaterThan(5);
+
+    // Le lien mène bien à « Données à vérifier ».
+    await tableau
+      .getByRole('link', { name: /^Vérifier à la main/ })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/admin\/verification$/);
+    await page.goBack();
+    await expect(tableau).toBeVisible();
+
+    // « Lancer » sur une source surveillée : le robot lit la page officielle et le résultat s'affiche.
+    const ligne = tableau.getByRole('row').filter({ hasText: 'Travailler pendant ses études' });
+    await ligne.getByRole('button', { name: /^Lancer/ }).click();
+    await expect(page.getByRole('status')).toContainText(
+      /Travailler pendant ses études.* : (Réussie|Aucun changement|En attente de validation|Échec)/,
+    );
+  });
+});
+
 test.describe('Espace administration : changer son mot de passe', () => {
   test.skip(
     ({ browserName, isMobile }) => browserName !== 'chromium' || isMobile,
