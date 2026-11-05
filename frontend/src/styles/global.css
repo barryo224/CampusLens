@@ -1054,3 +1054,12 @@ a {
   padding-bottom: 16px;
   border-bottom: 1px solid var(--bordure);
 }
+
+.message-texte {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--fond);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--texte);
+}

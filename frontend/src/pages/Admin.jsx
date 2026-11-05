@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import MessageErreur from '../components/MessageErreur.jsx';
-import { get, post, ErreurApi } from '../lib/api.js';
+import { get, post, supprimer, ErreurApi } from '../lib/api.js';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
-import { formaterDateHeure } from '../lib/format.js';
+import { formaterDateHeure, formaterDate } from '../lib/format.js';
 
 const LIBELLE_STATUT_SOURCE = { ok: 'À jour', a_verifier: 'À vérifier', erreur: 'En erreur' };
 const CLASSE_STATUT_SOURCE = {
@@ -393,10 +393,87 @@ function Historique({ role }) {
   );
 }
 
+function Messages() {
+  const { data, erreur, chargement, recharger } = useApi('/admin/messages');
+  const [message, setMessage] = useState(null);
+  if (erreur) return <MessageErreur erreur={erreur} surReessayer={recharger} />;
+  if (chargement || !data)
+    return (
+      <p className="message" role="status">
+        Chargement…
+      </p>
+    );
+
+  async function effacer(m) {
+    if (!window.confirm(`Supprimer définitivement le message « ${m.objet} » de ${m.email} ?`))
+      return;
+    setMessage(null);
+    try {
+      await supprimer(`/admin/messages/${m.id}`);
+      setMessage('Message supprimé.');
+      recharger();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+  return (
+    <>
+      <p className="fraicheur" style={{ marginBottom: 12 }}>
+        Données personnelles : ne les gardez pas plus longtemps que nécessaire. Chaque message est
+        supprimé automatiquement à la date indiquée (6 mois après l’envoi).
+      </p>
+      {message && (
+        <p className="message" role="status">
+          {message}
+        </p>
+      )}
+      {data.length === 0 ? (
+        <p className="message">Aucun message reçu pour l’instant.</p>
+      ) : (
+        <>
+          <h2 className="sr-only">Messages reçus</h2>
+          <ul className="grille" style={{ listStyle: 'none', padding: 0 }}>
+            {data.map((m) => (
+              <li key={m.id} className="carte changement">
+                <h3>{m.objet}</h3>
+                <p className="fraicheur">
+                  De <a href={`mailto:${m.email}`}>{m.email}</a> · reçu le{' '}
+                  {formaterDateHeure(m.creeLe)} · supprimé automatiquement le{' '}
+                  {formaterDate(m.supprimerApres)}
+                </p>
+                <p className="message-texte">{m.message}</p>
+                <div
+                  className="resultat-actions"
+                  style={{ gridTemplateColumns: 'auto auto', justifyContent: 'start' }}
+                >
+                  <a
+                    className="bouton"
+                    href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.objet}`)}`}
+                  >
+                    Répondre<span className="sr-only"> à {m.email}</span>
+                  </a>
+                  <button
+                    type="button"
+                    className="bouton bouton-secondaire"
+                    onClick={() => effacer(m)}
+                  >
+                    Supprimer<span className="sr-only"> : {m.objet}</span>
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
 const ONGLETS = [
   { code: 'changements', libelle: 'À valider' },
   { code: 'sources', libelle: 'État des sources' },
   { code: 'historique', libelle: 'Historique' },
+  { code: 'messages', libelle: 'Messages', roleRequis: 'admin' }, // données personnelles : admin seulement
 ];
 
 export default function Admin() {
@@ -460,7 +537,7 @@ export default function Admin() {
             </button>
           </p>
           <div role="tablist" aria-label="Sections de l’administration" className="onglets">
-            {ONGLETS.map((o) => (
+            {ONGLETS.filter((o) => !o.roleRequis || o.roleRequis === admin.role).map((o) => (
               <button
                 key={o.code}
                 type="button"
@@ -479,6 +556,7 @@ export default function Admin() {
             {onglet === 'changements' && <Changements />}
             {onglet === 'sources' && <Sources role={admin.role} />}
             {onglet === 'historique' && <Historique role={admin.role} />}
+            {onglet === 'messages' && admin.role === 'admin' && <Messages />}
           </div>
         </>
       )}

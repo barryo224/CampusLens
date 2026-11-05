@@ -56,6 +56,8 @@ describe('API admin : sources, changements, historique', () => {
       ['post', '/api/admin/changements/1/rejeter'],
       ['post', '/api/admin/historique/1/annuler'],
       ['post', '/api/admin/sources/1/synchroniser'],
+      ['get', '/api/admin/messages'],
+      ['delete', '/api/admin/messages/1'],
     ]) {
       expect((await anonyme[methode](url).send({})).status, `${methode} ${url}`).toBe(401);
     }
@@ -188,6 +190,54 @@ describe('API admin : sources, changements, historique', () => {
     expect(res.body.statut).toBe('succes');
     const villes = await request(app).get('/api/villes');
     expect(villes.body.find((v) => v.nom === 'Rennes').loyerM2Appartement).toBe(14.87);
+  });
+
+  describe('messages du formulaire de contact', () => {
+    const creer = (objet, email = 'etudiant@exemple.fr') =>
+      prisma.messageContact.create({
+        data: {
+          objet,
+          message: `Bonjour, ${objet}`,
+          email,
+          supprimerApres: new Date(Date.now() + 180 * 86_400_000),
+        },
+      });
+
+    it('réservés au rôle « admin » : le relecteur n’y a pas accès (données personnelles)', async () => {
+      const m = await creer('Question');
+      expect((await relecteur.get('/api/admin/messages')).status).toBe(403);
+      expect((await relecteur.delete(`/api/admin/messages/${m.id}`)).status).toBe(403);
+      expect(await prisma.messageContact.count()).toBe(1); // rien supprimé
+    });
+
+    it('liste les messages du plus récent au plus ancien, avec leur date de suppression automatique', async () => {
+      await creer('Premier', 'a@exemple.fr');
+      await creer('Deuxième', 'b@exemple.fr');
+      const res = await admin.get('/api/admin/messages');
+      expect(res.status).toBe(200);
+      expect(res.body.map((m) => m.objet)).toEqual(['Deuxième', 'Premier']);
+      expect(res.body[0]).toMatchObject({ email: 'b@exemple.fr', message: 'Bonjour, Deuxième' });
+      expect(res.body[0].supprimerApres).toBeTruthy();
+      expect(res.body[0].creeLe).toBeTruthy();
+    });
+
+    it('un message envoyé depuis le formulaire public apparaît dans la liste', async () => {
+      await request(app)
+        .post('/api/contact')
+        .send({ objet: 'Bourse', email: 'x@exemple.fr', message: 'Comment faire ?' })
+        .expect(201);
+      const res = await admin.get('/api/admin/messages');
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0]).toMatchObject({ objet: 'Bourse', email: 'x@exemple.fr' });
+    });
+
+    it('suppression anticipée (droit à l’effacement) : le message disparaît ; inconnu → 404 ; id invalide → 400', async () => {
+      const m = await creer('À effacer');
+      expect((await admin.delete(`/api/admin/messages/${m.id}`)).status).toBe(204);
+      expect(await prisma.messageContact.count()).toBe(0);
+      expect((await admin.delete(`/api/admin/messages/${m.id}`)).status).toBe(404);
+      expect((await admin.delete('/api/admin/messages/abc')).status).toBe(400);
+    });
   });
 
   it('la déconnexion invalide la session (supprimée en base)', async () => {

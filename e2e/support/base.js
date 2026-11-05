@@ -76,8 +76,44 @@ export async function preparerChangementCvec() {
         where: { id: source.id },
         data: { empreinte: source.empreinte },
       });
-      await prisma.administrateur.deleteMany({ where: { email: ADMIN.email } });
       await prisma.$disconnect();
     },
   };
+}
+
+/** Un compte admin + un message de contact de test (supprimés par `nettoyer`, même si le test échoue). */
+export async function preparerMessageContact() {
+  const prisma = creerPrisma();
+  await prisma.administrateur.upsert({
+    where: { email: ADMIN.email },
+    update: { motDePasseHash: bcrypt.hashSync(ADMIN.motDePasse, 4), role: 'admin' },
+    create: {
+      email: ADMIN.email,
+      motDePasseHash: bcrypt.hashSync(ADMIN.motDePasse, 4),
+      role: 'admin',
+    },
+  });
+  const objet = `Message E2E ${Date.now()}`;
+  await prisma.messageContact.create({
+    data: {
+      objet,
+      email: 'e2e-etudiant@exemple.fr',
+      message: 'Bonjour, ceci est un test.',
+      supprimerApres: new Date(Date.now() + 86_400_000),
+    },
+  });
+  return {
+    objet,
+    async nettoyer() {
+      await prisma.messageContact.deleteMany({ where: { objet } });
+      await prisma.$disconnect();
+    },
+  };
+}
+
+/** Supprime le compte admin de test (à appeler UNE fois, quand tous les tests du fichier sont finis). */
+export async function supprimerAdminDeTest() {
+  const prisma = creerPrisma();
+  await prisma.administrateur.deleteMany({ where: { email: ADMIN.email } });
+  await prisma.$disconnect();
 }

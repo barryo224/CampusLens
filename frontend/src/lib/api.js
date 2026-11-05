@@ -56,3 +56,21 @@ export async function post(chemin, corps) {
   }
   return donnees;
 }
+
+/** DELETE : renvoie {} (les suppressions répondent 204, sans contenu). */
+export async function supprimer(chemin) {
+  let reponse;
+  try {
+    reponse = await fetch(`${BASE}/api${chemin}`, {
+      method: 'DELETE',
+      headers: { Accept: 'application/json' },
+    });
+  } catch {
+    throw new ErreurApi(MESSAGE_INDISPONIBLE);
+  }
+  if (!reponse.ok) {
+    const donnees = await reponse.json().catch(() => ({}));
+    throw new ErreurApi(donnees.error ?? MESSAGE_INDISPONIBLE, { status: reponse.status });
+  }
+  return {};
+}

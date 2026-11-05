@@ -190,6 +190,21 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
     res.json(await annulerModification(prisma, id));
   });
 
+  // Messages du formulaire de contact. Données personnelles (e-mail) : rôle « admin » uniquement.
+  // Ils sont supprimés automatiquement à `supprimerApres` ; l'admin peut aussi les effacer plus tôt
+  // (après réponse, ou à la demande de la personne : droit à l'effacement).
+  r.get('/messages', exigerRoleAdmin, async (_req, res) => {
+    const messages = await prisma.messageContact.findMany({ orderBy: { id: 'desc' }, take: 200 });
+    res.json(messages);
+  });
+
+  r.delete('/messages/:id', exigerRoleAdmin, async (req, res) => {
+    const id = valider(idSchema, req.params.id);
+    const { count } = await prisma.messageContact.deleteMany({ where: { id } });
+    if (count === 0) return res.status(404).json({ error: 'Message introuvable.' });
+    res.status(204).end();
+  });
+
   // Lancer un robot tout de suite (admin).
   r.post('/sources/:id/synchroniser', exigerRoleAdmin, async (req, res) => {
     const id = valider(idSchema, req.params.id);

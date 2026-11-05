@@ -109,12 +109,32 @@ const HISTORIQUE = [
   },
 ];
 
+const MESSAGES = [
+  {
+    id: 4,
+    objet: 'Question sur la bourse',
+    email: 'etudiant@exemple.fr',
+    message: 'Bonjour,\ncomment demander la bourse ?',
+    creeLe: '2026-11-05T09:30:00Z',
+    supprimerApres: '2027-05-05T09:30:00Z',
+  },
+  {
+    id: 3,
+    objet: 'Erreur sur une aide',
+    email: 'autre@exemple.fr',
+    message: '<script>alert(1)</script> Le lien est cassé.',
+    creeLe: '2026-11-04T08:00:00Z',
+    supprimerApres: '2027-05-04T08:00:00Z',
+  },
+];
+
 const connecte = (role = 'admin', extra = {}) =>
   simulerApi({
     '/admin/me': { email: 'admin@campuslens.test', role },
     '/admin/changements': [CHANGEMENT],
     '/admin/sources': SOURCES,
     '/admin/historique': HISTORIQUE,
+    '/admin/messages': MESSAGES,
     ...extra,
   });
 
@@ -306,6 +326,103 @@ describe('Espace administration', () => {
     expect(mock.mock.calls.some(([u]) => u === '/api/admin/historique/9/annuler')).toBe(true);
   });
 
+  it('onglet Messages : liste les messages avec expéditeur, dates et lien pour répondre', async () => {
+    connecte();
+    rendreApp('/admin');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    const carte = (await screen.findByRole('heading', { name: 'Question sur la bourse' })).closest(
+      'li',
+    );
+    expect(within(carte).getByRole('link', { name: 'etudiant@exemple.fr' })).toHaveAttribute(
+      'href',
+      'mailto:etudiant@exemple.fr',
+    );
+    expect(carte).toHaveTextContent('supprimé automatiquement le 5 mai 2027');
+    expect(carte).toHaveTextContent('comment demander la bourse');
+    const repondre = within(carte).getByRole('link', { name: /Répondre/ });
+    expect(repondre).toHaveAttribute(
+      'href',
+      'mailto:etudiant@exemple.fr?subject=Re%3A%20Question%20sur%20la%20bourse',
+    );
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+  });
+
+  it('un message contenant du code HTML est affiché comme du texte, jamais interprété', async () => {
+    connecte();
+    rendreApp('/admin');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    const texte = await screen.findByText(/<script>alert\(1\)<\/script> Le lien est cassé\./);
+    expect(texte.tagName).toBe('P');
+    expect(document.querySelector('script[src], .message-texte script')).toBeNull();
+  });
+
+  it('supprimer un message : confirmation, DELETE, puis la liste est rechargée', async () => {
+    let supprime = false;
+    const mock = connecte('admin', {
+      '/admin/messages': () => (supprime ? [MESSAGES[1]] : MESSAGES),
+      '/admin/messages/4': () => {
+        supprime = true;
+        return {};
+      },
+    });
+    const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    rendreApp('/admin');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: /^Supprimer.*Question sur la bourse/ }),
+    );
+    expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('etudiant@exemple.fr'));
+    expect(await screen.findByRole('status')).toHaveTextContent('Message supprimé.');
+    await vi.waitFor(() =>
+      expect(
+        screen.queryByRole('heading', { name: 'Question sur la bourse' }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      mock.mock.calls.find(([u, o]) => u === '/api/admin/messages/4' && o.method === 'DELETE'),
+    ).toBeTruthy();
+    confirmation.mockRestore();
+  });
+
+  it('suppression refusée dans la fenêtre de confirmation : rien n’est envoyé', async () => {
+    const mock = connecte();
+    const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    rendreApp('/admin');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: /^Supprimer.*Question sur la bourse/ }),
+    );
+    expect(mock.mock.calls.some(([, o]) => o?.method === 'DELETE')).toBe(false);
+    confirmation.mockRestore();
+  });
+
+  it('aucun message : le dit clairement ; erreur de suppression : message, pas de plantage', async () => {
+    connecte('admin', { '/admin/messages': [] });
+    rendreApp('/admin');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    expect(await screen.findByText(/Aucun message reçu/)).toBeInTheDocument();
+    cleanup();
+
+    connecte('admin', {
+      '/admin/messages/4': { __status: 404, corps: { error: 'Message introuvable.' } },
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    rendreApp('/admin');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Messages' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: /^Supprimer.*Question sur la bourse/ }),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent('Message introuvable.');
+    window.confirm.mockRestore?.();
+  });
+
+  it('le rôle « relecteur » ne voit pas l’onglet Messages (données personnelles)', async () => {
+    connecte('relecteur');
+    rendreApp('/admin');
+    await screen.findByRole('tab', { name: 'Historique' });
+    expect(screen.queryByRole('tab', { name: 'Messages' })).not.toBeInTheDocument();
+  });
+
   it('déconnexion : retour au formulaire de connexion', async () => {
     connecte();
     rendreApp('/admin');
@@ -342,6 +459,9 @@ describe('Espace administration', () => {
     expect(await violationsAxe(b.container)).toEqual([]);
     await userEvent.click(screen.getByRole('tab', { name: 'Historique' }));
     await screen.findByRole('table', { name: 'Dernières modifications de données' });
+    expect(await violationsAxe(b.container)).toEqual([]);
+    await userEvent.click(screen.getByRole('tab', { name: 'Messages' }));
+    await screen.findByRole('heading', { name: 'Question sur la bourse' });
     expect(await violationsAxe(b.container)).toEqual([]);
   });
 });
