@@ -14,19 +14,25 @@ const ICONE_CATEGORIE = {
   alimentation: 'coeur',
 };
 
+// Trois façons d'utiliser le site : on peut commencer par n'importe laquelle.
 const ETAPES = [
   {
-    titre: 'Je renseigne mon profil',
-    texte: 'Statut, niveau d’études, revenus et dépenses du mois. Rien n’est enregistré.',
-  },
-  {
-    titre: 'J’évalue ma situation',
+    titre: 'Je m’informe',
     texte:
-      'Je découvre mon reste-à-vivre et si mon budget est équilibré, fragile ou en difficulté.',
+      'Je découvre mes droits : les aides adaptées à mon profil, comment les obtenir, et les guides officiels.',
+    lien: { vers: '/aides', libelle: 'Découvrir les aides' },
   },
   {
-    titre: 'Je demande mes aides',
-    texte: 'Je vois les aides adaptées à mon profil et comment les obtenir, étape par étape.',
+    titre: 'J’explore les villes',
+    texte:
+      'Je compare loyers, résidences Crous et abonnements de transport pour choisir où étudier.',
+    lien: { vers: '/aides?onglet=villes', libelle: 'Comparer les villes' },
+  },
+  {
+    titre: 'J’évalue mon budget',
+    texte:
+      'Je calcule mon reste-à-vivre du mois et je prépare les frais de la rentrée. Rien n’est enregistré.',
+    lien: { vers: '/evaluer', libelle: 'Évaluer ma situation' },
   },
 ];
 
@@ -58,8 +64,9 @@ export default function Accueil() {
             </div>
             <div className="hero-bas">
               <p className="hero-description">
-                CampusLens aide chaque étudiant en France à évaluer son budget et à découvrir les
-                aides auxquelles il a droit, simplement et gratuitement.
+                CampusLens aide chaque étudiant en France à comprendre ses droits, à découvrir les
+                aides, les villes et les démarches utiles, et à évaluer son budget, simplement et
+                gratuitement.
               </p>
               <div className="hero-actions">
                 <Link to="/evaluer" className="bouton">
@@ -76,7 +83,7 @@ export default function Accueil() {
 
       <section aria-labelledby="titre-etapes">
         <h2 id="titre-etapes" className="titre-section">
-          Comment ça marche ?
+          Que voulez-vous faire ?
         </h2>
         <ol className="grille grille-3" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {ETAPES.map((etape, i) => (
@@ -86,6 +93,9 @@ export default function Accueil() {
               </div>
               <h3>{etape.titre}</h3>
               <p>{etape.texte}</p>
+              <Link to={etape.lien.vers} className="lien-etape">
+                {etape.lien.libelle} <span aria-hidden="true">→</span>
+              </Link>
             </li>
           ))}
         </ol>

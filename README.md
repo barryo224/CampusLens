@@ -1,6 +1,6 @@
 # CampusLens
 
-Plateforme web gratuite et anonyme qui aide les étudiants en France à **connaître les aides auxquelles ils ont droit** et à **évaluer leur budget**. Les données viennent de sources officielles et se mettent à jour automatiquement.
+Plateforme web gratuite et anonyme qui aide les étudiants en France à **comprendre leurs droits et découvrir les aides** (avec les villes, les loyers, les transports et les démarches utiles) et à **évaluer leur budget**. Les données viennent de sources officielles et se mettent à jour automatiquement.
 
 - Spécification et maquette : [`documents/`](documents/)
 - Pile : React + Vite · Node.js + Express · PostgreSQL + Prisma · Zod · Vitest · Playwright
@@ -23,18 +23,19 @@ npm run dev:front    # terminal 2 → site  http://localhost:5173
 
 ## Vérifier le projet
 
-| Commande                       | Ce qu'elle contrôle                                                                                                                                    |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run check`                | ESLint, Prettier, tests unitaires, de composants et d'API                                                                                              |
-| `npm run test:coverage`        | idem + **seuils de couverture** (robots ≥ 90 %, API ≥ 80 %, calcul du reste-à-vivre ≥ 90 %)                                                            |
-| `npm run test:e2e`             | bout en bout dans un vrai navigateur (Chrome, Firefox, mobile), dont l'accessibilité (axe-core, contrastes réels) et la navigation **au clavier seul** |
-| `npm run test:e2e:prod`        | les mêmes tests contre le site **construit** et servi avec ses en-têtes de sécurité de production (CSP stricte, HSTS…) : vérifie que rien n'est bloqué |
-| `npm run lighthouse`           | Lighthouse mobile sur toutes les pages : performance ≥ 90, accessibilité ≥ 95 (actuellement 98-99 et 100)                                              |
-| `npm run verifier:secrets`     | aucun secret dans les fichiers **ni dans l'historique Git**                                                                                            |
-| `npm audit --audit-level=high` | aucune faille haute ou critique dans les dépendances                                                                                                   |
+| Commande                       | Ce qu'elle contrôle                                                                                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run check`                | ESLint, Prettier, tests unitaires, de composants et d'API                                                                                                                        |
+| `npm run test:coverage`        | idem + **seuils de couverture** (robots ≥ 90 %, API ≥ 80 %, calcul du reste-à-vivre ≥ 90 %)                                                                                      |
+| `npm run test:e2e`             | bout en bout dans un vrai navigateur (Chrome, Firefox, Safari/WebKit, Android et iPhone), dont l'accessibilité (axe-core, contrastes réels) et la navigation **au clavier seul** |
+| `npm run test:e2e:prod`        | les mêmes tests contre le site **construit** et servi avec ses en-têtes de sécurité de production (CSP stricte, HSTS…) : vérifie que rien n'est bloqué                           |
+| `npm run lighthouse`           | Lighthouse mobile sur toutes les pages : performance ≥ 90, accessibilité ≥ 95 (actuellement 98-99 et 100)                                                                        |
+| `npm run verifier:secrets`     | aucun secret dans les fichiers **ni dans l'historique Git**                                                                                                                      |
+| `npm audit --audit-level=high` | aucune faille haute ou critique dans les dépendances                                                                                                                             |
 
-La CI GitHub Actions lance tout cela à chaque envoi. Firefox : `npx playwright install firefox`, puis
-`npx playwright test --project=firefox` (depuis un terminal ordinaire).
+La CI GitHub Actions lance tout cela à chaque envoi. Navigateurs : `npx playwright install chromium firefox webkit`, puis
+`npx playwright test --project=firefox` (ou `webkit`, `mobile-safari`) depuis un terminal ordinaire. Sur Mac, Safari ne s'arrête
+pas sur les liens avec Tab (réglage du navigateur) : les tests de clavier y utilisent Option+Tab.
 
 ### Sécurité du site (production)
 

@@ -9,11 +9,13 @@ export default defineConfig({
   // BASE_URL permet de rejouer les tests contre le site CONSTRUIT et servi avec ses en-têtes de production
   // (voir « npm run test:e2e:prod »).
   use: { baseURL: process.env.BASE_URL ?? 'http://localhost:5173', trace: 'on-first-retry' },
-  // Navigateurs demandés : Chrome, Firefox et mobile.
+  // Navigateurs : Chrome, Firefox, Safari (WebKit) et mobiles (Android/Chrome et iPhone/Safari).
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    { name: 'mobile-safari', use: { ...devices['iPhone 15'] } },
   ],
   webServer: [
     {

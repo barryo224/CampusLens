@@ -71,13 +71,13 @@ jobs:
           npm run db:generate
           npm run db:deploy -w backend
           npm run db:seed -w backend
-      - run: npx playwright install --with-deps chromium firefox
+      - run: npx playwright install --with-deps chromium firefox webkit
       - name: Tests de bout en bout — Chrome, Firefox et mobile (site de développement)
         run: npm run test:e2e
         env:
           CORS_ORIGIN: http://localhost:5173
       - name: Tests de bout en bout — site construit avec les en-têtes de sécurité de production (CSP, HSTS…)
-        run: npm run test:e2e:prod -- --project=chromium --project=firefox --project=mobile
+        run: npm run test:e2e:prod -- --project=chromium --project=firefox --project=webkit --project=mobile --project=mobile-safari
         env:
           CORS_ORIGIN: http://localhost:4173
       - name: Lighthouse (performance ≥ 90, accessibilité ≥ 95) sur toutes les pages

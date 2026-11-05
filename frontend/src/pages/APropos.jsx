@@ -23,7 +23,8 @@ const PRINCIPES = [
   {
     icone: 'check',
     titre: 'Utile',
-    texte: 'Des outils concrets pour évaluer son budget et demander ses aides.',
+    texte:
+      'Des repères pour s’informer, comparer les villes, évaluer son budget et demander ses aides.',
   },
 ];
 
@@ -73,8 +74,8 @@ export default function APropos() {
       <header className="page-titre">
         <h1>À propos</h1>
         <p>
-          CampusLens aide les étudiants en France à évaluer leur budget et à découvrir les aides
-          auxquelles ils ont droit.
+          CampusLens aide les étudiants en France à comprendre leurs droits, à découvrir les aides
+          et les démarches utiles, et à évaluer leur budget.
         </p>
       </header>
 
@@ -106,7 +107,8 @@ export default function APropos() {
           />
           <small>Notre mission</small>
           <strong>
-            Aider chaque étudiant à connaître ses droits et à garder le contrôle de son budget.
+            Aider chaque étudiant à connaître ses droits, à s’informer et à garder le contrôle de
+            son budget.
           </strong>
         </div>
       </section>

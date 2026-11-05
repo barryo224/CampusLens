@@ -10,7 +10,7 @@ afterEach(() => {
 });
 
 describe('Page Accueil', () => {
-  it('affiche le bandeau, les 2 boutons et les 3 étapes', async () => {
+  it('affiche le bandeau, les 2 boutons et les 3 façons d’utiliser le site', async () => {
     simulerApi({ '/aides': AIDES_ACCUEIL });
     rendreApp('/');
     expect(
@@ -26,11 +26,32 @@ describe('Page Accueil', () => {
       '/aides',
     );
 
-    const etapes = within(screen.getByRole('region', { name: 'Comment ça marche ?' })).getAllByRole(
-      'listitem',
+    // Trois façons d'utiliser le site (s'informer, explorer les villes, évaluer son budget), chacune avec son lien.
+    const voies = within(screen.getByRole('region', { name: 'Que voulez-vous faire ?' }));
+    expect(voies.getAllByRole('listitem')).toHaveLength(3);
+    expect(voies.getByRole('link', { name: /Découvrir les aides/ })).toHaveAttribute(
+      'href',
+      '/aides',
     );
-    expect(etapes).toHaveLength(3);
+    expect(voies.getByRole('link', { name: /Comparer les villes/ })).toHaveAttribute(
+      'href',
+      '/aides?onglet=villes',
+    );
+    expect(voies.getByRole('link', { name: /Évaluer ma situation/ })).toHaveAttribute(
+      'href',
+      '/evaluer',
+    );
     await screen.findByText('Garantie Visale'); // laisse finir le chargement
+  });
+
+  it('le message du site parle de comprendre, découvrir ET évaluer (plus seulement de simuler)', async () => {
+    simulerApi({ '/aides': AIDES_ACCUEIL });
+    rendreApp('/');
+    const description = document.querySelector('.hero-description');
+    expect(description).toHaveTextContent(/comprendre ses droits/);
+    expect(description).toHaveTextContent(/découvrir les aides, les villes et les démarches/);
+    expect(description).toHaveTextContent(/évaluer son budget/);
+    await screen.findByText('Garantie Visale');
   });
 
   it('le bandeau : grand titre « La précarité étudiante en France », accroche « Comprendre pour agir ensemble » en petit', async () => {

@@ -3,6 +3,18 @@ import { test, expect } from '@playwright/test';
 // E2E-07 : navigation au clavier seul. Toutes les actions sont accessibles, le focus est toujours visible,
 // et il n'y a aucun « piège clavier » (on peut toujours avancer).
 
+/**
+ * Touche « suivant » du clavier. Safari sur Mac ne s'arrête pas sur les liens avec Tab (réglage par défaut du navigateur,
+ * identique pour tous les sites) : on y utilise Option+Tab, qui parcourt TOUS les éléments, comme le fait un utilisateur
+ * de Safari qui a activé « Tab met en évidence chaque élément ».
+ */
+async function tab(page) {
+  const moteur = page.context().browser()?.browserType().name();
+  await page.keyboard.press(
+    moteur === 'webkit' && process.platform === 'darwin' ? 'Alt+Tab' : 'Tab',
+  );
+}
+
 /** Le focus est-il visible ? Pour les boutons radio cachés, c'est leur étiquette (.choix) qui porte le contour. */
 async function focusVisible(page) {
   return page.evaluate(() => {
@@ -76,7 +88,7 @@ for (const chemin of PAGES) {
     const sansContour = [];
     let sortiDeLaPage = false; // le focus quitte la page après le dernier élément : c'est la preuve qu'il n'y a pas de piège
     for (let i = 0; i < attendus + 4; i++) {
-      await page.keyboard.press('Tab');
+      await tab(page);
       const f = await focusVisible(page);
       if (f.quoi === 'aucun élément focalisé') {
         sortiDeLaPage = true;
@@ -105,7 +117,7 @@ test('E2E-07 : lien d’évitement, puis un budget complet saisi au clavier jusq
   await page.waitForLoadState('networkidle');
 
   // 1. Premier arrêt : « Aller au contenu » ; Entrée amène le focus dans le contenu.
-  await page.keyboard.press('Tab');
+  await tab(page);
   await expect(page.getByRole('link', { name: 'Aller au contenu' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('#contenu')).toBeFocused();
@@ -113,7 +125,7 @@ test('E2E-07 : lien d’évitement, puis un budget complet saisi au clavier jusq
   // 2. Aller à « Évaluer ma situation » avec le clavier uniquement.
   await page.goto('/');
   for (let i = 0; i < 8; i++) {
-    await page.keyboard.press('Tab');
+    await tab(page);
     if (
       await page
         .getByRole('navigation', { name: 'Navigation principale' })
@@ -193,16 +205,16 @@ test('E2E-07 : formulaire de contact complet au clavier', async ({ page }) => {
   await page.goto('/contact');
   await page.getByLabel('Objet').focus();
   await page.keyboard.type('Question');
-  await page.keyboard.press('Tab');
+  await tab(page);
   await page.keyboard.type('etudiant@exemple.fr');
-  await page.keyboard.press('Tab');
+  await tab(page);
   await page.keyboard.type('Bonjour');
   // Le champ piège (anti-robot) est ignoré par la tabulation : le prochain arrêt est le bouton.
-  await page.keyboard.press('Tab');
+  await tab(page);
   await expect(
     page.getByRole('link', { name: /Mentions légales et confidentialité/ }).first(),
   ).toBeFocused();
-  await page.keyboard.press('Tab');
+  await tab(page);
   await expect(page.getByRole('button', { name: 'Envoyer' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('status')).toContainText('Message envoyé');

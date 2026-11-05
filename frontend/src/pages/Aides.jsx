@@ -304,6 +304,7 @@ export default function Aides() {
         <h1>Les aides auxquelles vous avez droit</h1>
         <p>
           Choisissez votre profil : chaque aide indique si vous y avez droit et comment la demander.
+          Découvrez aussi les associations d’entraide et comparez les villes.
         </p>
       </header>
 

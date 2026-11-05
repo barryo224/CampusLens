@@ -18,6 +18,7 @@ const PAGES = [
   '/ressources',
   '/a-propos',
   '/contact',
+  '/avis',
   '/mentions-legales',
 ];
 const SEUILS = { performance: 90, accessibility: 95, 'best-practices': 90, seo: 90 };

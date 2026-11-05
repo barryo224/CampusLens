@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   preparerChangementCvec,
   preparerMessageContact,
+  preparerAvis,
   preparerAdminCompte,
   preparerDonneeAVerifier,
   supprimerAdminDeTest,
@@ -154,6 +155,68 @@ test.describe('Espace administration : messages de contact', () => {
     page.once('dialog', (d) => d.accept()); // fenêtre « Supprimer définitivement ? »
     await carte.getByRole('button', { name: /^Supprimer/ }).click();
     await expect(page.getByRole('status')).toContainText('Message supprimé.');
+    await expect(carte).toHaveCount(0);
+  });
+});
+
+test.describe('Avis des visiteurs : du formulaire public jusqu’à l’administration', () => {
+  test.skip(
+    ({ browserName, isMobile }) => browserName !== 'chromium' || isMobile,
+    'Parcours joué sur Chromium bureau',
+  );
+
+  let donnees;
+  test.beforeAll(async () => {
+    donnees = await preparerAvis();
+  });
+  test.afterAll(async () => {
+    await donnees?.nettoyer();
+  });
+
+  test('un visiteur donne son avis, l’administrateur le reçoit, le lit puis le supprime', async ({
+    page,
+  }) => {
+    // 1. Visiteur : un avis vide est refusé (aucun envoi), puis un avis complet est envoyé.
+    await page.goto('/avis?page=budget');
+    const envois = [];
+    page.on('request', (r) => r.method() === 'POST' && envois.push(r.url()));
+    await page.getByRole('button', { name: 'Envoyer mon avis' }).click();
+    await expect(page.getByRole('alert')).toContainText('Choisissez une note');
+    await page.getByRole('radio', { name: /5 sur 5/ }).check({ force: true });
+    await page.getByRole('button', { name: 'Envoyer mon avis' }).click();
+    await expect(page.getByRole('alert')).toContainText('Racontez votre expérience');
+    expect(envois).toHaveLength(0); // rien n'est parti tant que l'avis est vide
+
+    await page
+      .getByLabel(/Racontez votre expérience/)
+      .fill(`${donnees.repere} : le budget est clair.`);
+    await page.getByRole('button', { name: 'Envoyer mon avis' }).click();
+    await expect(page.getByRole('status')).toContainText('Merci pour votre avis');
+    expect(envois.filter((u) => u.endsWith('/api/avis'))).toHaveLength(1);
+
+    // 2. Administrateur : pastille sur l'onglet Avis, avis « Nouveau » avec sa note et la page d'origine.
+    await page.goto('/admin');
+    await page.getByLabel('Adresse e-mail').fill(ADMIN.email);
+    await page.getByLabel('Mot de passe').fill(ADMIN.motDePasse);
+    await page.getByRole('button', { name: 'Se connecter' }).click();
+    const lienAvis = page.getByRole('link', { name: /^Avis/ });
+    await expect(lienAvis).toHaveAccessibleName(/Avis \d+ non lus?/);
+    await lienAvis.click();
+    await expect(page).toHaveURL(/\/admin\/avis$/);
+    await expect(page.getByTestId('moyenne-avis')).toContainText('/ 5');
+
+    const carte = page.getByRole('listitem').filter({ hasText: donnees.repere });
+    await expect(carte.getByText('Nouveau')).toBeVisible();
+    await expect(carte).toContainText('Note : 5 sur 5');
+    await expect(carte).toContainText('Préparer mon budget'); // page d'origine du visiteur
+    await expect(carte).not.toContainText('@'); // aucune adresse e-mail : l'avis est anonyme
+
+    // 3. Marquer comme lu puis supprimer.
+    await carte.getByRole('button', { name: /^Marquer comme lu/ }).click();
+    await expect(carte.getByText('Nouveau')).toHaveCount(0);
+    page.once('dialog', (d) => d.accept());
+    await carte.getByRole('button', { name: /^Supprimer/ }).click();
+    await expect(page.getByRole('status')).toContainText('Avis supprimé.');
     await expect(carte).toHaveCount(0);
   });
 });

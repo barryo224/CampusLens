@@ -111,6 +111,28 @@ export async function preparerMessageContact() {
   };
 }
 
+/** Prépare le compte admin partagé et un repère pour retrouver (puis effacer) l'avis de test créé par le parcours. */
+export async function preparerAvis() {
+  const prisma = creerPrisma();
+  await prisma.administrateur.upsert({
+    where: { email: ADMIN.email },
+    update: { motDePasseHash: bcrypt.hashSync(ADMIN.motDePasse, 4), role: 'admin' },
+    create: {
+      email: ADMIN.email,
+      motDePasseHash: bcrypt.hashSync(ADMIN.motDePasse, 4),
+      role: 'admin',
+    },
+  });
+  const repere = `Avis E2E ${Date.now()}`;
+  return {
+    repere,
+    async nettoyer() {
+      await prisma.avis.deleteMany({ where: { commentaire: { contains: repere } } });
+      await prisma.$disconnect();
+    },
+  };
+}
+
 /** Supprime le compte admin de test (à appeler UNE fois, quand tous les tests du fichier sont finis). */
 export async function supprimerAdminDeTest() {
   const prisma = creerPrisma();
