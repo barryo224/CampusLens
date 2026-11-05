@@ -993,3 +993,26 @@ a {
   margin-bottom: 10px;
   color: var(--texte);
 }
+
+/* ───── Administration ───── */
+.barre-admin {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.changement {
+  display: grid;
+  gap: 10px;
+}
+.champ-ligne {
+  grid-template-columns: minmax(180px, 1fr) 140px 1.5fr;
+  align-items: center;
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .champ-ligne {
+    grid-template-columns: 1fr;
+  }
+}

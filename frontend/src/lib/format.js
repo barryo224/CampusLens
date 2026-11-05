@@ -19,3 +19,10 @@ export function formaterDate(iso) {
     year: 'numeric',
   });
 }
+
+/** Date et heure : « 5 novembre 2026 à 14:03 ». */
+export function formaterDateHeure(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+}

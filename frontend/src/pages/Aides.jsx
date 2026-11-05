@@ -199,7 +199,7 @@ function Villes() {
             <tr>
               <th scope="col">Ville</th>
               <th scope="col">Loyer d’un studio (estimé)</th>
-              <th scope="col">Logements CROUS</th>
+              <th scope="col">Résidences CROUS dans la commune</th>
               <th scope="col">Abonnement transport</th>
               <th scope="col">Source</th>
             </tr>

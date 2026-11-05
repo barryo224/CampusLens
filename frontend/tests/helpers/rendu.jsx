@@ -20,11 +20,22 @@ export function rendreApp(route = '/') {
 export function simulerApi(routes = {}) {
   const mock = vi.fn(async (url, options = {}) => {
     const chemin = String(url).replace('/api', '');
-    const cle = Object.keys(routes).find((k) => chemin.startsWith(k));
+    // La route la plus précise (la plus longue) l'emporte : « /admin/changements/7/valider » avant « /admin/changements ».
+    const cle = Object.keys(routes)
+      .filter((k) => chemin.startsWith(k))
+      .sort((x, y) => y.length - x.length)[0];
     if (cle === undefined) return { ok: false, status: 404, json: async () => ({}) };
     const valeur = routes[cle];
     if (valeur instanceof Error) throw valeur;
     const reponse = typeof valeur === 'function' ? valeur(chemin, options) : valeur;
+    // { __status: 401, corps } : réponse d'erreur HTTP simulée.
+    if (reponse && typeof reponse === 'object' && '__status' in reponse) {
+      return {
+        ok: reponse.__status < 400,
+        status: reponse.__status,
+        json: async () => reponse.corps ?? {},
+      };
+    }
     return { ok: true, status: 200, json: async () => reponse };
   });
   vi.stubGlobal('fetch', mock);
