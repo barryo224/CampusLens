@@ -46,3 +46,8 @@ Puis connectez-vous à `/admin` et activez la double authentification (Mon compt
 - `curl -I https://campuslens-etudiants.vercel.app/api/aides` : en-tête `cache-control` avec `s-maxage=120`.
 - Connexion admin OK (si 403 : `CORS_ORIGIN` doit être exactement l'adresse du site).
 - `npm run test:charge` contre l'adresse du site (voir README).
+
+## Mises à jour
+
+- **Site (Vercel)** : se met à jour tout seul à chaque `git push` sur `main`.
+- **API (Render)** : se met à jour tout seul à chaque `git push` si GitHub est connecté à Render (Account Settings → Git providers) et que le service utilise ce dépôt avec « Auto-Deploy » activé. Sinon : `render deploys create srv-dbmdai6tlv9c73e28r8g --commit <sha>` ou « Manual Deploy » sur Render.
