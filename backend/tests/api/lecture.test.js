@@ -96,10 +96,16 @@ describe('API publique : lecture', () => {
   it('API-05 : /api/ressources?q=visale ne renvoie que les ressources correspondantes', async () => {
     const res = await request(app).get('/api/ressources?q=visale');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(1);
-    expect(res.body[0].titre).toMatch(/visale/i);
+    expect(res.body.length).toBeGreaterThanOrEqual(2); // la démarche Visale et la fiche Service-Public
+    expect(res.body.every((x) => /visale/i.test(`${x.titre} ${x.organisme} ${x.url}`))).toBe(true);
     const tout = await request(app).get('/api/ressources');
     expect(tout.body.length).toBeGreaterThan(1);
+    // « % » et « _ » sont cherchés comme du texte, jamais comme des jokers du LIKE.
+    for (const joker of ['%', '_', '%00', 'v_sale', 'vis%e']) {
+      expect((await request(app).get('/api/ressources').query({ q: joker })).body, joker).toEqual(
+        [],
+      );
+    }
     const vide = await request(app).get('/api/ressources?q=zzzintrouvable');
     expect(vide.body).toEqual([]);
   });

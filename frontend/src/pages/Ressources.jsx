@@ -6,8 +6,18 @@ import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { formaterDate } from '../lib/format.js';
 
-// « cout_de_la_vie » → « Cout de la vie » (les catégories viennent des données).
+// Libellés lisibles des catégories connues ; sinon « cout_de_la_vie » → « Cout de la vie » (les catégories viennent des données).
+const LIBELLES_CATEGORIES = {
+  aides: 'Aides',
+  logement: 'Logement',
+  etudes: 'Études',
+  etudiants_etrangers: 'Étudiants étrangers',
+  alimentation: 'Alimentation',
+  emploi: 'Emploi',
+  droits: 'Droits',
+};
 const libelleCategorie = (c) => {
+  if (LIBELLES_CATEGORIES[c]) return LIBELLES_CATEGORIES[c];
   const t = c.replace(/_/g, ' ');
   return t.charAt(0).toUpperCase() + t.slice(1);
 };

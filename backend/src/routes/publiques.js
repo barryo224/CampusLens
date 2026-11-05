@@ -308,15 +308,17 @@ export function routesPubliques(prisma) {
       }),
       req.query,
     );
+    // « % » et « _ » sont des jokers du LIKE de la base : on les échappe pour chercher exactement ce qui est tapé.
+    const motif = q?.replace(/[\\%_]/g, '\\$&');
     const ressources = await prisma.ressource.findMany({
       where: {
         ...(categorie && { categorie }),
-        ...(q && {
+        ...(motif && {
           OR: [
-            { titre: { contains: q, mode: 'insensitive' } },
-            { organisme: { contains: q, mode: 'insensitive' } },
-            { type: { contains: q, mode: 'insensitive' } },
-            { url: { contains: q, mode: 'insensitive' } },
+            { titre: { contains: motif, mode: 'insensitive' } },
+            { organisme: { contains: motif, mode: 'insensitive' } },
+            { type: { contains: motif, mode: 'insensitive' } },
+            { url: { contains: motif, mode: 'insensitive' } },
           ],
         }),
       },

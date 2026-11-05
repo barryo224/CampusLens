@@ -518,6 +518,8 @@ describe('Synchronisation', () => {
         'visale.fr': () =>
           reponse({ status: 200, url: 'https://www.visale.fr/nouvelle-page', redirige: true }),
         'caf.fr': () => reponse({ status: 503 }),
+        // Les autres ressources de la page répondent normalement.
+        '': (u) => reponse({ status: 200, url: u }),
       });
       const r = await synchroniser(prisma, robotLiensRessources, { fetchImpl: f });
       expect(r.statut).toBe('succes');
@@ -540,6 +542,7 @@ describe('Synchronisation', () => {
           reponse({ status: 200, url: 'https://www.messervices.etudiant.gouv.fr/' }),
         'visale.fr': () => reponse({ status: 200, url: 'https://www.visale.fr' }),
         'caf.fr': () => reponse({ status: 200, url: 'https://www.caf.fr' }),
+        '': (u) => reponse({ status: 200, url: u }),
       });
       await synchroniser(prisma, robotLiensRessources, { fetchImpl: f2 });
       expect(await statut('messervices')).toBe('ok');

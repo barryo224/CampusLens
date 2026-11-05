@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { screen, cleanup } from '@testing-library/react';
+import { screen, within, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { rendreApp, simulerApi, violationsAxe } from './helpers/rendu.jsx';
 import { RESSOURCES_API } from './helpers/donnees.js';
@@ -21,6 +21,31 @@ describe('Ressources', () => {
     expect(lien).toHaveAttribute('target', '_blank');
     expect(lien).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByText(/vérifié le 1 septembre 2026/)).toBeInTheDocument();
+  });
+
+  it('les catégories connues ont un libellé lisible (accents compris)', async () => {
+    const r = (id, categorie) => ({
+      id,
+      titre: `Ressource ${id}`,
+      type: 'Page d’information',
+      categorie,
+      organisme: 'Service-Public.fr',
+      annee: '2026',
+      url: `https://exemple.test/${id}`,
+      statutLien: 'ok',
+      verifieLe: null,
+      source: { id: 1, organisme: 'Service-Public.fr' },
+      aVerifier: true,
+    });
+    simulerApi({
+      '/ressources': [r(1, 'etudiants_etrangers'), r(2, 'etudes'), r(3, 'cout_de_la_vie')],
+    });
+    rendreApp('/ressources');
+    await screen.findByRole('rowheader', { name: /Ressource 1/ });
+    const groupe = screen.getByRole('group', { name: 'Catégorie' });
+    expect(within(groupe).getByRole('button', { name: 'Étudiants étrangers' })).toBeInTheDocument();
+    expect(within(groupe).getByRole('button', { name: 'Études' })).toBeInTheDocument();
+    expect(within(groupe).getByRole('button', { name: 'Cout de la vie' })).toBeInTheDocument(); // repli
   });
 
   it('un lien cassé est signalé et n’est plus proposé', async () => {

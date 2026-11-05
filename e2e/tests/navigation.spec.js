@@ -56,3 +56,19 @@ test('l’accueil affiche les aides venant de l’API (base réelle)', async ({ 
   await expect(page.getByText('Garantie Visale')).toBeVisible();
   await expect(page.getByText('Bourse sur critères sociaux')).toBeVisible();
 });
+
+test('le pied de page reste en bas de l’écran, même sur une page courte et un grand écran (27 pouces)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  for (const chemin of ['/a-propos', '/ressources', '/contact', '/mentions-legales', '/aides']) {
+    await page.goto(chemin);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    const { bas, hauteurPage } = await page.evaluate(() => ({
+      bas: document.querySelector('.pied').getBoundingClientRect().bottom + window.scrollY,
+      hauteurPage: document.documentElement.scrollHeight,
+    }));
+    // Le pied de page termine la page (il reste seulement sa marge basse) : jamais au milieu d'un écran vide.
+    expect(bas, chemin).toBeGreaterThanOrEqual(hauteurPage - 60);
+  }
+});
