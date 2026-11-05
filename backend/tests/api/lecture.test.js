@@ -205,7 +205,27 @@ describe('API publique : lecture', () => {
     expect(poste(surPlace, 'Taxe de validation du visa (VLS-TS)')).toBeUndefined(); // déjà en France : pas de VLS-TS
     expect(surPlace.total).toBe(2095 - 178 + 2902);
 
-    expect(new Set([fr.total, bourse.total, arrivee.total]).size).toBe(3);
+    // Master : droits plus élevés (255 € national, 3 950 € différencié).
+    const master = await budget('profil=fr_ue&niveau=master');
+    expect(poste(master, 'Droits d’inscription').montant).toBe(255);
+    expect(master.total).toBe(2095 - 178 + 255);
+    const masterIntl = await budget('profil=intl&niveau=master');
+    expect(poste(masterIntl, 'Droits d’inscription').montant).toBe(3950);
+
+    // Étudiant étranger exonéré : tarif national, mais la taxe de visa reste due à l'arrivée.
+    const exonere = await budget('profil=intl&exonere=oui');
+    expect(poste(exonere, 'Droits d’inscription').montant).toBe(178);
+    expect(poste(exonere, 'Taxe de validation du visa (VLS-TS)').montant).toBe(100);
+    expect(exonere.total).toBe(2095 + 100);
+    expect(exonere.exonere).toBe(true);
+    expect((await budget('profil=intl&exonere=oui&niveau=master')).total).toBe(
+      2095 - 178 + 255 + 100,
+    );
+    // « exonéré » ne change rien pour un Français.
+    expect((await budget('profil=fr_ue&exonere=oui')).total).toBe(2095);
+
+    expect(new Set([fr.total, bourse.total, arrivee.total, exonere.total]).size).toBe(4);
+    expect((await request(app).get('/api/postes-rentree?niveau=doctorat')).status).toBe(400);
     expect((await request(app).get('/api/postes-rentree?situation=nimporte')).status).toBe(400);
 
     // Les ressources à justifier pour le visa sont un paramètre vérifiable comme les autres.

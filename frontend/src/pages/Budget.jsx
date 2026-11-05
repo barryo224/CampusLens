@@ -19,13 +19,18 @@ const PROFILS = [
   { code: 'intl', libelle: 'International hors UE' },
 ];
 
-/** Droits d'inscription et CVEC (licence) d'un profil, d'après les paramètres de la base. */
-function fraisProfil(parametres, code) {
+const NIVEAUX = [
+  { code: 'licence', libelle: 'Licence' },
+  { code: 'master', libelle: 'Master' },
+];
+
+/** Droits d'inscription et CVEC d'un profil et d'un niveau d'études, d'après les paramètres de la base. */
+function fraisProfil(parametres, code, niveau, exonere = false) {
   try {
     if (code === 'boursier') return { droits: 0, cvec: 0 };
     const droits = trouverParametre(parametres, 'droits_inscription', {
-      niveau: 'licence',
-      profil: code === 'intl' ? 'intl' : null,
+      niveau,
+      profil: code === 'intl' && !exonere ? 'intl' : null,
     });
     return { droits, cvec: trouverParametre(parametres, 'cvec') };
   } catch {
@@ -42,10 +47,23 @@ export default function Budget() {
   // Pour un étudiant étranger, le budget n'est pas le même à l'arrivée (visa) et quand on est déjà en France.
   const situation =
     profil === 'intl' && params.get('situation') === 'sur_place' ? 'sur_place' : 'arrivee';
-  const postes = useApi(
-    `/postes-rentree?profil=${profil}${profil === 'intl' ? `&situation=${situation}` : ''}`,
-    { garderAnciennes: true },
-  );
+  const niveau = params.get('niveau') === 'master' ? 'master' : 'licence';
+  // Un étudiant étranger exonéré des droits différenciés paie le tarif national.
+  const exonere = profil === 'intl' && params.get('exonere') === 'oui';
+  const choisir = (changements) => {
+    const suivant = new URLSearchParams(params);
+    for (const [cle, valeur] of Object.entries(changements)) {
+      if (valeur) suivant.set(cle, valeur);
+      else suivant.delete(cle);
+    }
+    setParams(suivant, { replace: true });
+  };
+  const requete = new URLSearchParams({ profil, niveau });
+  if (profil === 'intl') {
+    requete.set('situation', situation);
+    if (exonere) requete.set('exonere', 'oui');
+  }
+  const postes = useApi(`/postes-rentree?${requete}`, { garderAnciennes: true });
   const parametres = useApi('/parametres?annee=en_cours');
   const aides = useApi('/aides?miseEnAvant=true&categorie=logement');
 
@@ -53,10 +71,13 @@ export default function Budget() {
     () =>
       parametres.data
         ? Object.fromEntries(
-            PROFILS.map((p) => [p.code, fraisProfil(parametres.data.parametres, p.code)]),
+            PROFILS.map((p) => [
+              p.code,
+              fraisProfil(parametres.data.parametres, p.code, niveau, p.code === 'intl' && exonere),
+            ]),
           )
         : null,
-    [parametres.data],
+    [parametres.data, niveau, exonere],
   );
   const heuresMax = useMemo(() => {
     try {
@@ -82,7 +103,15 @@ export default function Budget() {
   };
 
   const maxPoste = postes.data ? Math.max(...postes.data.postes.map((p) => p.montant), 1) : 1;
-  const plusGros = postes.data?.postes[0];
+  // Frais que des aides peuvent alléger pour CE profil : « oui » = droit acquis, « sous conditions » = possible.
+  const allegeables = useMemo(() => {
+    const liste = postes.data?.postes ?? [];
+    const somme = (statuts) =>
+      liste
+        .filter((p) => statuts.includes(p.aide?.eligibilites?.[0]?.statut))
+        .reduce((total, p) => total + p.montant, 0);
+    return { possible: somme(['oui', 'sous_conditions']), acquis: somme(['oui']) };
+  }, [postes.data]);
   const fp = frais?.[profil];
 
   return (
@@ -103,9 +132,23 @@ export default function Budget() {
             type="button"
             className={`pastille${profil === p.code ? ' pastille-active' : ''}`}
             aria-pressed={profil === p.code}
-            onClick={() => setParams({ profil: p.code }, { replace: true })}
+            onClick={() => choisir({ profil: p.code })}
           >
             {p.libelle}
+          </button>
+        ))}
+      </div>
+      <div className="pastilles" role="group" aria-label="Niveau d’études">
+        <span>Niveau d’études :</span>
+        {NIVEAUX.map((n) => (
+          <button
+            key={n.code}
+            type="button"
+            className={`pastille${niveau === n.code ? ' pastille-active' : ''}`}
+            aria-pressed={niveau === n.code}
+            onClick={() => choisir({ niveau: n.code })}
+          >
+            {n.libelle}
           </button>
         ))}
       </div>
@@ -118,11 +161,19 @@ export default function Budget() {
               type="button"
               className={`pastille${situation === s.code ? ' pastille-active' : ''}`}
               aria-pressed={situation === s.code}
-              onClick={() => setParams({ profil, situation: s.code }, { replace: true })}
+              onClick={() => choisir({ situation: s.code })}
             >
               {s.libelle}
             </button>
           ))}
+          <label className="case">
+            <input
+              type="checkbox"
+              checked={exonere}
+              onChange={(e) => choisir({ exonere: e.target.checked ? 'oui' : null })}
+            />
+            Je suis exonéré des droits différenciés
+          </label>
         </div>
       )}
 
@@ -153,15 +204,23 @@ export default function Budget() {
                 </p>
               </li>
               <li className="carte">
-                <p className="indicateur-nom">Plus gros poste</p>
-                <p className="indicateur-valeur">{montant(plusGros?.montant)}</p>
-                <p className="fraicheur">{plusGros?.nom ?? '—'}</p>
+                <p className="indicateur-nom">Frais que des aides peuvent alléger</p>
+                <p className="indicateur-valeur">
+                  {allegeables.possible > 0 ? `jusqu’à ${montant(allegeables.possible)}` : '—'}
+                </p>
+                <p className="fraicheur">
+                  {allegeables.possible > 0
+                    ? `dont ${montant(allegeables.acquis)} avec un droit acquis pour votre profil, le reste sous conditions`
+                    : 'aucune aide identifiée pour votre profil'}
+                </p>
               </li>
               <li className="carte">
                 <p className="indicateur-nom">Droits d’inscription</p>
                 <p className="indicateur-valeur">{montant(fp?.droits)}</p>
                 <p className="fraicheur">
-                  en licence{profil === 'intl' ? ', ou exonération possible' : ''}
+                  en {niveau}
+                  {profil === 'intl' && !exonere ? ', ou exonération possible' : ''}
+                  {exonere ? ' (tarif national : exonéré)' : ''}
                 </p>
               </li>
               <li className="carte">
@@ -255,7 +314,7 @@ export default function Budget() {
                     </thead>
                     <tbody>
                       <tr>
-                        <th scope="row">Droits d’inscription (licence)</th>
+                        <th scope="row">Droits d’inscription ({niveau})</th>
                         {PROFILS.map((p) => (
                           <td key={p.code} className={p.code === 'boursier' ? 'texte-vert' : ''}>
                             {montant(frais[p.code]?.droits)}

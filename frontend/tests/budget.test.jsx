@@ -22,10 +22,11 @@ describe('Préparer mon budget', () => {
     rendreApp('/budget');
     const indicateurs = await screen.findByText('Budget de rentrée à prévoir');
     expect(indicateurs.closest('li')).toHaveTextContent('2 095');
-    expect(screen.getByText('Plus gros poste').closest('li')).toHaveTextContent('637');
-    expect(screen.getByText('Plus gros poste').closest('li')).toHaveTextContent(
-      'Dépôt de garantie',
-    );
+    // Frais allégeables : 502 € de droit acquis (aide spécifique) + 637 € sous conditions (Loca-Pass).
+    const allegeables = screen.getByText('Frais que des aides peuvent alléger').closest('li');
+    expect(allegeables).toHaveTextContent('jusqu’à 1 139');
+    expect(allegeables).toHaveTextContent('dont 502');
+    expect(screen.queryByText('Plus gros poste')).not.toBeInTheDocument(); // doublon des droits d'inscription
 
     const postes = screen.getByRole('region', { name: /Ce qu’il faut prévoir à la rentrée/ });
     expect(within(postes).getAllByRole('listitem')).toHaveLength(3);
@@ -43,7 +44,10 @@ describe('Préparer mon budget', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Boursier' }));
     await vi.waitFor(async () => expect(await droits()).toHaveTextContent('0 €'));
-    expect(mock).toHaveBeenCalledWith('/api/postes-rentree?profil=boursier', expect.anything());
+    expect(mock).toHaveBeenCalledWith(
+      '/api/postes-rentree?profil=boursier&niveau=licence',
+      expect.anything(),
+    );
 
     await userEvent.click(screen.getByRole('button', { name: 'International hors UE' }));
     await vi.waitFor(async () => expect(await droits()).toHaveTextContent('2 902'));
@@ -162,6 +166,52 @@ describe('Préparer mon budget', () => {
     expect(
       screen.queryByRole('region', { name: /À justifier pour votre visa/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it('licence ou master : les droits et le total changent avec le niveau choisi', async () => {
+    const mock = api();
+    rendreApp('/budget');
+    const droits = async () =>
+      (await screen.findByText('Droits d’inscription', { selector: 'p' })).closest('li');
+    expect(await droits()).toHaveTextContent('178');
+    expect(screen.getByRole('button', { name: 'Licence' })).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Master' }));
+    await vi.waitFor(async () => expect(await droits()).toHaveTextContent('254'));
+    expect(await droits()).toHaveTextContent('en master');
+    expect(mock).toHaveBeenCalledWith(
+      '/api/postes-rentree?profil=fr_ue&niveau=master',
+      expect.anything(),
+    );
+    expect(
+      screen.getByRole('rowheader', { name: 'Droits d’inscription (master)' }),
+    ).toBeInTheDocument();
+
+    // International en master : droits différenciés du master.
+    await userEvent.click(screen.getByRole('button', { name: 'International hors UE' }));
+    await vi.waitFor(async () => expect(await droits()).toHaveTextContent('3 950'));
+  });
+
+  it('international exonéré : tarif national, demandé au serveur avec exonere=oui ; le niveau est conservé', async () => {
+    const mock = api();
+    rendreApp('/budget?profil=intl&niveau=master');
+    const droits = async () =>
+      (await screen.findByText('Droits d’inscription', { selector: 'p' })).closest('li');
+    await vi.waitFor(async () => expect(await droits()).toHaveTextContent('3 950'));
+
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: /exonéré des droits différenciés/ }),
+    );
+    await vi.waitFor(async () => expect(await droits()).toHaveTextContent('254'));
+    expect(await droits()).toHaveTextContent('exonéré');
+    expect(mock).toHaveBeenCalledWith(
+      '/api/postes-rentree?profil=intl&niveau=master&situation=arrivee&exonere=oui',
+      expect.anything(),
+    );
+
+    // L'exonération n'existe que pour le profil international.
+    await userEvent.click(screen.getByRole('button', { name: 'Boursier' }));
+    expect(screen.queryByRole('checkbox', { name: /exonéré/ })).not.toBeInTheDocument();
   });
 
   it('lien vers le simulateur', async () => {

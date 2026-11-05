@@ -118,10 +118,17 @@ export function routesPubliques(prisma) {
   // Le budget de rentrée dépend du profil : droits et CVEC gratuits pour un boursier, droits différenciés et taxe de
   // visa pour un étudiant étranger qui arrive. Les montants liés à un paramètre sont lus dans les paramètres de l'année.
   r.get('/postes-rentree', async (req, res) => {
-    const { profil: codeProfil, situation = 'arrivee' } = valider(
+    const {
+      profil: codeProfil,
+      situation = 'arrivee',
+      niveau = 'licence',
+      exonere = 'non',
+    } = valider(
       z.object({
         profil: codeSchema.optional(),
         situation: z.enum(['arrivee', 'sur_place']).optional(),
+        niveau: z.enum(['licence', 'master']).optional(),
+        exonere: z.enum(['oui', 'non']).optional(),
       }),
       req.query,
     );
@@ -146,13 +153,19 @@ export function routesPubliques(prisma) {
       prisma.parametre.findMany({ where: { anneeId: annee.id }, include: { profil: true } }),
     ]);
 
-    /** Valeur d'un paramètre pour ce profil (la valeur propre au profil prime sur la valeur nationale). */
+    /**
+     * Valeur d'un paramètre pour ce profil et ce niveau d'études. La valeur propre au profil prime sur la valeur
+     * nationale, sauf pour les droits d'inscription d'un étudiant étranger exonéré (il paie le tarif national).
+     */
     const valeurParametre = (cle) => {
       const candidats = parametres.filter(
-        (p) => p.cle === cle && (p.niveau === 'licence' || p.niveau === 'aucun'),
+        (p) => p.cle === cle && (p.niveau === niveau || p.niveau === 'aucun'),
       );
-      const propre = candidats.find((p) => p.profil?.code === codeProfil);
-      const commun = candidats.find((p) => !p.profilId);
+      const exactes = candidats.filter((p) => p.niveau === niveau);
+      const pool = exactes.length > 0 ? exactes : candidats;
+      const ignorerProfil = exonere === 'oui' && cle === 'droits_inscription';
+      const propre = ignorerProfil ? null : pool.find((p) => p.profil?.code === codeProfil);
+      const commun = pool.find((p) => !p.profilId);
       const retenu = propre ?? commun;
       return retenu ? Number(retenu.valeur) : null;
     };
@@ -177,6 +190,8 @@ export function routesPubliques(prisma) {
       annee: annee.libelle,
       profil: codeProfil ?? null,
       situation,
+      niveau,
+      exonere: exonere === 'oui',
       total: calcules.reduce((s, c) => s + c.montant, 0),
       postes: calcules.map(({ p, montant, offert, standard }) =>
         avecSource(
