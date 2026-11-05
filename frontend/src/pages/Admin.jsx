@@ -637,6 +637,7 @@ const TYPES_LIBELLE = {
   parametre: 'Valeur de calcul',
   aide: 'Aide',
   poste: 'Poste de rentrée',
+  transport: 'Abonnement de transport',
   association: 'Association',
 };
 

@@ -48,7 +48,7 @@ describe('Admin : données à vérifier à la main', () => {
   it('liste les données non vérifiées gérées à la main, avec leur source et ce qu’il faut comparer', async () => {
     const items = await lister();
     const types = new Set(items.map((i) => i.type));
-    expect([...types].sort()).toEqual(['aide', 'association', 'parametre', 'poste']);
+    expect([...types].sort()).toEqual(['aide', 'association', 'parametre', 'poste', 'transport']);
     const bourse = items.find(
       (i) => i.type === 'aide' && i.libelle.startsWith('Bourse sur critères sociaux'),
     );

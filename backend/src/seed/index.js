@@ -8,6 +8,7 @@ import {
   ASSOCIATIONS,
   RESSOURCES,
   VILLES,
+  TARIFS_TRANSPORT,
   UNIVERSEL,
 } from './donnees.js';
 
@@ -161,5 +162,16 @@ export async function seed(prisma) {
       update: {},
       create: { ...v, sourceId: sources.loyers.id },
     });
+  }
+
+  // Abonnements de transport étudiants : créés ou corrigés tant qu'ils ne sont pas vérifiés par un humain.
+  for (const { codeInsee, source: cleSource, montantAnnuel, ...t } of TARIFS_TRANSPORT) {
+    const ville = await prisma.ville.findUnique({ where: { codeInsee } });
+    if (!ville) continue;
+    const donnees = { ...t, montantAnnuel, sourceId: sources[cleSource].id };
+    const existant = await prisma.tarifTransport.findUnique({ where: { villeId: ville.id } });
+    if (!existant) await prisma.tarifTransport.create({ data: { villeId: ville.id, ...donnees } });
+    else if (!existant.verifieLe)
+      await prisma.tarifTransport.update({ where: { id: existant.id }, data: donnees });
   }
 }

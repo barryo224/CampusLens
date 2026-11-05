@@ -232,6 +232,43 @@ describe('Mes aides', () => {
     expect(screen.queryByRole('rowheader', { name: /Orléans/ })).not.toBeInTheDocument();
   });
 
+  it('comparateur de villes : abonnement de transport avec réseau, prix annuel et page officielle', async () => {
+    apiAides({
+      '/villes': [
+        {
+          id: 1,
+          nom: 'Marseille',
+          region: 'Provence-Alpes-Côte d’Azur',
+          loyerStudioEstime: 372,
+          nbLogementsCrous: 15,
+          loyerCrousDesA: 300,
+          abonnementTransport: 16.67,
+          transport: {
+            reseau: 'RTM',
+            libelle: 'Pass Annuel Étudiant',
+            montantAnnuel: 200,
+            urlTarifs: 'https://www.rtm.fr/tarifs',
+            source: { organisme: 'RTM' },
+            verifieLe: null,
+            aVerifier: true,
+          },
+          source: { organisme: 'ANIL' },
+          verifieLe: '2026-09-01T00:00:00Z',
+          aVerifier: false,
+        },
+      ],
+    });
+    rendreApp('/aides?onglet=villes');
+    const ligne = (await screen.findByRole('rowheader', { name: /Marseille/ })).closest('tr');
+    expect(ligne).toHaveTextContent('/ mois');
+    expect(ligne).toHaveTextContent('RTM — Pass Annuel Étudiant');
+    expect(within(ligne).getByRole('link', { name: /tarifs officiels/ })).toHaveAttribute(
+      'href',
+      'https://www.rtm.fr/tarifs',
+    );
+    expect(ligne).toHaveTextContent('vérification en cours');
+  });
+
   it('accessibilité : aucune violation axe-core', async () => {
     apiAides();
     const { container } = rendreApp('/aides');

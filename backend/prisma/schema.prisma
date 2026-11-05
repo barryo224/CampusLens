@@ -98,6 +98,7 @@ model Source {
   postesRentree       PosteRentree[]
   villes              Ville[]
   logementsCrous      LogementCrous[]
+  tarifsTransport     TarifTransport[]
   associations        Association[]
   ressources          Ressource[]
   synchronisations    Synchronisation[]
@@ -221,8 +222,27 @@ model Ville {
   source         Source          @relation(fields: [sourceId], references: [id])
   logementsCrous LogementCrous[]
   associations   Association[]
+  tarifTransport TarifTransport?
 
   @@map("ville")
+}
+
+// Abonnement de transport étudiant d'une ville, relevé sur la page officielle du réseau (saisi à la main, vérifié par un admin).
+model TarifTransport {
+  id            Int       @id @default(autoincrement())
+  villeId       Int       @unique @map("ville_id")
+  reseau        String
+  libelle       String // nom du titre : « Imagine R Étudiant », « Pass Annuel Étudiant »…
+  montantAnnuel Decimal   @map("montant_annuel") @db.Decimal(8, 2)
+  conditions    String?
+  urlTarifs     String    @map("url_tarifs")
+  sourceId      Int       @map("source_id")
+  verifieLe     DateTime? @map("verifie_le")
+
+  ville  Ville  @relation(fields: [villeId], references: [id], onDelete: Cascade)
+  source Source @relation(fields: [sourceId], references: [id])
+
+  @@map("tarif_transport")
 }
 
 model LogementCrous {

@@ -117,6 +117,27 @@ export const SOURCES = {
     type: 'page_web',
     frequenceHeures: 24 * 3,
   },
+  transportParis: {
+    nom: 'Tarifs Imagine R Étudiant (Île-de-France Mobilités)',
+    organisme: 'Île-de-France Mobilités',
+    url: 'https://www.iledefrance-mobilites.fr/titres-et-tarifs/detail/forfait-imagine-r-etudiant',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
+  transportMarseille: {
+    nom: 'Tarifs RTM (Marseille)',
+    organisme: 'RTM',
+    url: 'https://www.rtm.fr/tarifs',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
+  transportGrenoble: {
+    nom: 'Tarifs M réso (Grenoble)',
+    organisme: 'M réso',
+    url: 'https://www.reso-m.fr/tarifs',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
   locaPass: {
     cle: 'veille_loca_pass', // veille : la vérification reste valable tant que la page ne change pas
     nom: 'Avance Loca-Pass',
@@ -490,6 +511,43 @@ export const RESSOURCES = [
     organisme: 'CAF',
     annee: '2026',
     url: 'https://www.caf.fr',
+  },
+];
+
+// Abonnements de transport étudiants relevés sur les pages officielles des réseaux (5 novembre 2026).
+// Le montant annuel est celui du titre le moins cher réservé aux étudiants ; le site affiche l'équivalent mensuel.
+// Ajouter une ville = une ligne ici (réseau, titre, prix annuel, page officielle) puis la vérifier dans l'administration.
+export const TARIFS_TRANSPORT = [
+  {
+    codeInsee: '75056',
+    source: 'transportParis',
+    reseau: 'Île-de-France Mobilités',
+    libelle: 'Forfait Imagine R Étudiant',
+    montantAnnuel: 401.3,
+    conditions:
+      'Moins de 26 ans, en formation initiale. Frais de dossier de 8 € inclus, 2026-2027.',
+    urlTarifs:
+      'https://www.iledefrance-mobilites.fr/titres-et-tarifs/detail/forfait-imagine-r-etudiant',
+  },
+  {
+    codeInsee: '13055',
+    source: 'transportMarseille',
+    reseau: 'RTM',
+    libelle: 'Pass Annuel Étudiant',
+    montantAnnuel: 200,
+    conditions:
+      'De 18 à 25 ans inclus, étudiant. Métro, tram, bus et TER intra-muros. Tarif au 1er novembre 2026.',
+    urlTarifs: 'https://www.rtm.fr/tarifs',
+  },
+  {
+    codeInsee: '38185',
+    source: 'transportGrenoble',
+    reseau: 'M réso',
+    libelle: 'Abonnement 18-25 ans Études (1 an)',
+    montantAnnuel: 192,
+    conditions:
+      'Justificatif d’inscription ou numéro INE. Tarif au 1er septembre 2026 (19,20 € les 30 jours).',
+    urlTarifs: 'https://www.reso-m.fr/tarifs',
   },
 ];
 

@@ -201,7 +201,9 @@ function Villes() {
       <p className="aide-organisme" id="note-villes">
         {data.length} villes. Le loyer du studio est une estimation : loyer d’annonce au m² pour les
         appartements de 1 ou 2 pièces (carte des loyers officielle), multiplié par la surface type
-        d’un studio. En résidence CROUS, les tarifs sont ceux publiés par les CROUS.
+        d’un studio. En résidence CROUS, les tarifs sont ceux publiés par les CROUS. Les abonnements
+        de transport sont relevés sur la page officielle de chaque réseau, ville après ville (« — »
+        : pas encore relevé).
       </p>
       <ZoneDefilante libelle="Tableau du comparateur de villes">
         <table className="tableau">
@@ -229,7 +231,27 @@ function Villes() {
                     ? '—'
                     : `dès ${formaterEuro(v.loyerCrousDesA)}`}
                 </td>
-                <td>{nombre(v.abonnementTransport)}</td>
+                <td>
+                  {v.transport ? (
+                    <>
+                      {nombre(v.abonnementTransport)} / mois
+                      <span className="aide-organisme">
+                        {v.transport.reseau} — {v.transport.libelle} (
+                        {formaterEuro(v.transport.montantAnnuel)} par an) ·{' '}
+                        <a href={v.transport.urlTarifs} target="_blank" rel="noopener noreferrer">
+                          tarifs officiels<span className="sr-only"> (nouvel onglet)</span>
+                        </a>
+                      </span>
+                      <Fraicheur
+                        source={v.transport.source}
+                        verifieLe={v.transport.verifieLe}
+                        aVerifier={v.transport.aVerifier}
+                      />
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </td>
                 <td>
                   <Fraicheur source={v.source} verifieLe={v.verifieLe} aVerifier={v.aVerifier} />
                 </td>

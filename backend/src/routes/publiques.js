@@ -168,7 +168,7 @@ export function routesPubliques(prisma) {
   // GET /api/villes
   r.get('/villes', async (_req, res) => {
     const villes = await prisma.ville.findMany({
-      include: { source: true },
+      include: { source: true, tarifTransport: { include: { source: true } } },
       orderBy: { nom: 'asc' },
     });
     // Loyer le plus bas en résidence CROUS, par ville (les résidences sans tarif lisible sont ignorées).
@@ -182,7 +182,11 @@ export function routesPubliques(prisma) {
     res.json(
       villes.map((v) =>
         avecSource(
-          { ...formaterVille(v), loyerCrousDesA: parVille.get(v.id) ?? null },
+          {
+            ...formaterVille(v),
+            loyerCrousDesA: parVille.get(v.id) ?? null,
+            ...formaterTransport(v.tarifTransport, maintenant),
+          },
           v.source,
           maintenant,
         ),
@@ -291,6 +295,27 @@ export function routesPubliques(prisma) {
   });
 
   return r;
+}
+
+/** Abonnement de transport étudiant : montant annuel, équivalent mensuel et page officielle du réseau. */
+function formaterTransport(t, maintenant) {
+  if (!t) return { abonnementTransport: null, transport: null };
+  const annuel = nombre(t.montantAnnuel);
+  return {
+    abonnementTransport: Math.round((annuel / 12) * 100) / 100,
+    transport: avecSource(
+      {
+        reseau: t.reseau,
+        libelle: t.libelle,
+        montantAnnuel: annuel,
+        conditions: t.conditions,
+        urlTarifs: t.urlTarifs,
+        verifieLe: t.verifieLe,
+      },
+      t.source,
+      maintenant,
+    ),
+  };
 }
 
 function formaterVille(v) {

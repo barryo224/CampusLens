@@ -43,6 +43,15 @@ const TYPES = {
     detail: (p) =>
       `Montant : ${Number(p.montant)} € (année ${p.annee.libelle})${p.astuce ? ` · Astuce : ${p.astuce}` : ''}`,
   },
+  transport: {
+    modele: 'tarifTransport',
+    table: 'tarif_transport',
+    include: { source: true, ville: true },
+    where: {},
+    libelle: (t) => `${t.ville.nom} — ${t.reseau} : ${t.libelle}`,
+    detail: (t) =>
+      `Prix annuel : ${Number(t.montantAnnuel)} € (≈ ${Math.round((Number(t.montantAnnuel) / 12) * 100) / 100} €/mois)${t.conditions ? ` · ${t.conditions}` : ''} · ${t.urlTarifs}`,
+  },
   association: {
     modele: 'association',
     table: 'association',
