@@ -200,6 +200,13 @@ export async function seed(prisma) {
         await prisma.tarifTransport.create({ data: { villeId: ville.id, ...donnees } });
       else if (!existant.verifieLe)
         await prisma.tarifTransport.update({ where: { id: existant.id }, data: donnees });
+      // Le type de tarif (étudiant / jeunes) est une étiquette de classement, pas un prix : toujours à jour,
+      // même pour un tarif déjà vérifié (la vérification n'est pas remise en cause).
+      else if (existant.typeTarif !== donnees.typeTarif)
+        await prisma.tarifTransport.update({
+          where: { id: existant.id },
+          data: { typeTarif: donnees.typeTarif },
+        });
     }
   }
 }

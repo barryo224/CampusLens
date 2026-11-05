@@ -254,6 +254,16 @@ describe('API publique : lecture', () => {
     expect(parNom('Nancy').abonnementTransport).toBe(22); // mensuel seulement
     expect(parNom('Nancy').transport.montantAnnuel).toBeNull();
     expect(parNom('Toulouse').transport.source).toBeTruthy();
+    // Nature du tarif : réservé aux étudiants (Toulouse, Paris) ou tarif « jeunes » sans condition d'études (Lyon, Nantes).
+    expect(parNom('Toulouse').transport.typeTarif).toBe('etudiant');
+    expect(parNom('Nanterre').transport.typeTarif).toBe('etudiant'); // Imagine R Étudiant couvre l'Île-de-France
+    expect(parNom('Lyon').transport.typeTarif).toBe('jeunes');
+    expect(parNom('Nantes').transport.typeTarif).toBe('jeunes');
+    expect(
+      villes
+        .filter((v) => v.transport)
+        .every((v) => ['etudiant', 'jeunes'].includes(v.transport.typeTarif)),
+    ).toBe(true);
     expect(parNom('Toulouse').transport.aVerifier).toBe(true); // jamais vérifié à la main
     expect(parNom('Bastia').transport).toBeNull(); // pas encore relevé : jamais de chiffre inventé
     expect(parNom('Bastia').abonnementTransport).toBeNull();

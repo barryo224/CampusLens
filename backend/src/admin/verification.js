@@ -50,7 +50,7 @@ const TYPES = {
     where: {},
     libelle: (t) => `${t.ville.nom} — ${t.reseau} : ${t.libelle}`,
     detail: (t) =>
-      `${t.montantMensuel ? `Pass mensuel : ${Number(t.montantMensuel)} € · ` : ''}${t.montantAnnuel === null ? 'Pas d’abonnement annuel' : `Prix annuel : ${Number(t.montantAnnuel)} € (≈ ${Math.round((Number(t.montantAnnuel) / 12) * 100) / 100} €/mois)`}${t.conditions ? ` · ${t.conditions}` : ''} · ${t.urlTarifs}`,
+      `${t.typeTarif === 'etudiant' ? 'Tarif réservé aux étudiants · ' : 'Tarif jeunes, sans condition d’études · '}${t.montantMensuel ? `Pass mensuel : ${Number(t.montantMensuel)} € · ` : ''}${t.montantAnnuel === null ? 'Pas d’abonnement annuel' : `Prix annuel : ${Number(t.montantAnnuel)} € (≈ ${Math.round((Number(t.montantAnnuel) / 12) * 100) / 100} €/mois)`}${t.conditions ? ` · ${t.conditions}` : ''} · ${t.urlTarifs}`,
   },
   association: {
     modele: 'association',

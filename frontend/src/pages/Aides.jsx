@@ -233,6 +233,15 @@ function Villes() {
                   {v.transport ? (
                     <>
                       {formaterEuroCentimes(v.abonnementTransport)} / mois
+                      {/* Nature du tarif : réservé aux étudiants, ou tarif « jeunes » (selon l'âge seulement). */}
+                      <span
+                        className={`badge type-tarif ${v.transport.typeTarif === 'etudiant' ? 'badge-vert' : 'badge-gris'}`}
+                        data-testid="type-tarif"
+                      >
+                        {v.transport.typeTarif === 'etudiant'
+                          ? 'Tarif étudiant'
+                          : 'Tarif jeunes, sans condition d’études'}
+                      </span>
                       <span className="aide-organisme">
                         {v.transport.reseau} — {v.transport.libelle} (
                         {v.transport.montantAnnuel === null ||

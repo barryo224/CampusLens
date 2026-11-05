@@ -305,6 +305,7 @@ describe('Mes aides', () => {
           transport: {
             reseau: 'RTM',
             libelle: 'Pass Annuel Étudiant',
+            typeTarif: 'etudiant',
             montantAnnuel: 200,
             urlTarifs: 'https://www.rtm.fr/tarifs',
             source: { organisme: 'RTM' },
@@ -329,6 +330,44 @@ describe('Mes aides', () => {
     expect(ligne).toHaveTextContent('vérification en cours');
   });
 
+  it('comparateur de villes : chaque prix dit s’il s’agit d’un tarif étudiant ou d’un tarif jeunes sans condition d’études', async () => {
+    const ville = (id, nom, reseau, typeTarif) => ({
+      id,
+      nom,
+      region: 'France',
+      loyerStudioEstime: 300,
+      nbLogementsCrous: 1,
+      loyerCrousDesA: null,
+      abonnementTransport: 20,
+      transport: {
+        reseau,
+        libelle: 'Abonnement',
+        typeTarif,
+        montantAnnuel: 240,
+        montantMensuel: null,
+        urlTarifs: 'https://exemple.test/',
+        source: { organisme: reseau },
+        verifieLe: null,
+        aVerifier: true,
+      },
+      source: { organisme: 'ANIL' },
+      verifieLe: null,
+      aVerifier: true,
+    });
+    apiAides({
+      '/villes': [ville(1, 'Toulouse', 'Tisséo', 'etudiant'), ville(2, 'Lyon', 'TCL', 'jeunes')],
+    });
+    rendreApp('/aides?onglet=villes');
+    const ligne = async (nom) =>
+      (await screen.findByRole('rowheader', { name: new RegExp(nom) })).closest('tr');
+    expect(within(await ligne('Toulouse')).getByTestId('type-tarif')).toHaveTextContent(
+      'Tarif étudiant',
+    );
+    expect(within(await ligne('Lyon')).getByTestId('type-tarif')).toHaveTextContent(
+      'Tarif jeunes, sans condition d’études',
+    );
+  });
+
   it('comparateur de villes : réseau sans abonnement annuel (Nancy) → mensuel, aucun total inventé', async () => {
     apiAides({
       '/villes': [
@@ -343,6 +382,7 @@ describe('Mes aides', () => {
           transport: {
             reseau: 'Stan',
             libelle: 'Abonnement illimité 18-25 ans',
+            typeTarif: 'jeunes',
             montantAnnuel: null,
             montantMensuel: 22,
             urlTarifs: 'https://www.reseau-stan.com/',
@@ -376,6 +416,7 @@ describe('Mes aides', () => {
           transport: {
             reseau: 'Tisséo',
             libelle: 'Étudiant 20-25 ans',
+            typeTarif: 'etudiant',
             montantAnnuel: 169.6,
             montantMensuel: 16,
             urlTarifs: 'https://eboutique.tisseo.fr/',

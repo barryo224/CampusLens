@@ -1535,3 +1535,11 @@ a {
 .liste-sources {
   margin-top: 14px;
 }
+
+/* Nature du tarif de transport : sur sa propre ligne, sous le prix. */
+.type-tarif {
+  display: block;
+  width: fit-content;
+  margin: 4px 0 6px;
+  white-space: normal;
+}

@@ -372,6 +372,7 @@ function formaterTransport(t, maintenant) {
       {
         reseau: t.reseau,
         libelle: t.libelle,
+        typeTarif: t.typeTarif,
         montantAnnuel: annuel,
         montantMensuel: nombre(t.montantMensuel),
         conditions: t.conditions,
