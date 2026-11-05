@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Navigate, Outlet, useOutletContext } from 'react-router-dom';
 import Logo from '../components/Logo.jsx';
 import MessageErreur from '../components/MessageErreur.jsx';
+import ZoneDefilante from '../components/ZoneDefilante.jsx';
 import { get, post, supprimer, ErreurApi } from '../lib/api.js';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
@@ -216,10 +217,11 @@ function Changements() {
 }
 
 function Sources({ role }) {
-  const { data, erreur, chargement, recharger } = useApi('/admin/sources');
+  // Pendant un rechargement (après une action), la liste précédente reste affichée : la confirmation apparaît tout de suite.
+  const { data, erreur, recharger } = useApi('/admin/sources', { garderAnciennes: true });
   const [message, setMessage] = useState(null);
   if (erreur) return <MessageErreur erreur={erreur} surReessayer={recharger} />;
-  if (chargement || !data)
+  if (!data)
     return (
       <p className="message" role="status">
         Chargement…
@@ -245,7 +247,7 @@ function Sources({ role }) {
           {message}
         </p>
       )}
-      <div className="tableau-defilant">
+      <ZoneDefilante libelle="Tableau des sources">
         <table className="tableau">
           <caption className="sr-only">État des sources de données</caption>
           <thead>
@@ -315,16 +317,17 @@ function Sources({ role }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </ZoneDefilante>
     </>
   );
 }
 
 function Historique({ role }) {
-  const { data, erreur, chargement, recharger } = useApi('/admin/historique');
+  // Pendant un rechargement (après une action), la liste précédente reste affichée : la confirmation apparaît tout de suite.
+  const { data, erreur, recharger } = useApi('/admin/historique', { garderAnciennes: true });
   const [message, setMessage] = useState(null);
   if (erreur) return <MessageErreur erreur={erreur} surReessayer={recharger} />;
-  if (chargement || !data)
+  if (!data)
     return (
       <p className="message" role="status">
         Chargement…
@@ -350,7 +353,7 @@ function Historique({ role }) {
           {message}
         </p>
       )}
-      <div className="tableau-defilant">
+      <ZoneDefilante libelle="Tableau de l’historique">
         <table className="tableau">
           <caption className="sr-only">Dernières modifications de données</caption>
           <thead>
@@ -390,16 +393,17 @@ function Historique({ role }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </ZoneDefilante>
     </>
   );
 }
 
 function Messages() {
-  const { data, erreur, chargement, recharger } = useApi('/admin/messages');
+  // Pendant un rechargement (après une action), la liste précédente reste affichée : la confirmation apparaît tout de suite.
+  const { data, erreur, recharger } = useApi('/admin/messages', { garderAnciennes: true });
   const [message, setMessage] = useState(null);
   if (erreur) return <MessageErreur erreur={erreur} surReessayer={recharger} />;
-  if (chargement || !data)
+  if (!data)
     return (
       <p className="message" role="status">
         Chargement…
@@ -471,6 +475,117 @@ function Messages() {
   );
 }
 
+function MonCompte() {
+  const { admin } = useOutletContext();
+  const [champs, setChamps] = useState({ ancien: '', nouveau: '', confirmation: '' });
+  const [visible, setVisible] = useState(false);
+  const [etat, setEtat] = useState({ envoi: false, succes: false, erreur: null });
+
+  const trop = champs.nouveau.length > 0 && champs.nouveau.length < 12;
+  const different = champs.confirmation.length > 0 && champs.nouveau !== champs.confirmation;
+  const pret =
+    champs.ancien &&
+    champs.nouveau.length >= 12 &&
+    champs.nouveau === champs.confirmation &&
+    !etat.envoi;
+  const maj = (cle) => (e) => setChamps((c) => ({ ...c, [cle]: e.target.value }));
+  const type = visible ? 'text' : 'password';
+
+  async function envoyer(e) {
+    e.preventDefault();
+    setEtat({ envoi: true, succes: false, erreur: null });
+    try {
+      await post(
+        '/admin/mot-de-passe',
+        { ancien: champs.ancien, nouveau: champs.nouveau },
+        { message429: 'Trop de tentatives. Réessayez dans quelques minutes.' },
+      );
+      setChamps({ ancien: '', nouveau: '', confirmation: '' });
+      setEtat({ envoi: false, succes: true, erreur: null });
+    } catch (err) {
+      setEtat({ envoi: false, succes: false, erreur: err.message });
+    }
+  }
+
+  return (
+    <section className="carte" style={{ maxWidth: 560 }} aria-labelledby="titre-compte">
+      <h2 id="titre-compte" className="titre-carte">
+        Changer mon mot de passe
+      </h2>
+      <p className="fraicheur" style={{ marginBottom: 14 }}>
+        Compte : <strong>{admin.email}</strong> ({admin.role})
+      </p>
+      {etat.succes && (
+        <p className="message message-succes" role="status">
+          Mot de passe modifié. Vos autres appareils connectés ont été déconnectés par sécurité.
+        </p>
+      )}
+      {etat.erreur && (
+        <p className="message message-erreur" role="alert">
+          {etat.erreur}
+        </p>
+      )}
+      <form onSubmit={envoyer}>
+        <div className="champ">
+          <label htmlFor="mdp-ancien">Mot de passe actuel</label>
+          <input
+            id="mdp-ancien"
+            type={type}
+            required
+            autoComplete="current-password"
+            value={champs.ancien}
+            onChange={maj('ancien')}
+          />
+        </div>
+        <div className="champ">
+          <label htmlFor="mdp-nouveau">Nouveau mot de passe</label>
+          <input
+            id="mdp-nouveau"
+            type={type}
+            required
+            autoComplete="new-password"
+            aria-describedby="mdp-regles"
+            aria-invalid={trop}
+            value={champs.nouveau}
+            onChange={maj('nouveau')}
+          />
+        </div>
+        <ul id="mdp-regles" className="regles-mdp">
+          <li className={champs.nouveau.length >= 12 ? 'regle-ok' : ''}>
+            12 caractères minimum (une phrase de plusieurs mots convient très bien)
+          </li>
+          <li>Différent de l’ancien, et sans votre adresse e-mail</li>
+        </ul>
+        <div className="champ">
+          <label htmlFor="mdp-confirmation">Confirmer le nouveau mot de passe</label>
+          <input
+            id="mdp-confirmation"
+            type={type}
+            required
+            autoComplete="new-password"
+            aria-invalid={different}
+            aria-describedby={different ? 'mdp-difference' : undefined}
+            value={champs.confirmation}
+            onChange={maj('confirmation')}
+          />
+          {different && (
+            <p id="mdp-difference" className="erreur-champ">
+              Les deux mots de passe ne sont pas identiques.
+            </p>
+          )}
+        </div>
+        <label className="case">
+          <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />
+          Afficher les mots de passe
+        </label>
+        <button type="submit" className="bouton" disabled={!pret}>
+          {etat.envoi ? 'Modification…' : 'Changer mon mot de passe'}
+        </button>
+      </form>
+    </section>
+  );
+}
+
 // Sections de l'administration : chacune a sa propre adresse (/admin/sources…), donc elle est conservée
 // quand on recharge la page ou qu'on revient en arrière.
 const SECTIONS = [
@@ -478,6 +593,7 @@ const SECTIONS = [
   { chemin: 'sources', libelle: 'État des sources' },
   { chemin: 'historique', libelle: 'Historique' },
   { chemin: 'messages', libelle: 'Messages', roleRequis: 'admin' }, // données personnelles : admin seulement
+  { chemin: 'compte', libelle: 'Mon compte' },
 ];
 
 /** Pages des sections (affichées dans la mise en page d'administration). */
@@ -490,6 +606,7 @@ export function PageMessages() {
   if (admin.role !== 'admin') return <Navigate to="/admin/changements" replace />;
   return <Messages />;
 }
+export const PageCompte = () => <MonCompte />;
 export const AccueilAdmin = () => <Navigate to="/admin/changements" replace />;
 
 /**
@@ -537,7 +654,7 @@ export default function AdminLayout() {
         Aller au contenu
       </a>
       <header className="admin-barre">
-        <Link to="/admin" className="admin-marque" aria-label="Administration CampusLens">
+        <Link to="/admin" className="admin-marque">
           <Logo taille={34} />
           <span>
             CampusLens <small>Administration</small>

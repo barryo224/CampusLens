@@ -23,10 +23,27 @@ npm run dev:front    # terminal 2 → site  http://localhost:5173
 
 ## Vérifier le projet
 
-```bash
-npm run check          # ESLint + Prettier + tous les tests unitaires, composants et API
-npm run test:e2e       # bout en bout (Playwright) — installer les navigateurs : npx playwright install
-```
+| Commande                       | Ce qu'elle contrôle                                                                                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run check`                | ESLint, Prettier, tests unitaires, de composants et d'API                                                                                              |
+| `npm run test:coverage`        | idem + **seuils de couverture** (robots ≥ 90 %, API ≥ 80 %, calcul du reste-à-vivre ≥ 90 %)                                                            |
+| `npm run test:e2e`             | bout en bout dans un vrai navigateur (Chrome, Firefox, mobile), dont l'accessibilité (axe-core, contrastes réels) et la navigation **au clavier seul** |
+| `npm run test:e2e:prod`        | les mêmes tests contre le site **construit** et servi avec ses en-têtes de sécurité de production (CSP stricte, HSTS…) : vérifie que rien n'est bloqué |
+| `npm run lighthouse`           | Lighthouse mobile sur toutes les pages : performance ≥ 90, accessibilité ≥ 95 (actuellement 98-99 et 100)                                              |
+| `npm run verifier:secrets`     | aucun secret dans les fichiers **ni dans l'historique Git**                                                                                            |
+| `npm audit --audit-level=high` | aucune faille haute ou critique dans les dépendances                                                                                                   |
+
+La CI GitHub Actions lance tout cela à chaque envoi. Firefox : `npx playwright install firefox`, puis
+`npx playwright test --project=firefox` (depuis un terminal ordinaire).
+
+### Sécurité du site (production)
+
+- En-têtes dans `frontend/vercel.json` : politique de sécurité du contenu (CSP) sans script ni style intégré, anti-iframe,
+  HSTS, `nosniff`, `Referrer-Policy`, `Permissions-Policy`. `scripts/servir-prod.mjs` les reproduit pour les tests.
+- L'API relayée par Vercel (`/api/*` → serveur de l'API, voir `vercel.json`) garde un seul domaine : le cookie de
+  l'administration reste `HttpOnly` et `SameSite=Strict`.
+- Limites : `API_LIMITE_PAR_MINUTE` (par défaut 600 en production : un réseau d'université partage souvent une IP),
+  5 messages de contact par 10 min, 5 échecs de connexion par 15 min, 10 estimations OpenFisca par minute.
 
 ## Les données et les robots
 
@@ -77,6 +94,7 @@ un robot et d'annuler une modification (rôle `admin`).
 
 ## À compléter avant la mise en ligne
 
+- `frontend/vercel.json` : remplacer `REMPLACER-PAR-ADRESSE-DE-L-API` par l'adresse du serveur de l'API.
 - Mentions légales : nom du responsable et hébergeur (`frontend/src/pages/MentionsLegales.jsx`).
 - Source « Indicateur du coût de la rentrée » (FAGE) : indiquer l'adresse du dossier de presse annuel pour activer sa veille.
 - Photo du bandeau d'accueil (illustration provisoire).

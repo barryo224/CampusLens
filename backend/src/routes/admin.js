@@ -18,6 +18,25 @@ const loginSchema = z.object({
   motDePasse: z.string().min(1).max(200),
 });
 
+const COUT_BCRYPT = 12;
+
+const changementSchema = z
+  .object({ ancien: z.string().min(1).max(200), nouveau: z.string().max(200) })
+  .strict();
+
+/** Règles du nouveau mot de passe. Renvoie un message d'erreur clair, ou null si tout va bien. */
+export function verifierNouveauMotDePasse(nouveau, ancien, email) {
+  if (nouveau.length < 12) return 'Le nouveau mot de passe doit contenir au moins 12 caractères.';
+  if (nouveau === ancien) return 'Le nouveau mot de passe doit être différent de l’ancien.';
+  const identifiant = String(email).split('@')[0].toLowerCase();
+  if (identifiant.length >= 4 && nouveau.toLowerCase().includes(identifiant)) {
+    return 'Le mot de passe ne doit pas contenir votre adresse e-mail.';
+  }
+  if (new Set(nouveau).size < 5)
+    return 'Le mot de passe est trop répétitif : variez les caractères.';
+  return null;
+}
+
 // Hash factice : on compare toujours un mot de passe, même si l'e-mail n'existe pas,
 // pour ne pas révéler par le temps de réponse quels e-mails sont des comptes admin.
 const HASH_FACTICE = bcrypt.hashSync('mot-de-passe-factice', 12);
@@ -212,6 +231,45 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
     if (!source?.cle || !ROBOTS[source.cle])
       return res.status(404).json({ error: 'Aucun robot pour cette source.' });
     res.json(await synchroniser(prisma, ROBOTS[source.cle], { fetchImpl }));
+  });
+
+  // ───── Changer son mot de passe ─────
+  // Les mauvais « mot de passe actuel » comptent comme des échecs de connexion (5 par 15 min, puis blocage).
+  const limiteChangement = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    skipSuccessfulRequests: true,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Trop de tentatives. Réessayez dans quelques minutes.' },
+  });
+
+  r.post('/mot-de-passe', limiteChangement, async (req, res) => {
+    const { ancien, nouveau } = valider(changementSchema, req.body);
+    const admin = await prisma.administrateur.findUnique({ where: { id: req.session.adminId } });
+    if (!admin) return res.status(401).json({ error: 'Authentification requise.' });
+
+    if (!(await bcrypt.compare(ancien, admin.motDePasseHash))) {
+      return res.status(401).json({ error: 'Le mot de passe actuel est incorrect.' });
+    }
+    const probleme = verifierNouveauMotDePasse(nouveau, ancien, admin.email);
+    if (probleme) return res.status(400).json({ error: probleme });
+
+    await prisma.administrateur.update({
+      where: { id: admin.id },
+      data: { motDePasseHash: await bcrypt.hash(nouveau, COUT_BCRYPT) },
+    });
+
+    // Sécurité : toutes les AUTRES sessions de ce compte sont fermées (quelqu'un d'autre était peut-être
+    // connecté avec l'ancien mot de passe). La session courante reçoit un nouvel identifiant.
+    await prisma.sessionAdmin.deleteMany({
+      where: { donnees: { path: ['adminId'], equals: admin.id } },
+    });
+    await new Promise((resolve, reject) =>
+      req.session.regenerate((err) => (err ? reject(err) : resolve())),
+    );
+    req.session.adminId = admin.id;
+    res.json({ message: 'Mot de passe modifié.' });
   });
 
   r.get('/me', async (req, res) => {

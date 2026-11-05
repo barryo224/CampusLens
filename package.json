@@ -20,7 +20,12 @@
     "test": "npm run test -w backend && npm run test -w frontend",
     "test:e2e": "npm run test -w e2e",
     "check": "npm run lint && npm run format:check && npm run test",
-    "db:generate": "npm run db:generate -w backend"
+    "db:generate": "npm run db:generate -w backend",
+    "build": "npm run build -w frontend",
+    "test:e2e:prod": "npm run build -w frontend && node scripts/e2e-prod.mjs",
+    "verifier:secrets": "node scripts/verifier-secrets.mjs",
+    "test:coverage": "npm run test:coverage -w backend && npm run test:coverage -w frontend",
+    "lighthouse": "npm run build -w frontend && node scripts/lighthouse.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

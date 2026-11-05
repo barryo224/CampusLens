@@ -6,7 +6,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
-  use: { baseURL: 'http://localhost:5173', trace: 'on-first-retry' },
+  // BASE_URL permet de rejouer les tests contre le site CONSTRUIT et servi avec ses en-têtes de production
+  // (voir « npm run test:e2e:prod »).
+  use: { baseURL: process.env.BASE_URL ?? 'http://localhost:5173', trace: 'on-first-retry' },
   // Navigateurs demandés : Chrome, Firefox et mobile.
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
@@ -20,11 +22,16 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       cwd: '..',
     },
-    {
-      command: 'npm run dev -w frontend',
-      url: 'http://localhost:5173',
-      reuseExistingServer: !process.env.CI,
-      cwd: '..',
-    },
+    // Site de développement, sauf si on teste le site construit (BASE_URL fourni).
+    ...(process.env.BASE_URL
+      ? []
+      : [
+          {
+            command: 'npm run dev -w frontend',
+            url: 'http://localhost:5173',
+            reuseExistingServer: !process.env.CI,
+            cwd: '..',
+          },
+        ]),
   ],
 });

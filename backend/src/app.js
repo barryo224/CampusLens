@@ -24,6 +24,8 @@ export function createApp({
   sessionSecret = process.env.SESSION_SECRET,
   production = process.env.NODE_ENV === 'production',
   trustProxy = process.env.TRUST_PROXY,
+  limiteParMinute = Number(process.env.API_LIMITE_PAR_MINUTE) ||
+    (process.env.NODE_ENV === 'production' ? 600 : 5000),
   moisConservationContact = Number(process.env.CONTACT_RETENTION_MONTHS) || 6,
 } = {}) {
   if (production && !sessionSecret) {
@@ -42,10 +44,17 @@ export function createApp({
 
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
-  // Limite générale : 300 requêtes par minute et par IP.
+  // Limite générale par IP. Large par défaut : sur le Wi-Fi d'une université, beaucoup d'étudiants partagent
+  // la même adresse IP. Réglable avec API_LIMITE_PAR_MINUTE.
   app.use(
     '/api',
-    rateLimit({ windowMs: 60_000, limit: 300, standardHeaders: 'draft-7', legacyHeaders: false }),
+    rateLimit({
+      windowMs: 60_000,
+      limit: limiteParMinute,
+      standardHeaders: 'draft-7',
+      legacyHeaders: false,
+      message: { error: 'Trop de requêtes. Réessayez dans une minute.' },
+    }),
   );
 
   // Contact : 5 messages par 10 minutes et par IP.

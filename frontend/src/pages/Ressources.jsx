@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import MessageErreur from '../components/MessageErreur.jsx';
+import ZoneDefilante from '../components/ZoneDefilante.jsx';
 import Pied from '../components/Pied.jsx';
 import Icone from '../components/Icone.jsx';
 import { useApi } from '../lib/useApi.js';
@@ -42,122 +43,124 @@ export default function Ressources() {
         </p>
       </header>
 
-      {erreur && <MessageErreur erreur={erreur} surReessayer={recharger} />}
-      {chargement && (
-        <p className="message" role="status">
-          Chargement des ressources…
-        </p>
-      )}
-
-      {data && (
-        <section className="carte" aria-label="Liste des ressources">
-          <div className="barre-recherche">
-            <div className="champ" style={{ margin: 0, flex: 1, minWidth: 220 }}>
-              <label htmlFor="recherche-ressource">Rechercher une ressource, un rapport</label>
-              <input
-                id="recherche-ressource"
-                type="search"
-                value={recherche}
-                onChange={(e) => setRecherche(e.target.value)}
-              />
-            </div>
-            <div className="pastilles" role="group" aria-label="Catégorie" style={{ margin: 0 }}>
-              <button
-                type="button"
-                className={`pastille${categorie === '' ? ' pastille-active' : ''}`}
-                aria-pressed={categorie === ''}
-                onClick={() => setCategorie('')}
-              >
-                Toutes
-              </button>
-              {categories.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`pastille${categorie === c ? ' pastille-active' : ''}`}
-                  aria-pressed={categorie === c}
-                  onClick={() => setCategorie(c)}
-                >
-                  {libelleCategorie(c)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <p className="sr-only" role="status">
-            {visibles.length} ressource{visibles.length > 1 ? 's' : ''} affichée
-            {visibles.length > 1 ? 's' : ''}
+      <div style={data || erreur ? undefined : { minHeight: '70vh' }} aria-busy={chargement}>
+        {erreur && <MessageErreur erreur={erreur} surReessayer={recharger} />}
+        {chargement && (
+          <p className="message" role="status">
+            Chargement des ressources…
           </p>
-          {visibles.length === 0 ? (
-            <p className="message" style={{ marginTop: 16 }}>
-              Aucune ressource ne correspond à votre recherche.
-            </p>
-          ) : (
-            <div className="tableau-defilant">
-              <table className="tableau">
-                <caption className="sr-only">Démarches et documents officiels</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Titre</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">Source</th>
-                    <th scope="col">Catégorie</th>
-                    <th scope="col">Année</th>
-                    <th scope="col">Ouvrir</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibles.map((r) => (
-                    <tr key={r.id}>
-                      <th scope="row">
-                        {r.titre}
-                        {r.statutLien === 'casse' && (
-                          <span className="badge badge-rouge-clair">Lien cassé : signalé</span>
-                        )}
-                        {r.statutLien === 'deplace' && (
-                          <span className="badge badge-orange" style={{ marginLeft: 8 }}>
-                            Adresse modifiée
-                          </span>
-                        )}
-                      </th>
-                      <td>{r.type}</td>
-                      <td>
-                        {r.organisme}
-                        {r.aVerifier && <span className="a-verifier">à vérifier</span>}
-                        {r.verifieLe && (
-                          <span className="fraicheur">
-                            <br />
-                            vérifié le {formaterDate(r.verifieLe)}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <span className="badge badge-gris">{libelleCategorie(r.categorie)}</span>
-                      </td>
-                      <td>{r.annee ?? '—'}</td>
-                      <td>
-                        {r.statutLien === 'casse' ? (
-                          <span className="fraicheur">Indisponible</span>
-                        ) : (
-                          <a
-                            href={r.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`Ouvrir : ${r.titre} (nouvel onglet)`}
-                          >
-                            <Icone nom="fleche" />
-                          </a>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        )}
+
+        {data && (
+          <section className="carte" aria-label="Liste des ressources">
+            <div className="barre-recherche">
+              <div className="champ" style={{ margin: 0, flex: 1, minWidth: 220 }}>
+                <label htmlFor="recherche-ressource">Rechercher une ressource, un rapport</label>
+                <input
+                  id="recherche-ressource"
+                  type="search"
+                  value={recherche}
+                  onChange={(e) => setRecherche(e.target.value)}
+                />
+              </div>
+              <div className="pastilles" role="group" aria-label="Catégorie" style={{ margin: 0 }}>
+                <button
+                  type="button"
+                  className={`pastille${categorie === '' ? ' pastille-active' : ''}`}
+                  aria-pressed={categorie === ''}
+                  onClick={() => setCategorie('')}
+                >
+                  Toutes
+                </button>
+                {categories.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`pastille${categorie === c ? ' pastille-active' : ''}`}
+                    aria-pressed={categorie === c}
+                    onClick={() => setCategorie(c)}
+                  >
+                    {libelleCategorie(c)}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
-        </section>
-      )}
-      <Pied />
+
+            <p className="sr-only" role="status">
+              {visibles.length} ressource{visibles.length > 1 ? 's' : ''} affichée
+              {visibles.length > 1 ? 's' : ''}
+            </p>
+            {visibles.length === 0 ? (
+              <p className="message" style={{ marginTop: 16 }}>
+                Aucune ressource ne correspond à votre recherche.
+              </p>
+            ) : (
+              <ZoneDefilante libelle="Tableau des ressources">
+                <table className="tableau">
+                  <caption className="sr-only">Démarches et documents officiels</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Titre</th>
+                      <th scope="col">Type</th>
+                      <th scope="col">Source</th>
+                      <th scope="col">Catégorie</th>
+                      <th scope="col">Année</th>
+                      <th scope="col">Ouvrir</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibles.map((r) => (
+                      <tr key={r.id}>
+                        <th scope="row">
+                          {r.titre}
+                          {r.statutLien === 'casse' && (
+                            <span className="badge badge-rouge-clair">Lien cassé : signalé</span>
+                          )}
+                          {r.statutLien === 'deplace' && (
+                            <span className="badge badge-orange" style={{ marginLeft: 8 }}>
+                              Adresse modifiée
+                            </span>
+                          )}
+                        </th>
+                        <td>{r.type}</td>
+                        <td>
+                          {r.organisme}
+                          {r.aVerifier && <span className="a-verifier">à vérifier</span>}
+                          {r.verifieLe && (
+                            <span className="fraicheur">
+                              <br />
+                              vérifié le {formaterDate(r.verifieLe)}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <span className="badge badge-gris">{libelleCategorie(r.categorie)}</span>
+                        </td>
+                        <td>{r.annee ?? '—'}</td>
+                        <td>
+                          {r.statutLien === 'casse' ? (
+                            <span className="fraicheur">Indisponible</span>
+                          ) : (
+                            <a
+                              href={r.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Ouvrir : ${r.titre} (nouvel onglet)`}
+                            >
+                              <Icone nom="fleche" />
+                            </a>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </ZoneDefilante>
+            )}
+          </section>
+        )}
+        {(data || erreur) && <Pied />}
+      </div>
     </>
   );
 }

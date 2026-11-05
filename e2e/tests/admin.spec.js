@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   preparerChangementCvec,
   preparerMessageContact,
+  preparerAdminCompte,
   supprimerAdminDeTest,
   ADMIN,
 } from '../support/base.js';
@@ -40,6 +41,13 @@ test.describe('E2E-05 : espace administration', () => {
     // L'admin a sa propre mise en page : le menu du site public n'y apparaît pas.
     await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toHaveCount(0);
     await page.getByLabel('Adresse e-mail').fill(ADMIN.email);
+    // Le refus est simulé : de vrais échecs de connexion répétés (à chaque exécution des tests) finiraient par
+    // déclencher le blocage anti-force-brute du serveur, qui est testé ailleurs (API-13).
+    await page.route(
+      '**/api/admin/login',
+      (r) => r.fulfill({ status: 401, json: { error: 'Identifiants incorrects.' } }),
+      { times: 1 },
+    );
     await page.getByLabel('Mot de passe').fill('mauvais-mot-de-passe');
     await page.getByRole('button', { name: 'Se connecter' }).click();
     await expect(page.getByRole('alert')).toContainText('Identifiants incorrects');
@@ -119,5 +127,56 @@ test.describe('Espace administration : messages de contact', () => {
     await carte.getByRole('button', { name: /^Supprimer/ }).click();
     await expect(page.getByRole('status')).toContainText('Message supprimé.');
     await expect(carte).toHaveCount(0);
+  });
+});
+
+test.describe('Espace administration : changer son mot de passe', () => {
+  test.skip(
+    ({ browserName, isMobile }) => browserName !== 'chromium' || isMobile,
+    'Parcours joué sur Chromium bureau',
+  );
+
+  let compte;
+  test.beforeAll(async () => {
+    compte = await preparerAdminCompte();
+  });
+  test.afterAll(async () => {
+    await compte?.nettoyer();
+  });
+
+  test('changer son mot de passe → déconnexion → reconnexion avec le nouveau', async ({ page }) => {
+    const NOUVEAU = 'Une phrase de passe e2e vraiment solide 2026';
+    await page.goto('/admin/compte');
+    await page.getByLabel('Adresse e-mail').fill(compte.email);
+    await page.getByLabel('Mot de passe').fill(compte.motDePasse);
+    await page.getByRole('button', { name: 'Se connecter' }).click();
+    await expect(page.getByRole('heading', { name: 'Changer mon mot de passe' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Mon compte' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+
+    // Contrôles côté navigateur avant tout envoi.
+    await page.getByLabel('Mot de passe actuel').fill(compte.motDePasse);
+    await page.getByLabel('Nouveau mot de passe', { exact: true }).fill('court');
+    await page.getByLabel('Confirmer le nouveau mot de passe').fill('court');
+    await expect(page.getByRole('button', { name: 'Changer mon mot de passe' })).toBeDisabled();
+
+    await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(NOUVEAU);
+    await page.getByLabel('Confirmer le nouveau mot de passe').fill(NOUVEAU);
+    await page.getByRole('button', { name: 'Changer mon mot de passe' }).click();
+    await expect(page.getByRole('status')).toContainText('Mot de passe modifié');
+
+    // La session reste ouverte ; on se déconnecte puis on se reconnecte avec le NOUVEAU mot de passe.
+    await page.getByRole('link', { name: 'À valider' }).click();
+    await expect(
+      page.getByRole('navigation', { name: 'Sections de l’administration' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Se déconnecter' }).click();
+    await expect(page.getByRole('heading', { name: 'Connexion' })).toBeVisible();
+    await page.getByLabel('Adresse e-mail').fill(compte.email);
+    await page.getByLabel('Mot de passe').fill(NOUVEAU);
+    await page.getByRole('button', { name: 'Se connecter' }).click();
+    await expect(page.getByText(`${compte.email} (admin)`)).toBeVisible();
   });
 });

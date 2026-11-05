@@ -1,0 +1,5 @@
+# CampusLens : le site public est indexable ; l'administration et l'API ne le sont pas.
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/

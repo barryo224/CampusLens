@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MessageErreur from '../components/MessageErreur.jsx';
+import ZoneDefilante from '../components/ZoneDefilante.jsx';
 import Fraicheur from '../components/Fraicheur.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
@@ -192,7 +193,7 @@ function Villes() {
           onChange={(e) => setRecherche(e.target.value)}
         />
       </div>
-      <div className="tableau-defilant">
+      <ZoneDefilante libelle="Tableau du comparateur de villes">
         <table className="tableau">
           <caption className="sr-only">Comparateur de villes</caption>
           <thead>
@@ -220,7 +221,7 @@ function Villes() {
             ))}
           </tbody>
         </table>
-      </div>
+      </ZoneDefilante>
     </div>
   );
 }
@@ -264,7 +265,8 @@ export default function Aides() {
             tabIndex={onglet === o.code ? 0 : -1}
             onClick={() => changer('onglet', o.code === 'aides' ? '' : o.code)}
             onKeyDown={(e) => {
-              const i = ONGLETS.findIndex((x) => x.code === onglet);
+              // On part de l'onglet qui reçoit la touche (et non de l'état de la page, pas encore à jour si l'on appuie très vite).
+              const i = ONGLETS.findIndex((x) => x.code === o.code);
               const delta = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
               if (delta) {
                 const cible = ONGLETS[(i + delta + ONGLETS.length) % ONGLETS.length];

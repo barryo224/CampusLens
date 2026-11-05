@@ -1195,3 +1195,19 @@ a {
     white-space: nowrap;
   }
 }
+
+.regles-mdp {
+  margin: -6px 0 14px;
+  padding-left: 20px;
+  color: var(--texte-doux);
+  font-size: 0.875rem;
+}
+.regles-mdp .regle-ok {
+  color: var(--vert);
+  font-weight: 700;
+}
+.erreur-champ {
+  color: var(--rouge);
+  font-weight: 600;
+  font-size: 0.875rem;
+}

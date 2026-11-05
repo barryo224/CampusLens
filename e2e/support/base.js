@@ -114,6 +114,42 @@ export async function preparerMessageContact() {
 /** Supprime le compte admin de test (à appeler UNE fois, quand tous les tests du fichier sont finis). */
 export async function supprimerAdminDeTest() {
   const prisma = creerPrisma();
+  const admin = await prisma.administrateur.findUnique({ where: { email: ADMIN.email } });
+  if (admin)
+    await prisma.sessionAdmin.deleteMany({
+      where: { donnees: { path: ['adminId'], equals: admin.id } },
+    });
   await prisma.administrateur.deleteMany({ where: { email: ADMIN.email } });
   await prisma.$disconnect();
+}
+
+/** Un compte admin réservé au test de changement de mot de passe (distinct du compte partagé des autres tests). */
+export async function preparerAdminCompte() {
+  const prisma = creerPrisma();
+  const compte = {
+    email: 'e2e-compte@campuslens.test',
+    motDePasse: 'e2e-ancien-mot-de-passe-2026',
+  };
+  await prisma.administrateur.upsert({
+    where: { email: compte.email },
+    update: { motDePasseHash: bcrypt.hashSync(compte.motDePasse, 4), role: 'admin' },
+    create: {
+      email: compte.email,
+      motDePasseHash: bcrypt.hashSync(compte.motDePasse, 4),
+      role: 'admin',
+    },
+  });
+  return {
+    ...compte,
+    async nettoyer() {
+      const admin = await prisma.administrateur.findUnique({ where: { email: compte.email } });
+      if (admin) {
+        await prisma.sessionAdmin.deleteMany({
+          where: { donnees: { path: ['adminId'], equals: admin.id } },
+        });
+        await prisma.administrateur.delete({ where: { id: admin.id } });
+      }
+      await prisma.$disconnect();
+    },
+  };
 }

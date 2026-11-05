@@ -136,6 +136,25 @@ describe('Mes aides', () => {
     );
   });
 
+  it('onglets : deux flèches enchaînées très vite aboutissent au bon onglet (pas de dérive)', async () => {
+    apiAides({ '/associations': [], '/villes': [] });
+    rendreApp('/aides');
+    const aides = screen.getByRole('tab', { name: 'Aides financières' });
+    aides.focus();
+    // Sans attendre entre les deux touches : droite puis gauche = retour au point de départ.
+    await userEvent.keyboard('{ArrowRight}{ArrowLeft}');
+    expect(screen.getByRole('tab', { name: 'Aides financières' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    // Trois flèches droite = on fait le tour complet des 3 onglets.
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}');
+    expect(screen.getByRole('tab', { name: 'Aides financières' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
   it('comparateur de villes : message honnête tant qu’aucune ville n’est synchronisée', async () => {
     apiAides({ '/villes': [] });
     rendreApp('/aides?onglet=villes');

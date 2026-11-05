@@ -548,6 +548,151 @@ describe('Espace administration', () => {
     expect(screen.queryByRole('link', { name: 'Messages' })).not.toBeInTheDocument();
   });
 
+  describe('Mon compte : changer son mot de passe', () => {
+    const NOUVEAU = 'Une nouvelle phrase de passe solide';
+    const ouvrirCompte = async (role = 'admin', extra = {}) => {
+      const mock = connecte(role, {
+        '/admin/mot-de-passe': { message: 'Mot de passe modifié.' },
+        ...extra,
+      });
+      rendreApp('/admin/compte');
+      await screen.findByRole('heading', { name: 'Changer mon mot de passe' });
+      return mock;
+    };
+    const remplir = async (
+      ancien = 'ancien-mot-de-passe',
+      nouveau = NOUVEAU,
+      confirmation = nouveau,
+    ) => {
+      await userEvent.type(screen.getByLabelText('Mot de passe actuel'), ancien);
+      await userEvent.type(screen.getByLabelText('Nouveau mot de passe'), nouveau);
+      if (confirmation)
+        await userEvent.type(
+          screen.getByLabelText('Confirmer le nouveau mot de passe'),
+          confirmation,
+        );
+    };
+
+    it('le lien « Mon compte » existe pour tous les rôles, et mène à /admin/compte', async () => {
+      for (const role of ['admin', 'relecteur']) {
+        connecte(role);
+        rendreApp('/admin');
+        const lien = await screen.findByRole('link', { name: 'Mon compte' });
+        expect(lien).toHaveAttribute('href', '/admin/compte');
+        cleanup();
+      }
+    });
+
+    it('affiche le compte, des champs adaptés aux gestionnaires de mots de passe, masqués par défaut', async () => {
+      await ouvrirCompte();
+      expect(screen.getByText(/Compte :/)).toHaveTextContent('admin@campuslens.test');
+      expect(screen.getByLabelText('Mot de passe actuel')).toHaveAttribute('type', 'password');
+      expect(screen.getByLabelText('Mot de passe actuel')).toHaveAttribute(
+        'autocomplete',
+        'current-password',
+      );
+      expect(screen.getByLabelText('Nouveau mot de passe')).toHaveAttribute(
+        'autocomplete',
+        'new-password',
+      );
+      expect(screen.getByLabelText('Confirmer le nouveau mot de passe')).toHaveAttribute(
+        'type',
+        'password',
+      );
+      expect(screen.getByRole('button', { name: 'Changer mon mot de passe' })).toBeDisabled();
+    });
+
+    it('« Afficher les mots de passe » révèle les champs', async () => {
+      await ouvrirCompte();
+      await userEvent.click(screen.getByLabelText('Afficher les mots de passe'));
+      for (const champ of [
+        'Mot de passe actuel',
+        'Nouveau mot de passe',
+        'Confirmer le nouveau mot de passe',
+      ]) {
+        expect(screen.getByLabelText(champ)).toHaveAttribute('type', 'text');
+      }
+    });
+
+    it('le bouton reste inactif tant que le nouveau mot de passe est trop court ou mal confirmé, avec un message clair', async () => {
+      await ouvrirCompte();
+      await remplir('ancien', 'court', 'court');
+      expect(screen.getByRole('button', { name: 'Changer mon mot de passe' })).toBeDisabled();
+      expect(screen.getByLabelText('Nouveau mot de passe')).toHaveAttribute('aria-invalid', 'true');
+      cleanup();
+
+      await ouvrirCompte();
+      await remplir('ancien', NOUVEAU, 'autre phrase de passe');
+      expect(screen.getByRole('button', { name: 'Changer mon mot de passe' })).toBeDisabled();
+      expect(
+        screen.getByText('Les deux mots de passe ne sont pas identiques.'),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText('Confirmer le nouveau mot de passe')).toHaveAttribute(
+        'aria-invalid',
+        'true',
+      );
+    });
+
+    it('envoie ancien et nouveau (jamais la confirmation), confirme, et vide les champs', async () => {
+      const mock = await ouvrirCompte();
+      await remplir();
+      const bouton = screen.getByRole('button', { name: 'Changer mon mot de passe' });
+      expect(bouton).toBeEnabled();
+      await userEvent.click(bouton);
+      expect(await screen.findByRole('status')).toHaveTextContent(
+        'Mot de passe modifié. Vos autres appareils connectés ont été déconnectés',
+      );
+      const appel = mock.mock.calls.find(([u]) => u === '/api/admin/mot-de-passe');
+      expect(appel[1].method).toBe('POST');
+      expect(JSON.parse(appel[1].body)).toEqual({
+        ancien: 'ancien-mot-de-passe',
+        nouveau: NOUVEAU,
+      });
+      expect(screen.getByLabelText('Mot de passe actuel')).toHaveValue('');
+      expect(screen.getByLabelText('Nouveau mot de passe')).toHaveValue('');
+      expect(screen.getByLabelText('Confirmer le nouveau mot de passe')).toHaveValue('');
+    });
+
+    it('mauvais mot de passe actuel → message clair, les champs sont conservés', async () => {
+      await ouvrirCompte('admin', {
+        '/admin/mot-de-passe': {
+          __status: 401,
+          corps: { error: 'Le mot de passe actuel est incorrect.' },
+        },
+      });
+      await remplir();
+      await userEvent.click(screen.getByRole('button', { name: 'Changer mon mot de passe' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Le mot de passe actuel est incorrect.',
+      );
+      expect(screen.getByLabelText('Nouveau mot de passe')).toHaveValue(NOUVEAU);
+    });
+
+    it('règle refusée par le serveur (400) et blocage temporaire (429) → messages clairs', async () => {
+      await ouvrirCompte('admin', {
+        '/admin/mot-de-passe': {
+          __status: 400,
+          corps: { error: 'Le mot de passe ne doit pas contenir votre adresse e-mail.' },
+        },
+      });
+      await remplir();
+      await userEvent.click(screen.getByRole('button', { name: 'Changer mon mot de passe' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('adresse e-mail');
+      cleanup();
+
+      await ouvrirCompte('admin', { '/admin/mot-de-passe': { __status: 429, corps: {} } });
+      await remplir();
+      await userEvent.click(screen.getByRole('button', { name: 'Changer mon mot de passe' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Trop de tentatives');
+    });
+
+    it('accessibilité : aucune violation axe-core', async () => {
+      await ouvrirCompte();
+      await remplir('ancien', 'court', 'autre');
+      expect(await violationsAxe(document.body)).toEqual([]);
+    });
+  });
+
   it('déconnexion : retour au formulaire de connexion', async () => {
     connecte();
     rendreApp('/admin');

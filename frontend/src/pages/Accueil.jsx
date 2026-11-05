@@ -5,6 +5,7 @@ import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { PROFILS } from '../lib/profils.js';
 import photoHero from '../assets/hero-etudiants.webp';
+import photoHeroPetite from '../assets/hero-etudiants-480.webp';
 
 const ICONE_CATEGORIE = {
   etudes: 'chapeau',
@@ -57,6 +58,8 @@ export default function Accueil() {
           {/* Image du bandeau : chargée en priorité (c'est le plus gros élément visible). */}
           <img
             src={photoHero}
+            srcSet={`${photoHeroPetite} 480w, ${photoHero} 720w`}
+            sizes="(max-width: 900px) 100vw, 45vw"
             width="720"
             height="720"
             alt="Trois étudiants assis sur des marches, qui consultent un ordinateur portable en souriant"

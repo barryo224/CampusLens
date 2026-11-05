@@ -14,7 +14,7 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "admin:creer": "node --env-file-if-exists=.env src/admin/creer-admin.js",
-    "test:coverage": "vitest run --coverage --coverage.include='src/**' --coverage.exclude='src/generated/**' --coverage.exclude='src/server.js' --coverage.exclude='src/admin/creer-admin.js' --coverage.exclude='src/seed/donnees.js'",
+    "test:coverage": "vitest run --coverage",
     "sync": "node --env-file-if-exists=.env src/sync/cli.js"
   },
   "dependencies": {

@@ -23,6 +23,8 @@ jobs:
       TEST_DATABASE_URL: postgresql://campuslens:campuslens@localhost:5432/campuslens_test
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # historique complet : la vérification des secrets lit aussi les anciens commits
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -34,9 +36,11 @@ jobs:
         run: npm run lint
       - name: Format (Prettier)
         run: npm run format:check
-      - name: Tests backend et frontend
-        run: npm test
-      - name: Audit de sécurité
+      - name: Tests backend et frontend, avec seuils de couverture (robots ≥ 90 %, API ≥ 80 %, calcul ≥ 90 %)
+        run: npm run test:coverage
+      - name: Aucun secret dans le dépôt ni dans son historique
+        run: npm run verifier:secrets
+      - name: Audit de sécurité des dépendances
         run: npm audit --audit-level=high
 
   e2e:
@@ -68,7 +72,22 @@ jobs:
           npm run db:deploy -w backend
           npm run db:seed -w backend
       - run: npx playwright install --with-deps chromium firefox
-      - name: Tests de bout en bout
+      - name: Tests de bout en bout — Chrome, Firefox et mobile (site de développement)
         run: npm run test:e2e
         env:
           CORS_ORIGIN: http://localhost:5173
+      - name: Tests de bout en bout — site construit avec les en-têtes de sécurité de production (CSP, HSTS…)
+        run: npm run test:e2e:prod -- --project=chromium --project=firefox --project=mobile
+        env:
+          CORS_ORIGIN: http://localhost:4173
+      - name: Lighthouse (performance ≥ 90, accessibilité ≥ 95) sur toutes les pages
+        run: npm run lighthouse
+        env:
+          CORS_ORIGIN: http://localhost:4173
+      - name: Rapport Playwright en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-playwright
+          path: e2e/test-results
+          retention-days: 7
