@@ -12,9 +12,10 @@ export default function MentionsLegales() {
       <article className="carte texte-long">
         <h2>Éditeur du site</h2>
         <p>
-          CampusLens est un projet étudiant (Licence MIASHS). Responsable de la publication : [nom
-          et prénom à compléter]. Contact : <a href={`mailto:${EMAIL_CONTACT}`}>{EMAIL_CONTACT}</a>{' '}
-          ou la <a href="/contact">page Contact</a>.
+          CampusLens est un service gratuit d’information destiné aux étudiants en France.
+          Responsable de la publication : [nom et prénom à compléter]. Contact :{' '}
+          <a href={`mailto:${EMAIL_CONTACT}`}>{EMAIL_CONTACT}</a> ou la{' '}
+          <a href="/contact">page Contact</a>.
         </p>
         <h2>Hébergement</h2>
         <p>[Hébergeur du site et de l’API à compléter lors de la mise en ligne.]</p>

@@ -302,8 +302,10 @@ a {
 }
 
 /* ───── Accueil : bandeau « La précarité étudiante en France » ───── */
-/* Le cadre est un « conteneur » : les tailles de la photo se calculent sur SA largeur (unités cqw),
-   pas sur celle de l'écran, ce qui garde les visages entiers quelle que soit la largeur de la page. */
+/* La photo occupe tout le cadre ; le texte est posé DESSUS (titre en haut, description et boutons en bas) et
+   les visages restent dégagés au milieu. Un voile bleu nuit translucide, plus dense en haut, en bas et à gauche,
+   garantit la lisibilité sans masquer la photo. Le cadre est un « conteneur » : les tailles se calculent sur sa
+   largeur (unités cqw) pour que les visages restent entiers quelle que soit la largeur de la page. */
 .hero-cadre {
   container-type: inline-size;
   margin-bottom: 8px;
@@ -311,35 +313,91 @@ a {
 .hero {
   --hero-image: min(
     100cqw,
-    1500px
+    1700px
   ); /* largeur de la photo : plafonnée pour rester nette sur très grand écran */
-  --hero-bande: calc(
-    var(--hero-image) * 0.12
-  ); /* bandeau bleu au-dessus de la photo : grandit avec elle, le texte reste au-dessus des visages */
+  /* Opacités du voile (vérifiées par un test de contraste, y compris sur une photo blanche) : */
+  --voile-haut: 0.76; /* tout en haut, derrière l'accroche */
+  --voile-titre: 0.6; /* derrière le bas du titre */
+  --voile-texte-bas: 0.72; /* derrière la description et les boutons */
+  --voile-fin: 0.86; /* tout en bas */
   position: relative;
   overflow: hidden;
   border-radius: var(--rayon);
-  height: calc(var(--hero-bande) + var(--hero-image) * 0.42);
-  min-height: 460px;
-  background: linear-gradient(160deg, #0f4c5a 0%, #0b3a46 100%);
+  height: clamp(520px, calc(var(--hero-image) * 0.52), 780px);
+  background: #0c262e;
   color: #fff;
   text-align: center;
 }
-.hero-texte {
+.hero-photo {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--hero-image);
+  height: 100%;
+  /* Au-delà de la largeur maximale de la photo, ses bords se fondent doucement dans le fond. */
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%);
+}
+.hero-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 0; /* on part du HAUT de la photo : les têtes ne sont jamais coupées */
+}
+.hero-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, rgba(8, 28, 36, 0.4) 0%, rgba(8, 28, 36, 0) 55%),
+    linear-gradient(
+      to bottom,
+      rgba(8, 28, 36, var(--voile-haut)) 0%,
+      rgba(8, 28, 36, var(--voile-titre)) 24%,
+      rgba(8, 28, 36, 0) 38%,
+      rgba(8, 28, 36, 0) 60%,
+      rgba(8, 28, 36, var(--voile-texte-bas)) 72%,
+      rgba(8, 28, 36, var(--voile-fin)) 100%
+    );
+}
+.hero-contenu {
   position: relative;
   z-index: 2;
-  padding: clamp(28px, 3.4cqw, 52px) 24px 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(22px, 3cqw, 44px) 24px clamp(20px, 2.6cqw, 40px);
+}
+.hero-haut {
   max-width: 1500px;
   margin: 0 auto;
 }
+.hero-bas {
+  max-width: 760px;
+  margin: 0 auto;
+}
 .hero-accroche {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
   margin: 0 0 10px;
   font-size: 0.9375rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--accent-clair);
+  color: #fff;
+}
+/* Filets orange de part et d'autre de l'accroche : l'orange de la charte, en décor (jamais en texte). */
+.hero-accroche::before,
+.hero-accroche::after {
+  content: '';
+  width: 34px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
 }
 .hero h1 {
   font-size: clamp(2.1rem, 4.2cqw, 4rem);
@@ -347,12 +405,14 @@ a {
   line-height: 1.1;
   color: #fff;
   text-wrap: balance;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
 }
-.hero-texte .hero-description {
-  margin: 14px auto 20px;
+.hero-bas .hero-description {
+  margin: 0 auto 18px;
   max-width: 62ch;
-  color: #eef6f7;
+  color: #f1f7f8;
   font-size: 1.0625rem;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
 }
 .hero-actions {
   display: flex;
@@ -369,51 +429,15 @@ a {
   background: var(--primaire-clair);
 }
 .hero .bouton-secondaire {
-  background: transparent;
-  border-color: rgba(255, 255, 255, 0.85);
+  background: rgba(8, 28, 36, 0.35);
+  border-color: rgba(255, 255, 255, 0.9);
   color: #fff;
 }
 .hero .bouton-secondaire:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.18);
 }
 .hero :focus-visible {
   outline-color: #fff;
-}
-/* La photo est posée en bas et se fond dans le bleu en haut, à gauche et à droite (jamais de blanc). */
-.hero-photo {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: var(--hero-image);
-  height: calc(var(--hero-image) * 0.5);
-  -webkit-mask-image:
-    linear-gradient(to right, transparent 0, #000 16%, #000 84%, transparent 100%),
-    linear-gradient(to bottom, transparent 0, #000 34%);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to right, transparent 0, #000 16%, #000 84%, transparent 100%),
-    linear-gradient(to bottom, transparent 0, #000 34%);
-  mask-composite: intersect;
-}
-.hero-photo img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 0; /* on part du HAUT de la photo : les têtes ne sont jamais coupées */
-}
-/* Voile bleu sous le texte : il garantit sa lisibilité et s'efface avant les visages. */
-.hero-photo::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(11, 58, 70, 0.94) 0%,
-    rgba(11, 58, 70, 0.78) 34%,
-    rgba(11, 58, 70, 0) 58%
-  );
 }
 
 .etape-numero {
@@ -553,11 +577,17 @@ a {
   margin-left: var(--largeur-sidebar);
   padding: 0 clamp(20px, 3.4vw, 96px) 40px;
 }
-.pied-credit {
-  grid-column: 1 / -1;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  font-size: 0.8125rem;
+.pied-engagements {
+  gap: 4px;
+}
+.pied-engagements li::before {
+  content: '✓';
+  margin-right: 8px;
+  color: var(--accent-clair);
+  font-weight: 800;
+}
+.pied-droits {
+  margin-top: 12px;
 }
 .pied {
   margin-top: 32px;
@@ -632,24 +662,33 @@ a {
     display: flex;
     flex-direction: column;
   }
-  .hero-texte {
-    padding: 28px 20px 8px;
+  .hero-contenu {
+    order: 1;
+    height: auto;
+    display: block;
+    padding: 28px 20px 4px;
+  }
+  .hero-bas {
+    margin-top: 14px;
+  }
+  .hero-accroche::before,
+  .hero-accroche::after {
+    display: none; /* sur petit écran l'accroche passe sur deux lignes : pas de filets décoratifs */
   }
   .hero-photo {
+    order: 2;
     position: relative;
+    top: auto;
     left: auto;
-    bottom: auto;
     transform: none;
     width: 100%;
     height: auto;
     aspect-ratio: 3 / 2;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%);
-    mask-image: linear-gradient(to bottom, transparent 0, #000 22%);
-    -webkit-mask-composite: source-over;
-    mask-composite: add;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 18%);
   }
   .hero-photo::after {
-    background: linear-gradient(to bottom, rgba(11, 58, 70, 0.55) 0%, rgba(11, 58, 70, 0) 30%);
+    background: linear-gradient(to bottom, rgba(8, 28, 36, 0.5) 0%, rgba(8, 28, 36, 0) 28%);
   }
   .grille-3,
   .grille-4,

@@ -66,38 +66,37 @@ describe('Photo derrière la mission (À propos)', () => {
   });
 });
 
-describe('Texte du bandeau d’accueil sur la photo', () => {
-  // Pire cas : un pixel BLANC de la photo derrière le texte. Le voile bleu (rgba(11,58,70,a)) et le fond bleu du
-  // bandeau doivent suffire à garder le texte lisible (WCAG AA : 4,5:1 pour le texte courant).
-  const voile = [11, 58, 70];
-  const fond = [0x0f, 0x4c, 0x5a];
+describe('Texte du bandeau d’accueil posé sur la photo', () => {
+  // Pire cas : un pixel BLANC de la photo derrière le texte. Le voile bleu nuit (rgba(8,28,36,a)) doit suffire à
+  // garder le texte lisible (WCAG AA : 4,5:1 pour le texte courant, 3:1 pour le très gros texte).
+  const voile = [8, 28, 36];
   const hex = (c) => `#${c.map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
-  const melange = (dessous, dessus, alpha) =>
-    dessous.map((x, i) => x * (1 - alpha) + dessus[i] * alpha);
-  const pireCas = (alphaVoile, visibilitePhoto) => {
-    const photoBlanche = melange([255, 255, 255], voile, alphaVoile); // photo la plus claire possible sous le voile
-    return melange(fond, photoBlanche, visibilitePhoto); // puis fondue sur le bleu du bandeau
-  };
-  // Le voile est défini sur plusieurs lignes dans le CSS : on lit ses deux premières opacités quelle que soit la mise en forme.
-  const voileCss = css.slice(css.indexOf('.hero-photo::after'));
-  const opacites = [...voileCss.matchAll(/rgba\(11,\s*58,\s*70,\s*([\d.]+)\)/g)].map((m) =>
-    Number(m[1]),
-  );
-  const [alphaHaut, alphaMilieu] = opacites;
+  const pireFond = (alpha) => hex(voile.map((v) => v * alpha + 255 * (1 - alpha)));
+  const alpha = (nom) => Number(css.match(new RegExp(`--${nom}:\\s*([\\d.]+)`))[1]);
 
-  it('le voile est assez fort là où se trouve le texte (haut et milieu de la zone de texte)', () => {
-    expect(alphaHaut).toBeGreaterThanOrEqual(0.9);
-    expect(alphaMilieu).toBeGreaterThanOrEqual(0.75);
+  it('le voile est plus dense là où se trouve le texte (haut et bas), léger au milieu (visages)', () => {
+    expect(alpha('voile-haut')).toBeGreaterThanOrEqual(0.7);
+    expect(alpha('voile-titre')).toBeGreaterThanOrEqual(0.55);
+    expect(alpha('voile-texte-bas')).toBeGreaterThanOrEqual(0.7);
+    expect(alpha('voile-fin')).toBeGreaterThanOrEqual(alpha('voile-texte-bas'));
+    // Le milieu du bandeau (visages) n'a AUCUN voile : la photo y est intacte.
+    expect(css).toMatch(/rgba\(8, 28, 36, 0\) 38%,\s*rgba\(8, 28, 36, 0\) 60%/);
   });
-  it('description (blanc cassé) lisible même sur une photo blanche : ≥ 4,5:1', () => {
-    expect(contraste('#eef6f7', hex(pireCas(alphaMilieu, 0.9)))).toBeGreaterThanOrEqual(4.5);
+  it('accroche (petit texte blanc, en haut) : ≥ 4,5:1 même sur une photo blanche', () => {
+    expect(contraste('#ffffff', pireFond(alpha('voile-haut')))).toBeGreaterThanOrEqual(4.5);
   });
-  it('titre blanc et accroche orange sur le bandeau bleu : ≥ 4,5:1', () => {
-    expect(contraste('#ffffff', hex(pireCas(alphaHaut, 0.9)))).toBeGreaterThanOrEqual(4.5);
-    expect(contraste(couleur('accent-clair'), hex(fond))).toBeGreaterThanOrEqual(4.5);
+  it('titre (très gros texte blanc) : ≥ 3:1 même sur une photo blanche', () => {
+    expect(contraste('#ffffff', pireFond(alpha('voile-titre')))).toBeGreaterThanOrEqual(3);
   });
-  it('boutons du bandeau : texte bleu sur blanc, et blanc sur fond bleu (bouton secondaire)', () => {
+  it('description (blanc cassé) et boutons : ≥ 4,5:1 même sur une photo blanche', () => {
+    expect(contraste('#f1f7f8', pireFond(alpha('voile-texte-bas')))).toBeGreaterThanOrEqual(4.5);
+    expect(contraste('#ffffff', pireFond(alpha('voile-texte-bas')))).toBeGreaterThanOrEqual(4.5); // bouton secondaire
+  });
+  it('bouton principal : texte bleu sur blanc ≥ 4,5:1', () => {
     expect(contraste(couleur('primaire'), '#ffffff')).toBeGreaterThanOrEqual(4.5);
-    expect(contraste('#ffffff', hex(fond))).toBeGreaterThanOrEqual(4.5);
+  });
+  it('la photo n’est plus recouverte d’un bandeau vert plein : le fond du bandeau est un bleu nuit neutre', () => {
+    expect(css).toMatch(/\.hero \{[^}]*background: #0c262e/s);
+    expect(css).not.toMatch(/\.hero \{[^}]*background: linear-gradient\(160deg/s);
   });
 });

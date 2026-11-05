@@ -25,17 +25,14 @@ export default function Pied() {
         </ul>
       </div>
       <div>
-        <h2>Le projet</h2>
-        <p>Projet étudiant · Licence MIASHS</p>
-        <p>© 2026 CampusLens</p>
+        <h2>Nos engagements</h2>
+        <ul className="pied-engagements">
+          <li>Gratuit, anonyme, sans inscription</li>
+          <li>Informations issues de sources officielles</li>
+          <li>Aucune donnée personnelle conservée</li>
+        </ul>
+        <p className="pied-droits">© 2026 CampusLens</p>
       </div>
-      <p className="pied-credit">
-        Photos du bandeau d’accueil et de la page À propos :{' '}
-        <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer">
-          Pexels<span className="sr-only"> (nouvel onglet)</span>
-        </a>
-        , licence libre. Données publiques : CROUS, CAF, ministère, service-public.fr.
-      </p>
     </footer>
   );
 }

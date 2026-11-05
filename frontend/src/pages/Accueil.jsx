@@ -38,34 +38,38 @@ export default function Accueil() {
     <>
       <div className="hero-cadre">
         <section className="hero" aria-labelledby="titre-hero">
-          <div className="hero-texte">
-            <p className="hero-accroche">Comprendre pour agir ensemble</p>
-            <h1 id="titre-hero">La précarité étudiante en France</h1>
-            <p className="hero-description">
-              CampusLens aide chaque étudiant en France à évaluer son budget et à découvrir les
-              aides auxquelles il a droit, simplement et gratuitement.
-            </p>
-            <div className="hero-actions">
-              <Link to="/evaluer" className="bouton">
-                Évaluer ma situation <Icone nom="fleche" taille={18} />
-              </Link>
-              <Link to="/aides" className="bouton bouton-secondaire">
-                Découvrir mes aides
-              </Link>
-            </div>
-          </div>
           <div className="hero-photo">
             {/* Photo du bandeau : chargée en priorité (c'est le plus gros élément visible). */}
             <img
               src={photoGrande}
               srcSet={`${photoMoyenne} 900w, ${photoGrande} 1600w`}
-              sizes="(max-width: 900px) 100vw, 1500px"
+              sizes="(max-width: 900px) 100vw, 1700px"
               width="1600"
               height="1067"
               alt="Trois étudiants souriants assis sur la pelouse d’un campus, qui lisent et travaillent sur un ordinateur"
               fetchPriority="high"
               decoding="async"
             />
+          </div>
+          <div className="hero-contenu">
+            <div className="hero-haut">
+              <p className="hero-accroche">Comprendre pour agir ensemble</p>
+              <h1 id="titre-hero">La précarité étudiante en France</h1>
+            </div>
+            <div className="hero-bas">
+              <p className="hero-description">
+                CampusLens aide chaque étudiant en France à évaluer son budget et à découvrir les
+                aides auxquelles il a droit, simplement et gratuitement.
+              </p>
+              <div className="hero-actions">
+                <Link to="/evaluer" className="bouton">
+                  Évaluer ma situation <Icone nom="fleche" taille={18} />
+                </Link>
+                <Link to="/aides" className="bouton bouton-secondaire">
+                  Découvrir mes aides
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
       </div>

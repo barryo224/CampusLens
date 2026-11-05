@@ -68,16 +68,24 @@ describe('Pied de page commun', () => {
     expect(principal.compareDocumentPosition(pied) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('les crédits photo sont dans le pied de page commun (et plus dans la page À propos)', async () => {
+  it('le pied de page est sobre et professionnel : aucun crédit photo, aucune mention « projet étudiant »', async () => {
     rendreApp('/a-propos');
     const pied = screen.getByRole('contentinfo');
-    expect(
-      within(pied).getByText(/Photos du bandeau d’accueil et de la page À propos/),
-    ).toBeInTheDocument();
-    const lien = within(pied).getByRole('link', { name: /Pexels/ });
-    expect(lien).toHaveAttribute('href', 'https://www.pexels.com');
-    expect(lien).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(screen.getByRole('main')).not.toHaveTextContent(/Photo de la mission/);
+    expect(pied).not.toHaveTextContent(
+      /Pexels|licence libre|Photos du bandeau|Projet étudiant|MIASHS/i,
+    );
+    expect(pied.querySelector('a[href*="pexels"]')).toBeNull();
+    expect(within(pied).getByRole('heading', { name: 'Nos engagements' })).toBeInTheDocument();
+    for (const engagement of [
+      'Gratuit, anonyme, sans inscription',
+      'Informations issues de sources officielles',
+      'Aucune donnée personnelle conservée',
+    ]) {
+      expect(within(pied).getByText(engagement)).toBeInTheDocument();
+    }
+    expect(pied).toHaveTextContent('© 2026 CampusLens');
+    // Aucune page ne mentionne non plus le « projet étudiant » ailleurs.
+    expect(screen.getByRole('main')).not.toHaveTextContent(/MIASHS|projet étudiant/i);
   });
 
   it('l’espace administration garde sa propre mise en page : pas de pied de page public', async () => {
