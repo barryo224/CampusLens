@@ -1583,9 +1583,10 @@ a {
   gap: 12px;
 }
 
-.page-titre-centre {
-  text-align: center;
+/* Connexion et « Mon compte » : même largeur et même bord gauche que le titre et les autres pages. */
+.carte-compte {
+  margin-bottom: 16px;
 }
-.page-titre-centre p {
-  margin-inline: auto;
+.carte-compte form {
+  max-width: 460px;
 }

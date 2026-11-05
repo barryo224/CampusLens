@@ -84,11 +84,7 @@ function Connexion({ surConnecte }) {
 
   if (etape === 'code') {
     return (
-      <section
-        className="carte"
-        style={{ maxWidth: 440, marginInline: 'auto' }}
-        aria-labelledby="titre-code"
-      >
+      <section className="carte carte-compte" aria-labelledby="titre-code">
         <h2 id="titre-code" className="titre-carte">
           Double authentification
         </h2>
@@ -136,11 +132,7 @@ function Connexion({ surConnecte }) {
   }
 
   return (
-    <section
-      className="carte"
-      style={{ maxWidth: 440, marginInline: 'auto' }}
-      aria-labelledby="titre-connexion"
-    >
+    <section className="carte carte-compte" aria-labelledby="titre-connexion">
       <h2 id="titre-connexion" className="titre-carte">
         Connexion
       </h2>
@@ -847,11 +839,7 @@ function DoubleAuthentification() {
   }
 
   return (
-    <section
-      className="carte"
-      style={{ maxWidth: 560, marginBottom: 16, marginInline: 'auto' }}
-      aria-labelledby="titre-2fa"
-    >
+    <section className="carte carte-compte" aria-labelledby="titre-2fa">
       <h2 id="titre-2fa" className="titre-carte">
         Double authentification
       </h2>
@@ -1043,11 +1031,7 @@ function MonCompte() {
   return (
     <>
       <DoubleAuthentification />
-      <section
-        className="carte"
-        style={{ maxWidth: 560, marginInline: 'auto' }}
-        aria-labelledby="titre-compte"
-      >
+      <section className="carte carte-compte" aria-labelledby="titre-compte">
         <h2 id="titre-compte" className="titre-carte">
           Changer mon mot de passe
         </h2>
@@ -1430,9 +1414,7 @@ export default function AdminLayout() {
 
       <main id="contenu-admin" className="admin-contenu" tabIndex={-1}>
         {/* Connexion et « Mon compte » sont des cartes étroites centrées : leur titre l'est aussi. Les autres pages (tableaux larges) gardent l'alignement à gauche. */}
-        <header
-          className={`page-titre${admin === null || pathname === '/admin/compte' ? ' page-titre-centre' : ''}`}
-        >
+        <header className="page-titre">
           <h1>Espace administration</h1>
           <p>
             Validez les changements détectés sur les sources officielles et surveillez l’état des
