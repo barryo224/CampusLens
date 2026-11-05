@@ -95,6 +95,20 @@ export const SOURCES = {
     type: 'page_web',
     frequenceHeures: 24 * 30,
   },
+  fslServicePublic: {
+    nom: 'Aide pour le dépôt de garantie (Loca-Pass, FSL)',
+    organisme: 'Service-Public.fr',
+    url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/N20359',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
+  coutInscriptionServicePublic: {
+    nom: 'Coût d’une inscription dans l’enseignement supérieur',
+    organisme: 'Service-Public.fr',
+    url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F2865',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
   locaPass: {
     nom: 'Avance Loca-Pass',
     organisme: 'Action Logement',
@@ -364,13 +378,15 @@ export const AIDES = [
   },
   {
     slug: 'exoneration-droits-inscription',
+    source: 'coutInscriptionServicePublic',
     nom: 'Exonération des droits d’inscription',
     organisme: 'Votre université',
-    description: 'Votre université peut ramener vos droits d’inscription au tarif national.',
+    description:
+      'Le président de votre université peut, sur demande et selon votre situation, vous dispenser de tout ou partie des droits d’inscription. Les critères et le nombre d’exonérations varient d’un établissement à l’autre.',
     categorie: 'etudes',
     frequence: 'ponctuelle',
     commentDemander:
-      'Déposez une demande d’exonération auprès du service des inscriptions de votre université.',
+      'Déposez une demande motivée, avec justificatifs, auprès du service des inscriptions de votre université : renseignez-vous sur ses critères et sa date limite.',
     elig: [
       ['non', 'Non concerné'],
       ['non', 'Non concerné'],
@@ -397,12 +413,15 @@ export const AIDES = [
   },
   {
     slug: 'fonds-solidarite-logement',
+    source: 'fslServicePublic',
     nom: 'Fonds de solidarité logement',
     organisme: 'Département',
-    description: 'Une aide pour payer le dépôt de garantie, le premier loyer ou des impayés.',
+    description:
+      'Une aide du Département (souvent un prêt sans intérêt) pour payer le dépôt de garantie, le premier loyer ou des frais d’entrée. Chaque département a son propre règlement : montants et conditions varient.',
     categorie: 'logement',
     frequence: 'ponctuelle',
-    commentDemander: 'Contactez le service social de votre département.',
+    commentDemander:
+      'Contactez le service social ou le Conseil départemental de votre lieu de résidence, qui vous remettra le règlement du FSL et le dossier à remplir.',
     elig: [
       ['sous_conditions', 'Selon le département'],
       ['sous_conditions', 'Selon le département'],
