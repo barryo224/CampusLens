@@ -1472,9 +1472,9 @@ export const TARIFS_TRANSPORT = [
     typeTarif: 'etudiant',
     libelle: 'Abonnement annuel étudiant (post-bac)',
     montantAnnuel: 120,
-    montantMensuel: 26,
+    montantMensuel: 12,
     conditions:
-      'Étudiants : 120 € par an (12 € par mois sur 10 mois) ; boursiers 60 €. Mensuel -26 ans : 26 € (grille de septembre 2025).',
+      'Étudiants : 120 € par an, ou 12 € par mois sur 10 mois ; boursiers 60 € (6 € par mois sur 10 mois). Pièces justifiant le statut étudiant à fournir.',
     urlTarifs: 'https://tub.bzh/reseau/actualites/abonnement-etudiant',
   },
   {
