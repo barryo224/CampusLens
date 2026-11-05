@@ -22,7 +22,7 @@ jobs:
       DATABASE_URL: postgresql://campuslens:campuslens@localhost:5432/campuslens_test
       TEST_DATABASE_URL: postgresql://campuslens:campuslens@localhost:5432/campuslens_test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # historique complet : la vérification des secrets lit aussi les anciens commits
       - uses: actions/setup-node@v4
@@ -60,7 +60,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://campuslens:campuslens@localhost:5432/campuslens_e2e
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
