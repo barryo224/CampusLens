@@ -74,6 +74,27 @@ export const SOURCES = {
     type: 'page_web',
     frequenceHeures: 24 * 30,
   },
+  aplServicePublic: {
+    nom: 'Aide personnalisée au logement (APL)',
+    organisme: 'Service-Public.fr',
+    url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F12006',
+    type: 'page_web',
+    frequenceHeures: 24 * 30,
+  },
+  visaleServicePublic: {
+    nom: 'Garantie Visale',
+    organisme: 'Service-Public.fr',
+    url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F32320',
+    type: 'page_web',
+    frequenceHeures: 24 * 30,
+  },
+  aideSpecifiqueServicePublic: {
+    nom: 'Aide spécifique ponctuelle pour étudiant en difficulté',
+    organisme: 'Service-Public.fr',
+    url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F34073',
+    type: 'page_web',
+    frequenceHeures: 24 * 30,
+  },
   locaPass: {
     nom: 'Avance Loca-Pass',
     organisme: 'Action Logement',
@@ -271,6 +292,7 @@ export const AIDES = [
   },
   {
     slug: 'aide-logement-apl-als',
+    source: 'aplServicePublic',
     miseEnAvant: true,
     nom: 'Aide au logement (APL / ALS)',
     organisme: 'CAF',
@@ -284,11 +306,12 @@ export const AIDES = [
     elig: [
       ['oui', 'Vous y avez droit'],
       ['oui', 'Vous y avez droit'],
-      ['sous_conditions', 'Titre de séjour en cours de validité'],
+      ['sous_conditions', 'Depuis juillet 2026 : boursier, salarié ou apprenti'],
     ],
   },
   {
     slug: 'garantie-visale',
+    source: 'visaleServicePublic',
     miseEnAvant: true,
     nom: 'Garantie Visale',
     organisme: 'Action Logement',
@@ -323,15 +346,16 @@ export const AIDES = [
   },
   {
     slug: 'aide-specifique-ponctuelle',
+    source: 'aideSpecifiqueServicePublic',
     miseEnAvant: true,
     nom: 'Aide spécifique ponctuelle',
     organisme: 'CROUS',
     description:
-      'Une aide d’urgence en cas de coup dur : perte de job, frais imprévus, retard de bourse…',
+      'Une aide d’urgence en cas de coup dur : perte de job, frais imprévus, retard de bourse… Jusqu’à 3 071 € versés en une fois, pour les moins de 35 ans.',
     categorie: 'urgence',
     frequence: 'ponctuelle',
     commentDemander:
-      'Prenez rendez-vous avec une assistante sociale du CROUS ou de votre université.',
+      'Contactez le service social de votre Crous : un entretien avec une assistante sociale, puis une commission examine votre dossier de façon anonyme.',
     elig: [
       ['oui', 'Sur dossier'],
       ['oui', 'Sur dossier'],
