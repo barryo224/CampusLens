@@ -3,3 +3,5 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
+
+Sitemap: https://campuslens-etudiants.vercel.app/sitemap.xml

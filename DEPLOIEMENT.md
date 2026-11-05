@@ -51,3 +51,25 @@ Puis connectez-vous à `/admin` et activez la double authentification (Mon compt
 
 - **Site (Vercel)** : se met à jour tout seul à chaque `git push` sur `main`.
 - **API (Render)** : se met à jour tout seul à chaque `git push` si GitHub est connecté à Render (Account Settings → Git providers) et que le service utilise ce dépôt avec « Auto-Deploy » activé. Sinon : `render deploys create srv-dbmdai6tlv9c73e28r8g --commit <sha>` ou « Manual Deploy » sur Render.
+
+## Sauvegarde de la base
+
+Depuis votre ordinateur, de temps en temps (par exemple chaque semaine) :
+
+```
+DATABASE_URL='<adresse Neon>' npm run sauvegarder
+```
+
+Le fichier est écrit dans `~/Sauvegardes-CampusLens/` (les 12 plus récents sont gardés). Il contient les données
+publiques (villes, aides, tarifs, sources, historique) et la structure complète, **mais ni messages, ni avis, ni
+comptes d'administration, ni sessions** : ce sont des données personnelles ou secrètes. Il peut donc être conservé
+sans risque pour la vie privée.
+
+Restaurer dans une base **vide** (par exemple un nouveau projet Neon) :
+
+```
+gzip -dc ~/Sauvegardes-CampusLens/campuslens-AAAA-MM-JJ_HHhMM.sql.gz | psql "<adresse de la base vide>"
+npm run admin:creer -w backend      # recréer votre compte, puis réactiver la double authentification
+```
+
+Les procédures ont été testées : restauration complète dans une base vide, sans erreur.

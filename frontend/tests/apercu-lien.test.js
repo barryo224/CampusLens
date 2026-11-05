@@ -41,3 +41,21 @@ describe('Aperçu du lien partagé (WhatsApp, iMessage, Facebook, LinkedIn, X…
     throw new Error('Taille du JPEG introuvable');
   });
 });
+
+describe('Référencement : plan du site et robots', () => {
+  const sitemap = readFileSync(resolve(racine, 'public', 'sitemap.xml'), 'utf8');
+  const robots = readFileSync(resolve(racine, 'public', 'robots.txt'), 'utf8');
+
+  it('le plan du site liste les pages publiques, jamais l’administration', () => {
+    const adresses = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    for (const chemin of ['/', '/evaluer', '/aides', '/budget', '/ressources', '/a-propos'])
+      expect(adresses).toContain(`https://campuslens-etudiants.vercel.app${chemin}`);
+    expect(adresses.some((a) => a.includes('/admin') || a.includes('/api'))).toBe(false);
+  });
+
+  it('robots.txt interdit l’administration et l’API, et indique le plan du site', () => {
+    expect(robots).toMatch(/Disallow: \/admin/);
+    expect(robots).toMatch(/Disallow: \/api\//);
+    expect(robots).toMatch(/Sitemap: https:\/\/campuslens-etudiants\.vercel\.app\/sitemap\.xml/);
+  });
+});
