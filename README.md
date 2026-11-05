@@ -59,7 +59,12 @@ Aucun chiffre n'est écrit dans le code : tout vient de la base, avec sa **sourc
 
 Lancer un robot à la main : `npm run sync -w backend -- loyers` (ou `all`).
 En production, mettre `SYNC_ENABLED=true` : node-cron lance les robots selon la fréquence de chaque source,
-et une maintenance quotidienne (année universitaire en cours, sources périmées, suppression RGPD des messages).
+et une maintenance quotidienne (préparation de l'année universitaire suivante, année en cours, sources périmées, suppression RGPD des messages).
+
+**Changement d'année.** À partir de 4 mois avant la fin de l'année en cours (début mai), la maintenance crée l'année suivante
+(ex. 2027-2028) et y recopie les paramètres et les postes de rentrée, tous marqués « non vérifiés ». Le 1er septembre, le site
+bascule seul : les anciens montants s'affichent avec « vérification en cours », les robots proposent les nouveaux dans
+« À valider » (droits, CVEC) et vous corrigez/validez le reste dans « Données à vérifier ».
 
 ## Estimation de l'aide au logement (OpenFisca)
 

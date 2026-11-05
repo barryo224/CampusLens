@@ -6,6 +6,7 @@ import { createApp } from '../../src/app.js';
 import {
   marquerSourcesPerimees,
   mettreAJourAnneeEnCours,
+  preparerAnneeSuivante,
   purgerMessagesContact,
   purgerSessionsExpirees,
   maintenanceQuotidienne,
@@ -33,6 +34,80 @@ describe('Maintenance et planification', () => {
   beforeEach(async () => {
     await viderBase(prisma);
     await seed(prisma);
+  });
+
+  describe('année universitaire suivante', () => {
+    const annees = () => prisma.anneeUniversitaire.findMany({ orderBy: { dateDebut: 'asc' } });
+
+    it('trop tôt (plus de 4 mois avant la fin de l’année) : rien n’est créé', async () => {
+      expect(await preparerAnneeSuivante(prisma, new Date('2027-03-15'))).toBeNull();
+      expect(await annees()).toHaveLength(1);
+    });
+
+    it('à partir de 4 mois avant la fin : crée l’année suivante, recopie les montants, tous « non vérifiés »', async () => {
+      // On valide à la main un paramètre de l'année en cours : sa copie ne doit PAS être vérifiée.
+      await prisma.parametre.updateMany({ data: { verifieLe: new Date('2026-10-01') } });
+      const nbParametres = await prisma.parametre.count();
+      const nbPostes = await prisma.posteRentree.count();
+
+      expect(await preparerAnneeSuivante(prisma, new Date('2027-05-02'))).toBe('2027-2028');
+      const [courante, suivante] = await annees();
+      expect(courante.enCours).toBe(true); // la bascule reste réservée au 1er septembre
+      expect(suivante).toMatchObject({ libelle: '2027-2028', enCours: false });
+      expect(suivante.dateDebut.toISOString().slice(0, 10)).toBe('2027-09-01');
+      expect(suivante.dateFin.toISOString().slice(0, 10)).toBe('2028-08-31');
+
+      const copies = await prisma.parametre.findMany({ where: { anneeId: suivante.id } });
+      expect(copies).toHaveLength(nbParametres);
+      expect(copies.every((p) => p.verifieLe === null)).toBe(true);
+      const cvecAvant = await prisma.parametre.findFirstOrThrow({
+        where: { cle: 'cvec', anneeId: courante.id },
+      });
+      const cvecApres = copies.find((p) => p.cle === 'cvec');
+      expect(Number(cvecApres.valeur)).toBe(Number(cvecAvant.valeur));
+      expect(cvecAvant.verifieLe).not.toBeNull(); // l'année en cours n'est pas touchée
+
+      const postes = await prisma.posteRentree.findMany({ where: { anneeId: suivante.id } });
+      expect(postes).toHaveLength(nbPostes);
+      expect(postes.every((p) => p.verifieLe === null)).toBe(true);
+      // Les règles par profil sont recopiées avec les montants.
+      expect(postes.find((p) => p.nom === 'CVEC')).toMatchObject({
+        parametreCle: 'cvec',
+        gratuitBoursier: true,
+      });
+      expect(postes.find((p) => p.profilCode === 'intl')?.situation).toBe('arrivee');
+    });
+
+    it('idempotent : un second passage ne recrée rien', async () => {
+      await preparerAnneeSuivante(prisma, new Date('2027-05-02'));
+      expect(await preparerAnneeSuivante(prisma, new Date('2027-06-10'))).toBeNull();
+      expect(await annees()).toHaveLength(2);
+    });
+
+    it('au 1er septembre le site bascule seul ; le robot CVEC retrouve alors son paramètre', async () => {
+      const resultat = await maintenanceQuotidienne(prisma, new Date('2027-05-02'));
+      expect(resultat.anneePreparee).toBe('2027-2028');
+      expect(resultat.anneeEnCours).toBe('2026-2027');
+
+      const septembre = await maintenanceQuotidienne(prisma, new Date('2027-09-02'));
+      expect(septembre.anneePreparee).toBeNull();
+      expect(septembre.anneeEnCours).toBe('2027-2028');
+      const courante = await prisma.anneeUniversitaire.findFirstOrThrow({
+        where: { enCours: true },
+      });
+      expect(courante.libelle).toBe('2027-2028');
+      // Le simulateur lit l'année en cours : il a bien des montants (copiés, à vérifier).
+      const droits = await prisma.parametre.findFirst({
+        where: {
+          cle: 'droits_inscription',
+          niveau: 'licence',
+          profilId: null,
+          anneeId: courante.id,
+        },
+      });
+      expect(Number(droits.valeur)).toBe(178);
+      expect(droits.verifieLe).toBeNull();
+    });
   });
 
   it('SYN-08 : délai de vérification dépassé → source « à vérifier », mention visible sur le site', async () => {
@@ -121,9 +196,10 @@ describe('Maintenance et planification', () => {
     expect((await prisma.sessionAdmin.findMany()).map((s) => s.sid)).toEqual(['valide']);
   });
 
-  it('la maintenance quotidienne enchaîne les 4 tâches', async () => {
+  it('la maintenance quotidienne enchaîne les 5 tâches', async () => {
     const r = await maintenanceQuotidienne(prisma, new Date('2026-11-05'));
     expect(r).toEqual({
+      anneePreparee: null, // novembre : trop tôt pour préparer l'année suivante
       anneeEnCours: '2026-2027',
       sourcesPerimees: expect.any(Number),
       messagesSupprimes: 0,

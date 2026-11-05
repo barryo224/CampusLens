@@ -39,6 +39,76 @@ export async function mettreAJourAnneeEnCours(prisma, maintenant = new Date()) {
   return courante.libelle;
 }
 
+/** Nombre de mois avant la fin de l'année en cours à partir desquels on prépare la suivante. */
+const MOIS_AVANCE = 4;
+
+/**
+ * Prépare l'année universitaire suivante pour que le site bascule seul au 1er septembre.
+ *
+ * À partir de MOIS_AVANCE mois avant la fin de l'année en cours, si l'année suivante n'existe pas :
+ *  - on la crée (1er septembre → 31 août, libellé « 2027-2028 ») ;
+ *  - on y recopie les paramètres et les postes de rentrée de l'année en cours, TOUS marqués « non vérifiés » :
+ *    le site affichera « vérification en cours » tant que les robots ou un administrateur n'ont pas confirmé
+ *    ou corrigé chaque montant (jamais un montant ancien présenté comme vérifié).
+ * Idempotente : si l'année suivante existe déjà (même vide), on ne touche à rien.
+ * Renvoie le libellé de l'année créée, ou null.
+ */
+export async function preparerAnneeSuivante(prisma, maintenant = new Date()) {
+  const courante = await prisma.anneeUniversitaire.findFirst({ where: { enCours: true } });
+  if (!courante) return null;
+  const debutPreparation = new Date(courante.dateFin);
+  debutPreparation.setUTCMonth(debutPreparation.getUTCMonth() - MOIS_AVANCE);
+  if (maintenant < debutPreparation) return null;
+
+  const debut = new Date(courante.dateFin);
+  debut.setUTCDate(debut.getUTCDate() + 1); // lendemain de la fin de l'année en cours
+  const existante = await prisma.anneeUniversitaire.findFirst({
+    where: { dateDebut: { gte: debut } },
+  });
+  if (existante) return null;
+
+  const an = debut.getUTCFullYear();
+  const libelle = `${an}-${an + 1}`;
+  const fin = new Date(Date.UTC(an + 1, debut.getUTCMonth(), debut.getUTCDate() - 1));
+
+  return prisma.$transaction(async (tx) => {
+    if (await tx.anneeUniversitaire.findUnique({ where: { libelle } })) return null;
+    const suivante = await tx.anneeUniversitaire.create({
+      data: { libelle, dateDebut: debut, dateFin: fin, enCours: false },
+    });
+    const parametres = await tx.parametre.findMany({ where: { anneeId: courante.id } });
+    await tx.parametre.createMany({
+      data: parametres.map((p) => ({
+        cle: p.cle,
+        niveau: p.niveau,
+        profilId: p.profilId,
+        anneeId: suivante.id,
+        valeur: p.valeur,
+        unite: p.unite,
+        sourceId: p.sourceId,
+        verifieLe: null,
+      })),
+    });
+    const postes = await tx.posteRentree.findMany({ where: { anneeId: courante.id } });
+    await tx.posteRentree.createMany({
+      data: postes.map((p) => ({
+        anneeId: suivante.id,
+        nom: p.nom,
+        montant: p.montant,
+        astuce: p.astuce,
+        aideId: p.aideId,
+        sourceId: p.sourceId,
+        parametreCle: p.parametreCle,
+        gratuitBoursier: p.gratuitBoursier,
+        profilCode: p.profilCode,
+        situation: p.situation,
+        verifieLe: null,
+      })),
+    });
+    return libelle;
+  });
+}
+
 /** RGPD : supprime les messages de contact arrivés à leur date de suppression. */
 export async function purgerMessagesContact(prisma, maintenant = new Date()) {
   const { count } = await prisma.messageContact.deleteMany({
@@ -56,6 +126,7 @@ export async function purgerSessionsExpirees(prisma, maintenant = new Date()) {
 
 export async function maintenanceQuotidienne(prisma, maintenant = new Date()) {
   return {
+    anneePreparee: await preparerAnneeSuivante(prisma, maintenant),
     anneeEnCours: await mettreAJourAnneeEnCours(prisma, maintenant),
     sourcesPerimees: await marquerSourcesPerimees(prisma, maintenant),
     messagesSupprimes: await purgerMessagesContact(prisma, maintenant),
