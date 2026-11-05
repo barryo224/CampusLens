@@ -103,15 +103,6 @@ export default function Budget() {
   };
 
   const maxPoste = postes.data ? Math.max(...postes.data.postes.map((p) => p.montant), 1) : 1;
-  // Frais que des aides peuvent alléger pour CE profil : « oui » = droit acquis, « sous conditions » = possible.
-  const allegeables = useMemo(() => {
-    const liste = postes.data?.postes ?? [];
-    const somme = (statuts) =>
-      liste
-        .filter((p) => statuts.includes(p.aide?.eligibilites?.[0]?.statut))
-        .reduce((total, p) => total + p.montant, 0);
-    return { possible: somme(['oui', 'sous_conditions']), acquis: somme(['oui']) };
-  }, [postes.data]);
   const fp = frais?.[profil];
 
   return (
@@ -192,7 +183,7 @@ export default function Budget() {
 
         {pret && postes.data && (
           <>
-            <ul className="grille grille-4 indicateurs">
+            <ul className="grille grille-3 indicateurs">
               <li className="carte">
                 <p className="indicateur-nom">Budget de rentrée à prévoir</p>
                 <p className="indicateur-valeur">{montant(postes.data.total)}</p>
@@ -202,17 +193,6 @@ export default function Budget() {
                     ? `, ${SITUATIONS.find((s) => s.code === situation).libelle.toLowerCase()}`
                     : ''}
                   », année {postes.data.annee}
-                </p>
-              </li>
-              <li className="carte">
-                <p className="indicateur-nom">Frais que des aides peuvent alléger</p>
-                <p className="indicateur-valeur">
-                  {allegeables.possible > 0 ? `jusqu’à ${montant(allegeables.possible)}` : '—'}
-                </p>
-                <p className="fraicheur">
-                  {allegeables.possible > 0
-                    ? `dont ${montant(allegeables.acquis)} avec un droit acquis pour votre profil, le reste sous conditions`
-                    : 'aucune aide identifiée pour votre profil'}
                 </p>
               </li>
               <li className="carte">

@@ -22,10 +22,8 @@ describe('Préparer mon budget', () => {
     rendreApp('/budget');
     const indicateurs = await screen.findByText('Budget de rentrée à prévoir');
     expect(indicateurs.closest('li')).toHaveTextContent('2 095');
-    // Frais allégeables : 502 € de droit acquis (aide spécifique) + 637 € sous conditions (Loca-Pass).
-    const allegeables = screen.getByText('Frais que des aides peuvent alléger').closest('li');
-    expect(allegeables).toHaveTextContent('jusqu’à 1 139');
-    expect(allegeables).toHaveTextContent('dont 502');
+    // Trois indicateurs seulement : budget, droits d'inscription, CVEC (pas de carte « frais allégeables »).
+    expect(screen.queryByText('Frais que des aides peuvent alléger')).not.toBeInTheDocument();
     expect(screen.queryByText('Plus gros poste')).not.toBeInTheDocument(); // doublon des droits d'inscription
 
     const postes = screen.getByRole('region', { name: /Ce qu’il faut prévoir à la rentrée/ });
