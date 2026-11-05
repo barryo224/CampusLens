@@ -49,7 +49,17 @@ export function createApp({
   app.use(cors({ origin: corsOrigin ? corsOrigin.split(',') : false, credentials: true }));
   app.use(express.json({ limit: '10kb' }));
 
-  app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+  // Santé du service. Sans paramètre : ne touche PAS à la base (un outil de surveillance qui l'appelle toutes les 5 minutes
+  // garde le serveur éveillé sans réveiller la base gratuite). Avec ?db=1 : vérifie aussi que la base répond.
+  app.get('/api/health', async (req, res) => {
+    if (req.query.db !== '1') return res.json({ status: 'ok' });
+    try {
+      await prisma.$queryRaw`select 1`;
+      res.json({ status: 'ok', base: 'ok' });
+    } catch {
+      res.status(503).json({ status: 'erreur', base: 'injoignable' });
+    }
+  });
 
   // Limite générale par IP. Large par défaut : sur le Wi-Fi d'une université, beaucoup d'étudiants partagent
   // la même adresse IP. Réglable avec API_LIMITE_PAR_MINUTE.

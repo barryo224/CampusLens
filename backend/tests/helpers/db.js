@@ -3,7 +3,7 @@ import { creerPrisma } from '../../src/db.js';
 export function prismaTest() {
   const url = process.env.TEST_DATABASE_URL;
   if (!url) throw new Error('TEST_DATABASE_URL manquante (voir backend/.env.example).');
-  return creerPrisma(url);
+  return creerPrisma(url, { delais: false });
 }
 
 // Tables à vider entre deux tests. Liste fixe : aucune entrée utilisateur dans cette requête.

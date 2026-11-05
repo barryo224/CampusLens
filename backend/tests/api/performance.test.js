@@ -5,7 +5,8 @@ import { gunzipSync } from 'node:zlib';
 import { prismaTest, viderBase } from '../helpers/db.js';
 import { seed } from '../../src/seed/index.js';
 import { createApp } from '../../src/app.js';
-import { CACHE_PUBLIC } from '../../src/routes/publiques.js';
+import { creerPrisma } from '../../src/db.js';
+import { CACHE_PUBLIC, CACHE_CDN } from '../../src/routes/publiques.js';
 
 // Performance et montée en charge : compression des réponses et consignes de cache.
 describe('Performance : compression et cache', () => {
@@ -104,5 +105,77 @@ describe('Performance : compression et cache', () => {
     expect(reponses.filter((r) => r.body.length > 100 || r.body.parametres).length).toBeGreaterThan(
       0,
     );
+  });
+});
+
+describe('Hébergement gratuit : service de diffusion et base qui s’endort', () => {
+  const prisma = prismaTest();
+  afterAll(() => prisma.$disconnect());
+
+  it('une consigne de cache réservée au service de diffusion permet de servir l’ancienne version pendant le réveil du serveur', async () => {
+    const app = createApp({ prisma });
+    const res = await request(app).get('/api/aides');
+    expect(res.headers['cdn-cache-control']).toBe(CACHE_CDN);
+    expect(CACHE_CDN).toMatch(/stale-while-revalidate/);
+    // Le navigateur, lui, ne reçoit que la consigne « revérifier toujours » (jamais de donnée périmée).
+    expect(res.headers['cache-control']).not.toMatch(/stale-while-revalidate/);
+    // Aucune consigne CDN sur une erreur, l'estimation ni l'administration.
+    expect(
+      (await request(app).get('/api/nexiste-pas')).headers['cdn-cache-control'],
+    ).toBeUndefined();
+    expect((await request(app).get('/api/aides/xyz')).headers['cdn-cache-control']).toBeUndefined();
+    expect((await request(app).get('/api/admin/me')).headers['cdn-cache-control']).toBeUndefined();
+  });
+
+  it('/api/health ne touche pas à la base (la surveillance ne la réveille pas) ; ?db=1 la vérifie', async () => {
+    const compte = { requetes: 0 };
+    const base = {
+      $queryRaw: async () => {
+        compte.requetes++;
+        return [{ '?column?': 1 }];
+      },
+    };
+    const app = createApp({ prisma: base });
+    expect((await request(app).get('/api/health')).body).toEqual({ status: 'ok' });
+    expect(compte.requetes).toBe(0);
+    expect((await request(app).get('/api/health?db=1')).body).toEqual({ status: 'ok', base: 'ok' });
+    expect(compte.requetes).toBe(1);
+
+    const enPanne = createApp({
+      prisma: {
+        $queryRaw: async () => {
+          throw new Error('connexion refusée');
+        },
+      },
+    });
+    const res = await request(enPanne).get('/api/health?db=1');
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({ status: 'erreur', base: 'injoignable' });
+    expect(JSON.stringify(res.body)).not.toMatch(/connexion refusée/); // aucun détail technique
+    expect((await request(enPanne).get('/api/health')).status).toBe(200); // le serveur lui-même répond
+  });
+
+  it('la base coupe les connexions inactives (comme Neon quand elle s’endort) : le serveur ne plante pas et se reconnecte seul', async () => {
+    // Un client dédié, repéré par un nom d'application : on ne coupe QUE ses connexions (les autres tests tournent en parallèle).
+    const nom = `test-coupure-${process.pid}-${Date.now()}`;
+    const url = new URL(process.env.TEST_DATABASE_URL);
+    url.searchParams.set('application_name', nom);
+    const client = creerPrisma(url.toString());
+    const erreurs = [];
+    const surErreur = (e) => erreurs.push(e);
+    process.on('uncaughtException', surErreur);
+    try {
+      expect(await client.ville.count()).toBeGreaterThanOrEqual(0);
+      const coupees = await prisma.$queryRawUnsafe(
+        `select count(pg_terminate_backend(pid))::int as n from pg_stat_activity where application_name = '${nom}' and state = 'idle'`,
+      );
+      expect(coupees[0].n).toBeGreaterThanOrEqual(1); // la connexion de CE client a bien été coupée
+      await new Promise((r) => setTimeout(r, 800));
+      for (let i = 0; i < 5; i++) expect(await client.ville.count()).toBeGreaterThanOrEqual(0);
+      expect(erreurs).toEqual([]); // aucun plantage
+    } finally {
+      process.off('uncaughtException', surErreur);
+      await client.$disconnect();
+    }
   });
 });

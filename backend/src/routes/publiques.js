@@ -20,6 +20,14 @@ const CATEGORIES_AIDE = ['logement', 'etudes', 'urgence', 'alimentation'];
  */
 export const CACHE_PUBLIC = 'public, max-age=0, must-revalidate, s-maxage=120';
 
+/**
+ * Consigne réservée au service de diffusion (Vercel, Cloudflare) : elle est RETIRÉE avant d'arriver au navigateur.
+ * Pendant 2 minutes il sert la donnée sans solliciter l'API ; ensuite, pendant 24 h, il continue de servir l'ancienne
+ * version INSTANTANÉMENT pendant qu'il la renouvelle en arrière-plan. Avec un serveur gratuit qui s'endort, le visiteur
+ * ne voit donc jamais le temps de réveil, et si l'API est en panne il reçoit la dernière version connue.
+ */
+export const CACHE_CDN = 'max-age=120, stale-while-revalidate=86400, stale-if-error=86400';
+
 export function routesPubliques(prisma) {
   const r = Router();
 
@@ -29,8 +37,11 @@ export function routesPubliques(prisma) {
     const json = res.json.bind(res);
     res.json = (corps) => {
       // Un en-tête déjà posé par la route elle-même est respecté.
-      if (!res.get('Cache-Control'))
-        res.set('Cache-Control', res.statusCode < 400 ? CACHE_PUBLIC : 'no-store');
+      if (!res.get('Cache-Control')) {
+        const reussi = res.statusCode < 400;
+        res.set('Cache-Control', reussi ? CACHE_PUBLIC : 'no-store');
+        if (reussi) res.set('CDN-Cache-Control', CACHE_CDN);
+      }
       return json(corps);
     };
     next();
