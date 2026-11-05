@@ -44,6 +44,19 @@ Lancer un robot à la main : `npm run sync -w backend -- loyers` (ou `all`).
 En production, mettre `SYNC_ENABLED=true` : node-cron lance les robots selon la fréquence de chaque source,
 et une maintenance quotidienne (année universitaire en cours, sources périmées, suppression RGPD des messages).
 
+## Estimation de l'aide au logement (OpenFisca)
+
+Fonction **facultative** de la page « Évaluer ma situation » : l'étudiant clique sur « Estimer mon aide au logement ».
+C'est le seul cas où des informations quittent le navigateur : âge, ville, loyer, type de logement et revenu du mois
+partent vers `POST /api/simulation/aides-estimees`, qui interroge le moteur public
+[OpenFisca France](https://api.fr.openfisca.org). Rien n'est enregistré, journalisé ni mis en cache ; les champs sont
+validés strictement (tout champ en plus est refusé) et limités à 10 demandes par minute et par IP.
+
+- Moteur configurable : `OPENFISCA_URL` (par défaut l'API publique ; prévoir sa propre instance si le trafic augmente).
+- Un robot (`backend/src/sync/robots/openfisca.js`) vérifie chaque jour que le moteur répond et que la variable
+  `aide_logement` a la forme attendue, et note la version du moteur dans l'historique.
+- Test en ligne (hors CI) : `E2E_LIVE=1 npx playwright test --project=chromium estimation`.
+
 ## Espace administration
 
 Page non publique : `/admin`. Créer un compte :

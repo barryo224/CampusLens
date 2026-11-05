@@ -2,6 +2,7 @@ import { robotLoyers } from './loyers.js';
 import { robotLogementsCrous } from './logementsCrous.js';
 import { robotDroits, robotCvec } from './pagesOfficielles.js';
 import { robotLiensRessources } from './liensRessources.js';
+import { robotOpenfisca } from './openfisca.js';
 
 /** Tous les robots, par identifiant de source (source.cle). */
 export const ROBOTS = {
@@ -10,4 +11,5 @@ export const ROBOTS = {
   droits: robotDroits,
   cvec: robotCvec,
   liens_ressources: robotLiensRessources,
+  openfisca: robotOpenfisca,
 };

@@ -30,17 +30,15 @@ export async function telecharger(
     );
   }
   if (!reponse.ok) throw new ErreurSource(`La source a répondu ${reponse.status} : ${url}`);
+  // Lecture d'un en-tête de réponse (ex. la version du moteur de calcul).
+  const entete = (nom) => reponse.headers?.get?.(nom) ?? null;
+  const commun = {
+    statut: reponse.status,
+    url: reponse.url || url,
+    redirige: Boolean(reponse.redirected),
+    entete,
+  };
   return binaire
-    ? {
-        statut: reponse.status,
-        octets: new Uint8Array(await reponse.arrayBuffer()),
-        url: reponse.url || url,
-        redirige: Boolean(reponse.redirected),
-      }
-    : {
-        statut: reponse.status,
-        texte: await reponse.text(),
-        url: reponse.url || url,
-        redirige: Boolean(reponse.redirected),
-      };
+    ? { ...commun, octets: new Uint8Array(await reponse.arrayBuffer()) }
+    : { ...commun, texte: await reponse.text() };
 }

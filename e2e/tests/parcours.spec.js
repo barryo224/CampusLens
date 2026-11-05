@@ -54,6 +54,9 @@ test('E2E-02 : aucune requête réseau ne contient les montants saisis', async (
   await page.getByText('Étudiant international hors UE').click(); // clic sur l'étiquette, comme un utilisateur
   await expect(page.getByTestId('reste')).not.toBeEmpty();
 
+  // L'estimation OpenFisca est facultative et repliée : elle n'envoie rien tant qu'on ne clique pas dessus.
+  await expect(page.getByRole('form', { name: 'Estimation de l’aide au logement' })).toHaveCount(0);
+
   // Saisir et recalculer ne déclenche AUCUNE requête…
   expect(requetes.length).toBe(avant);
   // …et rien de ce qui est parti ne contient un montant ni n'écrit quoi que ce soit.

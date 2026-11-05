@@ -13,7 +13,9 @@ export default function Contact() {
     e.preventDefault();
     setEtat({ envoi: true, succes: false, erreur: null });
     try {
-      await post('/contact', champs);
+      await post('/contact', champs, {
+        message429: 'Trop de messages envoyés. Réessayez dans quelques minutes.',
+      });
       setChamps({ objet: '', email: '', message: '', siteWeb: '' });
       setEtat({ envoi: false, succes: true, erreur: null });
     } catch (err) {

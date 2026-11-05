@@ -5,6 +5,7 @@ import session from 'express-session';
 import rateLimit from 'express-rate-limit';
 import { routesPubliques } from './routes/publiques.js';
 import { routeContact } from './routes/contact.js';
+import { routeSimulation } from './routes/simulation.js';
 import { routesAdmin } from './routes/admin.js';
 import { StockageSessions } from './admin/sessions.js';
 
@@ -17,6 +18,8 @@ import { StockageSessions } from './admin/sessions.js';
 export function createApp({
   prisma,
   fetchImpl = fetch,
+  maintenant = () => new Date(),
+  urlOpenfisca = process.env.OPENFISCA_URL,
   corsOrigin = process.env.CORS_ORIGIN,
   sessionSecret = process.env.SESSION_SECRET,
   production = process.env.NODE_ENV === 'production',
@@ -79,6 +82,10 @@ export function createApp({
   );
 
   app.use('/api', routesPubliques(prisma));
+  app.use(
+    '/api',
+    routeSimulation(prisma, { fetchImpl, maintenant, ...(urlOpenfisca && { urlOpenfisca }) }),
+  );
   app.use('/api', routeContact(prisma, { moisConservation: moisConservationContact }));
 
   // Toute route inconnue (ou méthode non prévue : PUT, DELETE…) : 404 JSON propre.

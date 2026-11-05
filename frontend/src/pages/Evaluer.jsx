@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Jauge from '../components/Jauge.jsx';
 import MessageErreur from '../components/MessageErreur.jsx';
 import Fraicheur from '../components/Fraicheur.jsx';
+import EstimationAide from '../components/EstimationAide.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { calculerResteAVivre, trouverParametre } from '../lib/simulation.js';
@@ -307,6 +308,8 @@ export default function Evaluer() {
               </>
             )}
           </section>
+
+          {resultat && <EstimationAide saisie={saisie} resteAVivre={resultat.resteAVivre} />}
 
           {recommandations.length > 0 && (
             <section className="carte" style={{ marginTop: 16 }} aria-labelledby="titre-reco">

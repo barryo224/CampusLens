@@ -89,7 +89,7 @@ describe('Base de données et seed', () => {
       .map((s) => s.cle)
       .sort();
     expect(cles).toEqual(
-      ['cvec', 'droits', 'liens_ressources', 'loyers', 'logements_crous'].sort(),
+      ['cvec', 'droits', 'liens_ressources', 'loyers', 'logements_crous', 'openfisca'].sort(),
     );
     const droits = await prisma.source.findUniqueOrThrow({ where: { cle: 'droits' } });
     expect(droits.url).toContain('service-public.fr');

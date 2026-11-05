@@ -86,6 +86,15 @@ export const SOURCES = {
     frequenceHeures: 24 * 7,
     licence: 'Licence Ouverte 2.0',
   },
+  openfisca: {
+    cle: 'openfisca',
+    nom: 'Calcul des aides (OpenFisca France)',
+    organisme: 'OpenFisca',
+    url: 'https://api.fr.openfisca.org/latest',
+    type: 'moteur_calcul',
+    frequenceHeures: 24,
+    licence: 'AGPL-3.0',
+  },
   logementsCrous: {
     cle: 'logements_crous',
     nom: 'Logements proposés par les CROUS',

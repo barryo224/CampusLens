@@ -34,7 +34,12 @@ export async function get(chemin, { signal } = {}) {
   }
 }
 
-export async function post(chemin, corps) {
+/** @param options.message429  texte affiché si le serveur répond « trop de demandes » */
+export async function post(
+  chemin,
+  corps,
+  { message429 = 'Trop de demandes. Réessayez dans quelques instants.' } = {},
+) {
   let reponse;
   try {
     reponse = await fetch(`${BASE}/api${chemin}`, {
@@ -48,9 +53,7 @@ export async function post(chemin, corps) {
   const donnees = await reponse.json().catch(() => ({}));
   if (!reponse.ok) {
     throw new ErreurApi(
-      reponse.status === 429
-        ? 'Trop de messages envoyés. Réessayez dans quelques minutes.'
-        : (donnees.error ?? MESSAGE_INDISPONIBLE),
+      reponse.status === 429 ? message429 : (donnees.error ?? MESSAGE_INDISPONIBLE),
       { status: reponse.status },
     );
   }

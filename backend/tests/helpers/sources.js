@@ -7,6 +7,7 @@ export function reponse({
   octets = null,
   url = '',
   redirige = false,
+  entetes = {},
 } = {}) {
   const corps = octets ?? new TextEncoder().encode(texte);
   return {
@@ -14,6 +15,7 @@ export function reponse({
     status,
     url,
     redirected: redirige,
+    headers: { get: (nom) => entetes[nom.toLowerCase()] ?? null },
     text: async () => (octets ? new TextDecoder().decode(octets) : texte),
     arrayBuffer: async () =>
       corps.buffer.slice(corps.byteOffset, corps.byteOffset + corps.byteLength),
@@ -145,3 +147,23 @@ export function pageCvec({ montant = 105, annee = '2026-2027' } = {}) {
 }
 
 export const pageHtml = (html) => reponse({ texte: html });
+
+// ───── OpenFisca (moteur de calcul) ─────
+export const ENTETES_OPENFISCA = {
+  'country-package': 'openfisca-france',
+  'country-package-version': '175.0.45',
+};
+
+export const variableAideLogement = (
+  version = '175.0.45',
+  corps = {
+    id: 'aide_logement',
+    entity: 'famille',
+    valueType: 'Float',
+    description: 'Aide au logement (tout type)',
+  },
+) =>
+  reponse({
+    texte: JSON.stringify(corps),
+    entetes: { ...ENTETES_OPENFISCA, 'country-package-version': version },
+  });

@@ -57,7 +57,10 @@ describe('client API', () => {
       'fetch',
       vi.fn(async () => reponse(false, 429, {})),
     );
-    await expect(post('/contact', {})).rejects.toThrow(/Trop de messages/);
+    await expect(post('/x', {})).rejects.toThrow(/Trop de demandes/);
+    await expect(post('/contact', {}, { message429: 'Trop de messages envoyés.' })).rejects.toThrow(
+      /Trop de messages/,
+    );
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => reponse(false, 400, { error: 'e-mail invalide' })),
