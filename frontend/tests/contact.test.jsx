@@ -71,6 +71,12 @@ describe('Contact', () => {
     expect(piege.closest('[aria-hidden="true"]')).not.toBeNull();
   });
 
+  it('propose aussi l’adresse e-mail directe de l’équipe', () => {
+    rendreApp('/contact');
+    const lien = screen.getByRole('link', { name: 'ousmanebarrie224@gmail.com' });
+    expect(lien).toHaveAttribute('href', 'mailto:ousmanebarrie224@gmail.com');
+  });
+
   it('accessibilité : aucune violation axe-core', async () => {
     const { container } = rendreApp('/contact');
     expect(await violationsAxe(container)).toEqual([]);
@@ -86,6 +92,10 @@ describe('Mentions légales', () => {
     expect(screen.getByText(/Le simulateur ne transmet rien/)).toBeInTheDocument();
     expect(screen.getByText(/6 mois/)).toBeInTheDocument();
     expect(screen.getByText(/CNIL/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'ousmanebarrie224@gmail.com' })).toHaveAttribute(
+      'href',
+      'mailto:ousmanebarrie224@gmail.com',
+    );
     expect(await violationsAxe(container)).toEqual([]);
   });
 });

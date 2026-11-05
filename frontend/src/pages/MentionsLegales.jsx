@@ -1,4 +1,5 @@
 import { usePageTitre } from '../lib/usePageTitre.js';
+import { EMAIL_CONTACT } from '../lib/config.js';
 
 // ⚠ Les mentions entre crochets sont à COMPLÉTER par le responsable du site avant la mise en ligne.
 export default function MentionsLegales() {
@@ -12,7 +13,8 @@ export default function MentionsLegales() {
         <h2>Éditeur du site</h2>
         <p>
           CampusLens est un projet étudiant (Licence MIASHS). Responsable de la publication : [nom
-          et prénom à compléter]. Contact : via la <a href="/contact">page Contact</a>.
+          et prénom à compléter]. Contact : <a href={`mailto:${EMAIL_CONTACT}`}>{EMAIL_CONTACT}</a>{' '}
+          ou la <a href="/contact">page Contact</a>.
         </p>
         <h2>Hébergement</h2>
         <p>[Hébergeur du site et de l’API à compléter lors de la mise en ligne.]</p>

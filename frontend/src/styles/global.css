@@ -1048,3 +1048,9 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+.contact-direct {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--bordure);
+}
