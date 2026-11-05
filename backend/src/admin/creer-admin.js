@@ -11,6 +11,19 @@ if (!email || !motDePasse || motDePasse.length < 12) {
   process.exit(1);
 }
 
+// Garde-fous : une adresse qui n'en est pas une, ou un mot de passe d'exemple recopié tel quel, créeraient un compte
+// d'administration que n'importe qui pourrait deviner.
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+  console.error(`« ${email} » n'est pas une adresse e-mail valide : aucun compte créé.`);
+  process.exit(1);
+}
+if (/mot[-_ ]?de[-_ ]?passe|votre|exemple|password/i.test(motDePasse)) {
+  console.error(
+    "Ce mot de passe ressemble à l'exemple de la documentation : choisissez le vôtre. Aucun compte créé.",
+  );
+  process.exit(1);
+}
+
 const prisma = creerPrisma();
 try {
   const motDePasseHash = await bcrypt.hash(motDePasse, 12);
