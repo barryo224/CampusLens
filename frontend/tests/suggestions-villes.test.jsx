@@ -163,10 +163,35 @@ describe('Menu repliable (téléphone et tablette)', () => {
     expect(screen.getByRole('button', { name: 'Ouvrir le menu' })).toBeInTheDocument();
   });
 
-  it('toucher en dehors du menu le referme', async () => {
+  it('toucher le fond assombri referme le menu', async () => {
+    const { container } = rendre();
+    await userEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }));
+    await userEvent.click(container.querySelector('.menu-fond'));
+    expect(screen.getByRole('button', { name: 'Ouvrir le menu' })).toBeInTheDocument();
+  });
+
+  it('frôler la page ou la faire défiler NE referme PAS le menu', async () => {
     rendre();
     await userEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }));
-    await userEvent.click(document.body);
-    expect(screen.getByRole('button', { name: 'Ouvrir le menu' })).toBeInTheDocument();
+    // Doigt posé puis relevé ailleurs sur la page, et défilement : le menu doit rester ouvert.
+    await userEvent.pointer([
+      { keys: '[MouseLeft>]', target: document.body },
+      { keys: '[/MouseLeft]' },
+    ]);
+    window.scrollTo(0, 400);
+    window.dispatchEvent(new Event('scroll'));
+    expect(screen.getByRole('button', { name: 'Fermer le menu' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
+  it('pendant que le menu est ouvert, la page dessous est bloquée ; elle est libérée à la fermeture', async () => {
+    rendre();
+    expect(document.documentElement.classList.contains('menu-bloque')).toBe(false);
+    await userEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }));
+    expect(document.documentElement.classList.contains('menu-bloque')).toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: 'Fermer le menu' }));
+    expect(document.documentElement.classList.contains('menu-bloque')).toBe(false);
   });
 });

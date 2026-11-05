@@ -73,3 +73,16 @@ npm run admin:creer -w backend      # recréer votre compte, puis réactiver la 
 ```
 
 Les procédures ont été testées : restauration complète dans une base vide, sans erreur.
+
+## Être prévenu par e-mail des nouveaux messages
+
+Render (plan gratuit) bloque les ports d'envoi 25, 465 et 587 : Gmail ne fonctionne donc pas en production. On utilise
+[Resend](https://resend.com) (gratuit, 100 e-mails par jour) sur le port 2465, non bloqué.
+
+1. Compte Resend avec **l'adresse où vous voulez recevoir les alertes** (sans domaine vérifié, Resend n'envoie qu'à
+   l'adresse de votre compte). Clé d'API : API Keys → Create → « Sending access ».
+2. Sur Render (service de l'API → Environment), trois variables :
+   - `SMTP_URL` = `smtps://resend:LA_CLE_RESEND@smtp.resend.com:2465`
+   - `NOTIFICATION_EMAIL` = votre adresse (celle du compte Resend)
+   - `SMTP_FROM` = `CampusLens <onboarding@resend.dev>`
+3. Le courriel ne contient jamais le message ni l'expéditeur : seulement le nombre de messages non lus et un lien.

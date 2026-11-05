@@ -20,6 +20,7 @@
   --rouge-fond: #fdeceb;
   --rayon: 16px;
   --largeur-sidebar: 260px;
+  --hauteur-barre: 64px; /* barre verte repliée (téléphone et tablette) */
   /* Opacité de la photo derrière la mission : assez faible pour garantir un texte lisible (testé). */
   --mission-image-opacite: 0.2;
 }
@@ -118,6 +119,9 @@ a {
   overflow-y: auto;
 }
 
+.menu-fond {
+  display: none;
+}
 .sidebar-tete {
   display: flex;
   align-items: center;
@@ -719,21 +723,62 @@ a {
   .menu-bouton {
     display: flex;
   }
-  /* Le menu est replié derrière les trois tirets ; ouvert, il se déploie sous la barre. */
+  /* Le menu se déroule PAR-DESSUS la page, sous la barre (le contenu ne bouge pas), puis se range en glissant. */
   .nav {
-    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 2;
     flex-direction: column;
-    padding: 10px 0 6px;
-    max-height: calc(100vh - 72px);
-    max-height: calc(100dvh - 72px);
+    padding: 6px 16px 16px;
+    background: var(--sidebar);
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 18px 30px rgba(8, 28, 36, 0.35);
+    max-height: calc(100vh - var(--hauteur-barre));
+    max-height: calc(100dvh - var(--hauteur-barre));
     overflow-y: auto;
+    overscroll-behavior: contain;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-12px);
+    transition:
+      opacity 0.22s ease,
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear 0.28s;
   }
   .menu-ouvert .nav {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition-delay: 0s;
   }
   .nav a {
     padding: 14px 12px;
     font-size: 1.0625rem;
+  }
+  /* Fond assombri sous la barre : un tap dessus referme le menu ; faire défiler ne le ferme pas. */
+  .menu-fond {
+    display: block;
+    position: fixed;
+    inset: var(--hauteur-barre) 0 0 0;
+    z-index: 1;
+    background: rgba(8, 28, 36, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    touch-action: none;
+    transition:
+      opacity 0.25s ease,
+      visibility 0s linear 0.25s;
+  }
+  .menu-ouvert .menu-fond {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+  /* Menu ouvert : la page dessous reste immobile. */
+  html.menu-bloque {
+    overflow: hidden;
   }
   .sidebar-bas {
     display: none;
@@ -1406,28 +1451,46 @@ a {
   padding: 28px clamp(20px, 3vw, 72px) 56px;
 }
 @media (max-width: 900px) {
-  /* Téléphone et tablette : barre compacte (logo + trois tirets) ; menu, e-mail et boutons dans le panneau déplié. */
+  /* Téléphone et tablette : barre compacte (logo + trois tirets) ; le menu se déroule par-dessus la page. */
   .admin-barre {
     padding: 8px 16px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0 12px;
     justify-content: space-between;
-    max-height: 100vh;
-    max-height: 100dvh;
-    overflow-y: auto;
   }
   .admin-barre .menu-bouton {
     display: flex;
   }
   .admin-menu {
-    display: none;
-    flex-basis: 100%;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    display: flex;
     flex-direction: column;
     gap: 14px;
-    padding: 10px 0 8px;
+    padding: 6px 16px 16px;
+    background: var(--sidebar);
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 18px 30px rgba(8, 28, 36, 0.35);
+    max-height: calc(100vh - var(--hauteur-barre));
+    max-height: calc(100dvh - var(--hauteur-barre));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-12px);
+    transition:
+      opacity 0.22s ease,
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear 0.28s;
   }
   .menu-ouvert .admin-menu {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition-delay: 0s;
   }
   .admin-nav {
     flex-direction: column;

@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 /**
  * Menu qui se replie en « trois tirets » sur téléphone et tablette.
- * Il se referme tout seul : après un clic sur un lien (changement de page), avec Échap, en touchant ailleurs
- * ou dès que l'on fait défiler la page. Sur grand écran le menu reste affiché (le bouton est masqué en CSS).
+ * Il se referme avec la croix, en choisissant une page, avec Échap, ou en touchant le fond assombri (un vrai tap :
+ * faire défiler ou frôler l'écran ne le ferme pas). Pendant qu'il est ouvert, la page dessous ne défile pas.
+ * Sur grand écran le menu reste affiché (le bouton est masqué en CSS).
  */
 export function useMenuRepliable() {
   const [ouvert, setOuvert] = useState(false);
-  const conteneur = useRef(null);
   const { pathname } = useLocation();
 
   // Changement de page : le menu se referme (on ajuste l'état pendant le rendu, sans effet).
@@ -20,24 +20,16 @@ export function useMenuRepliable() {
 
   useEffect(() => {
     if (!ouvert) return undefined;
-    const departScroll = window.scrollY;
     const surTouche = (e) => e.key === 'Escape' && setOuvert(false);
-    const surClic = (e) => {
-      if (conteneur.current && !conteneur.current.contains(e.target)) setOuvert(false);
-    };
-    const surDefilement = () => {
-      if (Math.abs(window.scrollY - departScroll) > 24) setOuvert(false);
-    };
     document.addEventListener('keydown', surTouche);
-    document.addEventListener('pointerdown', surClic);
-    window.addEventListener('scroll', surDefilement, { passive: true });
+    document.documentElement.classList.add('menu-bloque'); // la page dessous ne défile plus
     return () => {
       document.removeEventListener('keydown', surTouche);
-      document.removeEventListener('pointerdown', surClic);
-      window.removeEventListener('scroll', surDefilement);
+      document.documentElement.classList.remove('menu-bloque');
     };
   }, [ouvert]);
 
   const basculer = useCallback(() => setOuvert((o) => !o), []);
-  return { ouvert, basculer, conteneur };
+  const fermer = useCallback(() => setOuvert(false), []);
+  return { ouvert, basculer, fermer };
 }

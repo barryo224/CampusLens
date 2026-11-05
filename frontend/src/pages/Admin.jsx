@@ -9,6 +9,7 @@ import { usePageTitre } from '../lib/usePageTitre.js';
 import { formaterDateHeure, formaterDate } from '../lib/format.js';
 import LienExterne from '../components/LienExterne.jsx';
 import BoutonMenu from '../components/BoutonMenu.jsx';
+import FondMenu from '../components/FondMenu.jsx';
 import { useMenuRepliable } from '../lib/useMenuRepliable.js';
 
 const LIBELLE_STATUT_SOURCE = { ok: 'À jour', a_verifier: 'À vérifier', erreur: 'En erreur' };
@@ -1295,11 +1296,7 @@ export default function AdminLayout() {
   const [nonLus, setNonLus] = useState(0);
   const [avisNonLus, setAvisNonLus] = useState(0);
   const { pathname } = useLocation();
-  const {
-    ouvert: menuOuvert,
-    basculer: basculerMenu,
-    conteneur: conteneurMenu,
-  } = useMenuRepliable();
+  const { ouvert: menuOuvert, basculer: basculerMenu, fermer: fermerMenu } = useMenuRepliable();
   // « (2) Espace administration » : on voit qu'un message attend, même depuis un autre onglet du navigateur.
   usePageTitre(
     nonLus + avisNonLus > 0
@@ -1371,7 +1368,7 @@ export default function AdminLayout() {
       <a className="lien-evitement" href="#contenu-admin">
         Aller au contenu
       </a>
-      <header className={`admin-barre${menuOuvert ? ' menu-ouvert' : ''}`} ref={conteneurMenu}>
+      <header className={`admin-barre${menuOuvert ? ' menu-ouvert' : ''}`}>
         <Link to="/admin" className="admin-marque">
           <Logo taille={34} />
           <span>
@@ -1384,6 +1381,7 @@ export default function AdminLayout() {
           controle="admin-menu"
           signal={nonLus + avisNonLus > 0}
         />
+        <FondMenu surClic={fermerMenu} />
         <div className="admin-menu" id="admin-menu">
           {admin && (
             <nav aria-label="Sections de l’administration" className="admin-nav">

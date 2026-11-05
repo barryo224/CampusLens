@@ -1,9 +1,20 @@
-// Sur téléphone et tablette, le menu est replié derrière les « trois tirets » : on l'ouvre avant d'y cliquer.
-// Sur grand écran le bouton existe mais n'est pas affiché : cette fonction ne fait alors rien.
+// Sur téléphone et tablette (écran de 900 px ou moins), le menu est replié derrière les « trois tirets » : on l'ouvre
+// avant d'y cliquer. Sur grand écran le bouton n'est pas affiché et cette fonction ne fait rien.
 export async function ouvrirMenu(page) {
   const bouton = page.locator('button.menu-bouton');
-  // Le bouton est toujours dans la page (le CSS le cache sur grand écran) ; l'admin se charge à la demande.
-  await bouton.waitFor({ state: 'attached' });
-  if ((await bouton.isVisible()) && (await bouton.getAttribute('aria-expanded')) === 'false')
-    await bouton.click();
+  await bouton.waitFor({ state: 'attached' }); // l'administration se charge à la demande
+  const petitEcran = await page.evaluate(() => matchMedia('(max-width: 900px)').matches);
+  if (!petitEcran) return;
+  await bouton.waitFor({ state: 'visible' });
+  if ((await bouton.getAttribute('aria-expanded')) === 'false') await bouton.click();
+  // Le menu se déroule en glissant : on attend la fin de l'animation (sinon les mesures de contraste sont faussées).
+  const id = await bouton.getAttribute('aria-controls');
+  await page.waitForFunction((cible) => {
+    const menu = document.getElementById(cible);
+    return (
+      menu &&
+      getComputedStyle(menu).opacity === '1' &&
+      getComputedStyle(menu).visibility === 'visible'
+    );
+  }, id);
 }
