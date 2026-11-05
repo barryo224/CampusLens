@@ -4,6 +4,7 @@ import MessageErreur from '../components/MessageErreur.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
 import { PROFILS } from '../lib/profils.js';
+import photoHero from '../assets/hero-etudiants.webp';
 
 const ICONE_CATEGORIE = {
   etudes: 'chapeau',
@@ -27,41 +28,6 @@ const ETAPES = [
     texte: 'Je vois les aides adaptées à mon profil et comment les obtenir, étape par étape.',
   },
 ];
-
-function HeroVisuel() {
-  // Illustration provisoire (la photo de la maquette sera ajoutée quand elle sera fournie).
-  return (
-    <svg
-      viewBox="0 0 360 260"
-      role="img"
-      aria-label="Illustration : deux étudiants qui consultent un ordinateur"
-    >
-      <circle cx="180" cy="130" r="120" fill="#e3f0f2" />
-      <circle cx="130" cy="95" r="26" fill="#0f4c5a" />
-      <path d="M85 190c0-30 20-50 45-50s45 20 45 50z" fill="#0f4c5a" />
-      <circle cx="235" cy="100" r="24" fill="#f59e0b" />
-      <path d="M192 190c0-28 18-46 43-46s43 18 43 46z" fill="#f59e0b" />
-      <rect
-        x="140"
-        y="160"
-        width="90"
-        height="56"
-        rx="6"
-        fill="#fff"
-        stroke="#0f4c5a"
-        strokeWidth="4"
-      />
-      <path
-        d="M155 205l16-20 14 12 22-26 18 34"
-        fill="none"
-        stroke="#067647"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 export default function Accueil() {
   usePageTitre('Accueil');
@@ -87,8 +53,16 @@ export default function Accueil() {
             </Link>
           </div>
         </div>
-        <div className="hero-visuel">
-          <HeroVisuel />
+        <div className="hero-photo">
+          {/* Image du bandeau : chargée en priorité (c'est le plus gros élément visible). */}
+          <img
+            src={photoHero}
+            width="720"
+            height="720"
+            alt="Trois étudiants assis sur des marches, qui consultent un ordinateur portable en souriant"
+            fetchPriority="high"
+            decoding="async"
+          />
         </div>
       </section>
 

@@ -313,6 +313,13 @@ describe('Espace administration', () => {
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
   });
 
+  it('déconnexion : même si le serveur ne répond pas, on revient à la connexion (sans erreur non gérée)', async () => {
+    connecte('admin', { '/admin/logout': new Error('réseau coupé') });
+    rendreApp('/admin');
+    await userEvent.click(await screen.findByRole('button', { name: 'Se déconnecter' }));
+    expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
+  });
+
   it('API indisponible pendant la vérification de session → message clair', async () => {
     simulerApi({ '/admin/me': new Error('panne') });
     rendreApp('/admin');

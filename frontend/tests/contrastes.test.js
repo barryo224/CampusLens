@@ -47,3 +47,21 @@ describe('Contrastes WCAG AA (≥ 4,5:1)', () => {
     }
   });
 });
+
+describe('Photo derrière la mission (À propos)', () => {
+  const opacite = Number(css.match(/--mission-image-opacite:\s*([\d.]+)/)[1]);
+  // Pire cas : un pixel NOIR de la photo, mélangé au fond avec cette opacité.
+  const melange = (fond, o) => {
+    const canaux = [1, 3, 5].map((i) => Math.round(parseInt(fond.slice(i, i + 2), 16) * (1 - o)));
+    return `#${canaux.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+  };
+  it('reste faible (≤ 0,25)', () => {
+    expect(opacite).toBeGreaterThan(0);
+    expect(opacite).toBeLessThanOrEqual(0.25);
+  });
+  it('garantit le contraste AA du texte de la mission même sur les zones les plus sombres de la photo', () => {
+    const pireFond = melange(couleur('fond'), opacite);
+    expect(contraste(couleur('primaire'), pireFond)).toBeGreaterThanOrEqual(4.5); // « Aider chaque étudiant… »
+    expect(contraste(couleur('primaire'), pireFond)).toBeGreaterThanOrEqual(4.5); // « Notre mission »
+  });
+});

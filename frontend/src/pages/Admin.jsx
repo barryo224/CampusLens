@@ -429,9 +429,10 @@ export default function Admin() {
   async function deconnecter() {
     try {
       await post('/admin/logout', {});
-    } finally {
-      setAdmin(null);
+    } catch {
+      // Même si le serveur ne répond pas, on quitte l'écran d'administration côté navigateur.
     }
+    setAdmin(null);
   }
 
   return (

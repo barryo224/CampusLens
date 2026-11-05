@@ -1,6 +1,7 @@
 import Icone from '../components/Icone.jsx';
 import Pied from '../components/Pied.jsx';
 import { usePageTitre } from '../lib/usePageTitre.js';
+import photoMission from '../assets/mission-etudiants.webp';
 
 const PRINCIPES = [
   {
@@ -53,12 +54,35 @@ export default function APropos() {
           ))}
         </div>
         <div className="mission">
+          {/* Photo décorative, très atténuée (voir --mission-image-opacite) pour que le texte reste lisible. */}
+          <img
+            className="mission-photo"
+            src={photoMission}
+            width="1100"
+            height="734"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
           <small>Notre mission</small>
           <strong>
             Aider chaque étudiant à connaître ses droits et à garder le contrôle de son budget.
           </strong>
         </div>
       </section>
+
+      <p className="fraicheur credit-photo">
+        Photo de la page d’accueil : fournie par l’équipe. Photo de la mission : RDNE Stock project,
+        via{' '}
+        <a
+          href="https://www.pexels.com/photo/college-students-studying-together-7683734/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Pexels<span className="sr-only"> (nouvel onglet)</span>
+        </a>
+        .
+      </p>
 
       <Pied />
     </>
