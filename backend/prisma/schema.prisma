@@ -233,7 +233,7 @@ model TarifTransport {
   villeId       Int       @unique @map("ville_id")
   reseau        String
   libelle       String // nom du titre : « Imagine R Étudiant », « Pass Annuel Étudiant »…
-  montantAnnuel Decimal   @map("montant_annuel") @db.Decimal(8, 2)
+  montantAnnuel Decimal?   @map("montant_annuel") @db.Decimal(8, 2)
   montantMensuel Decimal? @map("montant_mensuel") @db.Decimal(8, 2) // pass d'un mois, sans engagement (si le réseau en propose un)
   conditions    String?
   urlTarifs     String    @map("url_tarifs")

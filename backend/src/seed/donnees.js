@@ -180,6 +180,55 @@ export const SOURCES = {
     type: 'page_web',
     frequenceHeures: 24 * 90,
   },
+  transportAngers: {
+    nom: 'Tarifs irigo (Angers)',
+    organisme: 'irigo',
+    url: 'https://www.irigo.fr/tarifs/choisir-son-titre/abonnements',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
+  transportTours: {
+    nom: 'Tarifs Fil Bleu (Tours)',
+    organisme: 'Fil Bleu',
+    url: 'https://www.filbleu.fr/tarifs-et-vente-en-ligne/nos-tarifs',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
+  transportCaen: {
+    nom: 'Tarifs Twisto (Caen)',
+    organisme: 'Twisto',
+    url: 'https://www.twisto.fr/tarifs/tickets-et-abonnements',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
+  transportNancy: {
+    nom: 'Tarifs Stan (Nancy)',
+    organisme: 'Stan',
+    url: 'https://www.reseau-stan.com/titres-tarifs/tous-les-titres',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
+  transportMetz: {
+    nom: 'Tarifs Le Met’ (Metz)',
+    organisme: 'Le Met’',
+    url: 'https://www.lemet.fr/abonnements/',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
+  transportPoitiers: {
+    nom: 'Tarifs Vitalis (Poitiers)',
+    organisme: 'Vitalis',
+    url: 'https://www.vitalis-poitiers.fr/news/etudiants-la-rentree-en-bus/',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
+  transportClermont: {
+    nom: 'Tarifs T2C (Clermont-Ferrand)',
+    organisme: 'T2C',
+    url: 'https://www.t2c.fr/page/voyageur-regulier',
+    type: 'page_web',
+    frequenceHeures: 24 * 90,
+  },
   transportGrenoble: {
     nom: 'Tarifs M réso (Grenoble)',
     organisme: 'M réso',
@@ -574,7 +623,7 @@ export const TARIFS_TRANSPORT = [
     libelle: 'Forfait Imagine R Étudiant',
     montantAnnuel: 401.3,
     conditions:
-      'Moins de 26 ans, en formation initiale. Frais de dossier de 8 € inclus, 2026-2027.',
+      'Moins de 26 ans, en formation initiale. Frais de dossier de 8 € inclus, 2026-2027. Payable en 9 mensualités de 43,70 € (soit 33,44 € par mois lissés sur l’année).',
     urlTarifs:
       'https://www.iledefrance-mobilites.fr/titres-et-tarifs/detail/forfait-imagine-r-etudiant',
   },
@@ -584,8 +633,9 @@ export const TARIFS_TRANSPORT = [
     reseau: 'RTM',
     libelle: 'Pass Annuel Étudiant',
     montantAnnuel: 200,
+    montantMensuel: 16.7,
     conditions:
-      'De 18 à 25 ans inclus, étudiant. Métro, tram, bus et TER intra-muros. Tarif au 1er novembre 2026.',
+      'De 18 à 25 ans inclus, étudiant. Métro, tram, bus et TER intra-muros. Pass Permanent à 16,70 € par mois (prélèvement) ; Pass 30 jours sans engagement : 36,70 € (zone bleue). Tarifs au 1er novembre 2026.',
     urlTarifs: 'https://www.rtm.fr/tarifs',
   },
   {
@@ -594,6 +644,7 @@ export const TARIFS_TRANSPORT = [
     reseau: 'M réso',
     libelle: 'Abonnement 18-25 ans Études (1 an)',
     montantAnnuel: 192,
+    montantMensuel: 19.2,
     conditions:
       'Justificatif d’inscription ou numéro INE. Tarif au 1er septembre 2026 (19,20 € les 30 jours).',
     urlTarifs: 'https://www.reso-m.fr/tarifs',
@@ -604,8 +655,9 @@ export const TARIFS_TRANSPORT = [
     reseau: 'TCL',
     libelle: 'Abonnement 18-25 ans (12 mois), zones 1 et 2',
     montantAnnuel: 260,
+    montantMensuel: 26,
     conditions:
-      '18 à 25 ans inclus (pas de condition d’études). Zones 1 et 2 ; 153 € à 350 € selon les zones. Tarif boursier distinct.',
+      '18 à 25 ans inclus (pas de condition d’études). Zones 1 et 2 : 26 € par mois sans engagement (2 mois offerts par an) ou 260 € en annuel ; 153 € à 350 € selon les zones. Tarif boursier distinct.',
     urlTarifs: 'https://www.tcl.fr/tickets-abonnements/titres-et-tarifs/18-25-ans-12-mois',
   },
   {
@@ -625,8 +677,9 @@ export const TARIFS_TRANSPORT = [
     reseau: 'Naolib',
     libelle: 'Formule illimitée -26 ans (12 mois)',
     montantAnnuel: 255,
+    montantMensuel: 25.5,
     conditions:
-      'Moins de 26 ans, prélèvement mensuel, tarif au 1er juillet 2026. Réduction selon le quotient familial.',
+      'Moins de 26 ans, formule annuelle prélevée à 25,50 € par mois, tarif au 1er juillet 2026. Réduction selon le quotient familial.',
     urlTarifs: 'https://naolib.fr/fr/tarifs/transports-en-commun/formule-illimitee-26',
   },
   {
@@ -635,6 +688,7 @@ export const TARIFS_TRANSPORT = [
     reseau: 'STAR',
     libelle: 'Forfait étudiant 12 mois',
     montantAnnuel: 239.4,
+    montantMensuel: 19.95,
     conditions:
       'Étudiants jusqu’à 26 ans, 19,95 € par mois sur 12 mois (3 mois offerts annoncés : coût réel possiblement inférieur). Tarif réduit pour les boursiers.',
     urlTarifs: 'https://www.star.fr/titres-et-tarifs/trouver-mon-tarif/forfait-etudiant-12-mois',
@@ -645,7 +699,9 @@ export const TARIFS_TRANSPORT = [
     reseau: 'Divia Mobilités',
     libelle: 'Pass annuel 18/25',
     montantAnnuel: 260,
-    conditions: '18 à 25 ans, 12 mois. Boursiers : -50 %.',
+    montantMensuel: 26,
+    conditions:
+      '18 à 25 ans. Pass mensuel 26 € ou annuel 260 €. Boursiers : -50 % (13 € par mois).',
     urlTarifs: 'https://www.divia.fr/titres-et-tarifs/trouver-et-acheter-mon-titre',
   },
   {
@@ -654,7 +710,9 @@ export const TARIFS_TRANSPORT = [
     reseau: 'Lignes d’Azur',
     libelle: 'Abonnement annuel moins de 26 ans',
     montantAnnuel: 180,
-    conditions: 'Moins de 26 ans ; 12 € de frais de gestion en plus la première fois.',
+    montantMensuel: 22.5,
+    conditions:
+      'Moins de 26 ans ; 22,50 € par mois ou 180 € par an ; 12 € de frais de gestion en plus la première fois.',
     urlTarifs: 'https://www.lignesdazur.com/en/titres-et-tarifs/ma-carte-lignes-dazur/',
   },
   {
@@ -663,9 +721,86 @@ export const TARIFS_TRANSPORT = [
     reseau: 'CTS',
     libelle: 'Abonnement tarif plein 18-25 ans (annuel)',
     montantAnnuel: 280,
+    montantMensuel: 28,
     conditions:
-      '18 à 25 ans, 28 € par mois, 2 mois offerts sur l’annuel. Tarif réduit dès 3,40 € par mois pour les boursiers.',
+      '18 à 25 ans, 28 € par mois ou 280 € par an (2 mois offerts sur l’annuel). Tarif réduit dès 3,40 € par mois pour les boursiers.',
     urlTarifs: 'https://www.cts-strasbourg.eu/fr/Titres-de-transport/tarifs/Abonnements/',
+  },
+  {
+    codeInsee: '49007',
+    source: 'transportAngers',
+    reseau: 'irigo',
+    libelle: 'Abonnement 6-25 ans',
+    montantAnnuel: 264,
+    montantMensuel: 31.6,
+    conditions:
+      '6 à 25 ans, annuel 264 € (22 € par mois) ou mensuel 31,60 €. Tarif réduit selon le quotient familial. Guide tarifaire de juillet 2026.',
+    urlTarifs: 'https://www.irigo.fr/tarifs/choisir-son-titre/abonnements',
+  },
+  {
+    codeInsee: '37261',
+    source: 'transportTours',
+    reseau: 'Fil Bleu',
+    libelle: 'Pass étudiant annuel',
+    montantAnnuel: 230,
+    montantMensuel: 23,
+    conditions:
+      'Étudiants et apprentis jusqu’à 25 ans, 230 € l’année (2 mois offerts) ou 23 € par mois ; support en plus. Grille 2025, à confirmer pour 2026.',
+    urlTarifs: 'https://www.filbleu.fr/tarifs-et-vente-en-ligne/nos-tarifs',
+  },
+  {
+    codeInsee: '14118',
+    source: 'transportCaen',
+    reseau: 'Twisto',
+    libelle: 'Abonnement 18-25 ans',
+    montantAnnuel: 220,
+    montantMensuel: 27,
+    conditions: '18 à 25 ans, annuel 220 € ou mensuel 27 €.',
+    urlTarifs: 'https://www.twisto.fr/tarifs/tickets-et-abonnements',
+  },
+  {
+    codeInsee: '54395',
+    source: 'transportNancy',
+    reseau: 'Stan',
+    libelle: 'Abonnement illimité 18-25 ans / étudiant',
+    montantAnnuel: null,
+    montantMensuel: 22,
+    conditions:
+      'Abonnement illimité prélevé chaque mois (tarifs au 1er août 2026), sans offre annuelle. Boursiers : 17 € par mois. Hors illimité : 29 € par mois.',
+    urlTarifs: 'https://www.reseau-stan.com/titres-tarifs/tous-les-titres',
+  },
+  {
+    codeInsee: '57463',
+    source: 'transportMetz',
+    reseau: 'Le Met’',
+    libelle: 'Abonnement 18-26 ans',
+    montantAnnuel: 232.4,
+    montantMensuel: 25.6,
+    conditions:
+      '18 à 26 ans : mensuel 25,60 €, annuel 232,40 € au comptant (19,36 € par mois en prélèvement). Boursiers : annuel 182,80 €.',
+    urlTarifs: 'https://www.lemet.fr/abonnements/',
+  },
+  {
+    codeInsee: '86194',
+    source: 'transportPoitiers',
+    reseau: 'Vitalis',
+    libelle: 'Abonnement 18-27 ans',
+    montantAnnuel: 200,
+    montantMensuel: 29,
+    conditions:
+      '18 à 27 ans : mensuel 29 €, annuel 200 €. Tarif réduit selon le quotient familial ; hausse de 2,5 % au 1er juillet 2026 à confirmer.',
+    urlTarifs: 'https://www.vitalis-poitiers.fr/news/etudiants-la-rentree-en-bus/',
+  },
+  {
+    codeInsee: '63113',
+    source: 'transportClermont',
+    reseau: 'T2C',
+    libelle: 'Abonnement 26 ans et moins',
+    montantAnnuel: 280,
+    montantMensuel: 28.8,
+    conditions:
+      '26 ans et moins : mensuel 28,80 €, annuel 280 € (23,33 € par mois en prélèvement), inchangé pour 2026-2027.',
+    urlTarifs: 'https://www.t2c.fr/page/voyageur-regulier',
   },
 ];
 

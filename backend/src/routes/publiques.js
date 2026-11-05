@@ -300,12 +300,14 @@ export function routesPubliques(prisma) {
 /** Abonnement de transport étudiant : montant annuel, équivalent mensuel et page officielle du réseau. */
 function formaterTransport(t, maintenant) {
   if (!t) return { abonnementTransport: null, transport: null };
-  const annuel = nombre(t.montantAnnuel);
+  const annuel = t.montantAnnuel === null ? null : nombre(t.montantAnnuel);
   return {
     // Le prix du pass mensuel s'il existe (c'est ce que paie un étudiant sans engagement), sinon l'annuel ÷ 12.
     abonnementTransport: t.montantMensuel
       ? nombre(t.montantMensuel)
-      : Math.round((annuel / 12) * 100) / 100,
+      : annuel === null
+        ? null
+        : Math.round((annuel / 12) * 100) / 100,
     transport: avecSource(
       {
         reseau: t.reseau,

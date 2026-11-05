@@ -269,6 +269,39 @@ describe('Mes aides', () => {
     expect(ligne).toHaveTextContent('vérification en cours');
   });
 
+  it('comparateur de villes : réseau sans abonnement annuel (Nancy) → mensuel, aucun total inventé', async () => {
+    apiAides({
+      '/villes': [
+        {
+          id: 1,
+          nom: 'Nancy',
+          region: 'Grand Est',
+          loyerStudioEstime: 243,
+          nbLogementsCrous: 7,
+          loyerCrousDesA: null,
+          abonnementTransport: 22,
+          transport: {
+            reseau: 'Stan',
+            libelle: 'Abonnement illimité 18-25 ans',
+            montantAnnuel: null,
+            montantMensuel: 22,
+            urlTarifs: 'https://www.reseau-stan.com/',
+            source: { organisme: 'Stan' },
+            verifieLe: null,
+            aVerifier: true,
+          },
+          source: { organisme: 'ANIL' },
+          verifieLe: '2026-09-01T00:00:00Z',
+          aVerifier: false,
+        },
+      ],
+    });
+    rendreApp('/aides?onglet=villes');
+    const ligne = (await screen.findByRole('rowheader', { name: /Nancy/ })).closest('tr');
+    expect(ligne).toHaveTextContent('abonnement mensuel');
+    expect(ligne).not.toHaveTextContent('par an');
+  });
+
   it('comparateur de villes : le pass mensuel prime sur l’annuel ÷ 12 quand le réseau en propose un', async () => {
     apiAides({
       '/villes': [

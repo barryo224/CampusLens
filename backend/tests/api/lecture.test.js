@@ -176,6 +176,20 @@ describe('API publique : lecture', () => {
     expect(perime.body.parametres.find((p) => p.cle === 'seuil_fragile').aVerifier).toBe(false);
   });
 
+  it('/api/villes : abonnement de transport = pass mensuel s’il existe, sinon annuel ÷ 12, avec sa source', async () => {
+    const villes = (await request(app).get('/api/villes')).body;
+    const parNom = (nom) => villes.find((v) => v.nom === nom);
+    expect(parNom('Toulouse').abonnementTransport).toBe(16); // pass 31 jours, pas 169,60 ÷ 12
+    expect(parNom('Toulouse').transport.montantAnnuel).toBe(169.6);
+    expect(parNom('Paris').abonnementTransport).toBe(33.44); // annuel ÷ 12 (pas de pass mensuel)
+    expect(parNom('Nancy').abonnementTransport).toBe(22); // mensuel seulement
+    expect(parNom('Nancy').transport.montantAnnuel).toBeNull();
+    expect(parNom('Toulouse').transport.source).toBeTruthy();
+    expect(parNom('Toulouse').transport.aVerifier).toBe(true); // jamais vérifié à la main
+    expect(parNom('Ajaccio').transport).toBeNull(); // pas encore relevé : jamais de chiffre inventé
+    expect(parNom('Ajaccio').abonnementTransport).toBeNull();
+  });
+
   it('/api/villes/:id : inconnue → 404, invalide → 400', async () => {
     expect((await request(app).get('/api/villes/999999')).status).toBe(404);
     expect((await request(app).get('/api/villes/abc')).status).toBe(400);
