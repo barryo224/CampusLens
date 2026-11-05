@@ -89,7 +89,7 @@ export const SOURCES = {
     cle: 'veille_visale', // veille : la vérification reste valable tant que la page ne change pas
     nom: 'Garantie Visale',
     organisme: 'Service-Public.fr',
-    url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F32320',
+    url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F33453',
     type: 'page_web',
     frequenceHeures: 24 * 3,
   },
@@ -891,7 +891,7 @@ export const RESSOURCES = [
     categorie: 'logement',
     organisme: 'Service-Public.fr',
     annee: '2026',
-    url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F32320',
+    url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F33453',
   },
   {
     titre: 'Avance Loca-Pass',

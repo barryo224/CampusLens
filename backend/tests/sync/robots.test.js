@@ -548,6 +548,34 @@ describe('Synchronisation', () => {
       expect(await statut('messervices')).toBe('ok');
     });
 
+    it('un site qui nous renvoie vers une vérification anti-robot (caf.fr) n’est ni « déplacé » ni « cassé »', async () => {
+      const f = fausseSource({
+        'caf.fr': () =>
+          reponse({
+            status: 200,
+            url: 'https://validate.perfdrive.com/abc/?ssc=https%3A%2F%2Fwww.caf.fr%2F',
+            redirige: true,
+          }),
+        '': (u) => reponse({ status: 200, url: u }),
+      });
+      await synchroniser(prisma, robotLiensRessources, { fetchImpl: f });
+      const caf = await prisma.ressource.findFirstOrThrow({
+        where: { url: { contains: 'caf.fr' } },
+      });
+      expect(caf.statutLien).toBe('ok'); // aucun faux signalement affiché aux étudiants
+      // Un vrai déplacement reste détecté.
+      const g = fausseSource({
+        'caf.fr': () =>
+          reponse({ status: 200, url: 'https://www.autre-site.fr/page', redirige: true }),
+        '': (u) => reponse({ status: 200, url: u }),
+      });
+      await synchroniser(prisma, robotLiensRessources, { fetchImpl: g });
+      expect(
+        (await prisma.ressource.findFirstOrThrow({ where: { url: { contains: 'caf.fr' } } }))
+          .statutLien,
+      ).toBe('deplace');
+    });
+
     it('une simple redirection http → https ou vers « www » n’est pas un lien déplacé', async () => {
       const f = fausseSource({
         '': (u) =>

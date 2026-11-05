@@ -5,6 +5,10 @@ const resultatSchema = z.array(
   z.object({ id: z.number(), statut: z.enum(['ok', 'deplace', 'casse']) }),
 );
 
+// Adresses des services de protection anti-robot vers lesquels un site peut nous rediriger.
+const ANTI_ROBOT =
+  /perfdrive\.com|radware|captcha|datadome|\/cdn-cgi\/challenge|px-cloud|incapsula/i;
+
 const sansWww = (h) => h.replace(/^www\./, '');
 /** Deux adresses désignent-elles la même page (hors http/https, www, « / » final) ? */
 function memePage(a, b) {
@@ -35,7 +39,9 @@ export const robotLiensRessources = {
       let statut = r.statutLien;
       try {
         const rep = await telecharger(r.url, { fetchImpl, delaiMs: 15_000 });
-        statut = memePage(r.url, rep.url) ? 'ok' : 'deplace';
+        // Certains sites (caf.fr…) renvoient les robots vers une page de vérification anti-robot : ce n'est ni un
+        // déplacement ni un lien cassé, on ne conclut rien et on garde le statut précédent.
+        if (!ANTI_ROBOT.test(rep.url)) statut = memePage(r.url, rep.url) ? 'ok' : 'deplace';
       } catch (e) {
         const code = Number(String(e.message).match(/répondu (\d{3})/)?.[1]);
         if (code === 404 || code === 410) statut = 'casse';
