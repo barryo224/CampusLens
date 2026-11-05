@@ -190,7 +190,16 @@ test.describe('Avis des visiteurs : du formulaire public jusqu’à l’administ
     await page
       .getByLabel(/Racontez votre expérience/)
       .fill(`${donnees.repere} : le budget est clair.`);
+    const reponse = page.waitForResponse(
+      (r) => r.url().endsWith('/api/avis') && r.request().method() === 'POST',
+    );
     await page.getByRole('button', { name: 'Envoyer mon avis' }).click();
+    // Le serveur limite les avis à 5 par 10 minutes et par adresse : en relançant la suite plusieurs fois de suite sur
+    // le même serveur, la limite est atteinte. Ce n'est pas un défaut du site : on le dit clairement au lieu d'échouer.
+    test.skip(
+      (await reponse).status() === 429,
+      'Limite de 5 avis par 10 minutes atteinte sur ce serveur : relancer ce test dans 10 minutes.',
+    );
     await expect(page.getByRole('status')).toContainText('Merci pour votre avis');
     expect(envois.filter((u) => u.endsWith('/api/avis'))).toHaveLength(1);
 

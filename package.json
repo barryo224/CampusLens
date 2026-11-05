@@ -25,7 +25,8 @@
     "test:e2e:prod": "npm run build -w frontend && node scripts/e2e-prod.mjs",
     "verifier:secrets": "node scripts/verifier-secrets.mjs",
     "test:coverage": "npm run test:coverage -w backend && npm run test:coverage -w frontend",
-    "lighthouse": "npm run build -w frontend && node scripts/lighthouse.mjs"
+    "lighthouse": "npm run build -w frontend && node scripts/lighthouse.mjs",
+    "test:charge": "node scripts/test-charge.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

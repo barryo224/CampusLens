@@ -1,5 +1,6 @@
 import express from 'express';
 import helmet from 'helmet';
+import compression from 'compression';
 import cors from 'cors';
 import session from 'express-session';
 import rateLimit from 'express-rate-limit';
@@ -42,6 +43,8 @@ export function createApp({
   if (trustProxy) app.set('trust proxy', Number(trustProxy) || trustProxy);
 
   app.use(helmet()); // en-têtes HTTP de sécurité
+  // Compression des réponses (la liste des villes pèse 200 Ko brute : environ 10 fois moins une fois compressée).
+  app.use(compression());
   // CORS restreint : seule l'adresse du site est autorisée (jamais « * »).
   app.use(cors({ origin: corsOrigin ? corsOrigin.split(',') : false, credentials: true }));
   app.use(express.json({ limit: '10kb' }));
@@ -85,6 +88,12 @@ export function createApp({
     }),
   );
 
+  // L'administration n'est JAMAIS mise en cache (ni par le navigateur, ni par un service de diffusion).
+  app.use('/api/admin', (_req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  });
+
   // Sessions : uniquement pour l'espace admin (aucun cookie n'est posé aux visiteurs).
   app.use(
     '/api/admin',
@@ -118,11 +127,14 @@ export function createApp({
   );
 
   // Toute route inconnue (ou méthode non prévue : PUT, DELETE…) : 404 JSON propre.
-  app.use((_req, res) => res.status(404).json({ error: 'Ressource introuvable.' }));
+  app.use((_req, res) =>
+    res.set('Cache-Control', 'no-store').status(404).json({ error: 'Ressource introuvable.' }),
+  );
 
   // Gestion d'erreurs : jamais de trace technique dans la réponse.
   // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => {
+    res.set('Cache-Control', 'no-store'); // une erreur n'est jamais conservée en cache
     // Erreurs du lecteur JSON : on ne renvoie JAMAIS le message interne du parseur.
     if (err.type === 'entity.parse.failed')
       return res.status(400).json({ error: 'JSON invalide.' });

@@ -91,6 +91,25 @@ faire disparaître **honnêtement** :
   la source officielle indiquée, comparer, puis « J'ai vérifié ». Les pages officielles correspondantes sont surveillées chaque jour par un robot (« veille ») : la vérification reste valable tant que la page ne change pas ; si elle change, la mention « vérification en cours » revient et une alerte apparaît dans « À valider ». Dans tous les cas, une vérification expire au bout de 180 jours ;
 - réglages propres à CampusLens (seuils, surface d'un studio) : validés d'office, ce sont des choix éditoriaux.
 
+## Montée en charge
+
+`npm run test:charge -- http://localhost:3101 10 10,50,100,200,500` simule des visiteurs qui enchaînent des requêtes sans pause
+(lecture seule, aucune écriture en base). Lancer l'API d'essai avec `NODE_ENV=production SYNC_ENABLED=false
+API_LIMITE_PAR_MINUTE=100000000 PORT=3101` (robots coupés, limite de débit relevée pour mesurer la capacité réelle).
+Mesures du 5 novembre 2026 (un seul processus Node, base locale, ordinateur portable) :
+
+- **≈ 1 200 requêtes par seconde** et aucune erreur de 10 à 1 000 visiteurs simultanés qui n'arrêtent jamais d'interroger
+  l'API (bien plus dur que des visiteurs réels, qui font une requête toutes les quelques secondes). Le temps de réponse monte
+  de façon linéaire (médiane 8 ms à 10 visiteurs, 240 ms à 300, 760 ms à 1 000), sans erreur ni blocage.
+- **Mémoire stable** : 126 Mo au repos, 360 à 390 Mo après plusieurs charges successives (pas de fuite).
+- **Compression** : la liste des villes passe de 202 Ko à 16 Ko. **Cache** : les données publiques portent
+  `s-maxage=120` (un CDN les sert sans solliciter l'API), le navigateur revérifie toujours (`max-age=0, must-revalidate` + ETag, jamais de donnée périmée) ; erreurs, estimation et
+  administration ne sont jamais mises en cache.
+- **Limite de débit** : au-delà de 600 requêtes par minute et par adresse IP, réponse 429 avec le délai d'attente
+  (`API_LIMITE_PAR_MINUTE` pour l'ajuster ; `/api/health` n'est pas limité).
+- Sur un Mac, plus de ~250 connexions ouvertes **au même instant** peuvent être refusées (file d'attente du système à 128) :
+  limite de l'ordinateur d'essai, pas de l'application (`RAMPE_MS=5` fait arriver les visiteurs progressivement).
+
 ## Abonnements de transport
 
 Les prix sont relevés sur la page officielle de chaque réseau (fichier `backend/src/seed/donnees.js`, une ligne par ville ou

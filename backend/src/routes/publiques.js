@@ -10,8 +10,31 @@ const CATEGORIES_AIDE = ['logement', 'etudes', 'urgence', 'alimentation'];
  * Routes publiques : LECTURE SEULE (GET). Toute autre méthode tombe sur le 404 général.
  * Toutes les requêtes passent par Prisma (requêtes paramétrées, pas d'injection SQL).
  */
+/**
+ * Cache des données publiques. Elles changent rarement (vérifiées à la main ou mises à jour chaque nuit) :
+ *  - s-maxage=120 : un service de diffusion (CDN, Vercel) peut les servir 2 minutes sans solliciter l'API ;
+ *  - max-age=0 + must-revalidate : le navigateur, lui, revérifie TOUJOURS (ETag, réponse 304 très légère) et n'affiche
+ *    jamais une donnée périmée : après une validation dans l'administration, on revoit la nouvelle valeur tout de suite.
+ *    (On évite volontairement « stale-while-revalidate » : les navigateurs montreraient l'ancienne valeur une fois.)
+ * Seules les réponses RÉUSSIES sont mises en cache : une erreur (400, 404…) n'est jamais conservée.
+ */
+export const CACHE_PUBLIC = 'public, max-age=0, must-revalidate, s-maxage=120';
+
 export function routesPubliques(prisma) {
   const r = Router();
+
+  r.use((req, res, next) => {
+    // Seulement les lectures : jamais une écriture (contact, avis) ni l'estimation, qui posent leurs propres règles.
+    if (req.method !== 'GET') return next();
+    const json = res.json.bind(res);
+    res.json = (corps) => {
+      // Un en-tête déjà posé par la route elle-même est respecté.
+      if (!res.get('Cache-Control'))
+        res.set('Cache-Control', res.statusCode < 400 ? CACHE_PUBLIC : 'no-store');
+      return json(corps);
+    };
+    next();
+  });
 
   // GET /api/parametres?annee=en_cours
   r.get('/parametres', async (req, res) => {

@@ -5,9 +5,14 @@ import { demarrerPlanificateur } from './sync/planificateur.js';
 const port = Number(process.env.PORT) || 3001;
 const prisma = creerPrisma();
 
-createApp({ prisma }).listen(port, () => {
+const serveur = createApp({ prisma }).listen(port, () => {
   console.log(`API CampusLens sur http://localhost:${port}`);
 });
+// Derrière un proxy (Render, Railway, Vercel…), les connexions réutilisées restent ouvertes plus longtemps que le
+// délai par défaut de Node (5 s) : sans ce réglage, le proxy envoie parfois une requête sur une connexion que Node
+// vient de fermer, ce qui produit des erreurs 502 intermittentes sous charge.
+serveur.keepAliveTimeout = 65_000;
+serveur.headersTimeout = 66_000;
 
 // Les robots tournent dans ce même processus (node-cron). Désactivés par défaut hors production
 // pour ne pas télécharger des fichiers à chaque rechargement : SYNC_ENABLED=true pour les activer.
