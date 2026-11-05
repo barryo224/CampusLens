@@ -3,14 +3,14 @@
   --sidebar: #0f4c5a;
   --sidebar-hover: rgba(255, 255, 255, 0.1);
   --sidebar-actif: rgba(255, 255, 255, 0.16);
-  --fond: #f4f7f8;
-  --carte: #ffffff;
-  --bordure: #e3e8eb;
+  --fond: #e6eeef; /* fond de page : bleu-gris doux, reposant (le blanc pur fatigue sur grand écran) */
+  --carte: #fbfdfd; /* cartes : blanc légèrement teinté */
+  --bordure: #d3dfe1;
   --texte: #10242b;
   --texte-doux: #4a5d65; /* contraste ≥ 4,5:1 sur blanc et sur le fond */
   --accent: #f59e0b;
   --primaire: #0f4c5a;
-  --primaire-clair: #e3f0f2;
+  --primaire-clair: #d9eaed;
   --vert: #067647;
   --vert-fond: #e6f4ec;
   --orange: #b45309;
@@ -171,8 +171,9 @@ a {
 
 .contenu {
   margin-left: var(--largeur-sidebar);
-  padding: 32px 36px 48px;
-  max-width: calc(1280px + var(--largeur-sidebar));
+  /* Occupe toute la largeur de l'écran ; les marges grandissent un peu avec lui. Les textes longs gardent
+     leur propre largeur de lecture (max-width en « ch ») pour rester confortables. */
+  padding: 32px clamp(20px, 3.4vw, 96px) 56px;
 }
 
 .page-titre h1 {
@@ -314,7 +315,7 @@ a {
   position: relative;
   z-index: 1;
   padding: 40px 48px;
-  max-width: 560px;
+  max-width: min(720px, 56%);
 }
 .hero h1 {
   font-size: clamp(2rem, 4vw, 3.25rem);
@@ -1168,9 +1169,9 @@ a {
   color: #d3e6ea;
 }
 .admin-contenu {
-  max-width: 1180px;
+  max-width: 1760px;
   margin: 0 auto;
-  padding: 28px 28px 56px;
+  padding: 28px clamp(20px, 3vw, 72px) 56px;
 }
 @media (max-width: 900px) {
   .admin-barre {
@@ -1210,4 +1211,22 @@ a {
   color: var(--rouge);
   font-weight: 600;
   font-size: 0.875rem;
+}
+
+/* ───── Grands écrans (27 pouces et plus) : on agrandit l'interface au lieu de laisser du vide ───── */
+@media (min-width: 1800px) {
+  html {
+    font-size: 112.5%;
+  }
+  :root {
+    --largeur-sidebar: 290px;
+  }
+}
+@media (min-width: 2300px) {
+  html {
+    font-size: 125%;
+  }
+  :root {
+    --largeur-sidebar: 320px;
+  }
 }
