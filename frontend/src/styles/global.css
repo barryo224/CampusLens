@@ -1091,3 +1091,15 @@ a {
   font-weight: 800;
   color: var(--primaire);
 }
+
+.explication-tarif {
+  max-width: 62ch;
+  margin: 8px auto 0;
+  display: grid;
+  gap: 6px;
+  text-align: center;
+}
+.explication-tarif p {
+  color: var(--texte-doux);
+  font-size: 0.9375rem;
+}

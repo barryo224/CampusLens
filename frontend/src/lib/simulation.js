@@ -94,11 +94,15 @@ export function calculerResteAVivre(profil, saisie, parametres) {
   //  - sinon → droits nationaux.
   let droits;
   let cvec;
+  let tarif; // quel tarif a été appliqué : sert à l'expliquer clairement à l'étudiant
   if (profil.boursier) {
+    tarif = 'boursier';
     droits = 0;
     cvec = 0;
   } else {
     const profilDroits = statut === 'intl' && !profil.exonere ? 'intl' : null;
+    if (statut !== 'intl') tarif = 'national';
+    else tarif = profil.exonere ? 'international_exonere' : 'international';
     droits = trouverParametre(parametres, 'droits_inscription', { niveau, profil: profilDroits });
     cvec = trouverParametre(parametres, 'cvec');
   }
@@ -127,6 +131,7 @@ export function calculerResteAVivre(profil, saisie, parametres) {
     resteAVivre,
     niveau: niveauSituation,
     libelleNiveau: LIBELLES_NIVEAU[niveauSituation],
+    tarif,
     // Part du loyer dans les revenus (sert aux recommandations) ; null si aucun revenu.
     partLoyer: totalRevenus > 0 ? loyer / totalRevenus : null,
   };
@@ -136,4 +141,12 @@ export const LIBELLES_NIVEAU = {
   en_difficulte: 'en difficulté',
   fragile: 'fragile',
   equilibre: 'équilibré',
+};
+
+/** Nom du tarif d'inscription appliqué (affiché sous le résultat et dans le bilan PDF). */
+export const LIBELLES_TARIF = {
+  national: 'Tarif national',
+  international: 'Tarif étudiant international (droits différenciés)',
+  international_exonere: 'Exonération des droits différenciés : tarif national',
+  boursier: 'Boursier : droits d’inscription et CVEC offerts',
 };

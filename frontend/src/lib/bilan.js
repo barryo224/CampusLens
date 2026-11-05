@@ -1,5 +1,5 @@
 import { formaterEuroCentimes, formaterDate } from './format.js';
-import { LIBELLES_NIVEAU } from './simulation.js';
+import { LIBELLES_NIVEAU, LIBELLES_TARIF } from './simulation.js';
 
 // jsPDF n'aime pas les espaces insécables fines produites par Intl : on les remplace.
 const sansInsecable = (t) => t.replace(/[\u202f\u00a0]/g, '\u0020');
@@ -114,6 +114,7 @@ export function construireBilan({
       `Droits d’inscription (${eur(resultat.droitsInscription)}) + CVEC (${eur(resultat.cvec)}), lissés sur 12 mois`,
       eur(resultat.fraisMensuels),
     ],
+    tarif: LIBELLES_TARIF[resultat.tarif],
     totalDepenses: eur(resultat.totalDepenses + resultat.fraisMensuels),
     reste: eur(resultat.resteAVivre),
     niveau: `Situation ${LIBELLES_NIVEAU[resultat.niveau]}`,
@@ -182,6 +183,8 @@ export async function telechargerBilan(donnees) {
     b.fraisMensuels[0].length > 60 ? 'Inscription + CVEC (÷ 12)' : b.fraisMensuels[0],
     b.fraisMensuels[1],
   );
+  if (b.tarif)
+    ligne(`Tarif d’inscription appliqué : ${b.tarif}`, { taille: 9.5, couleur: [74, 93, 101] });
   paire('Total dépenses', b.totalDepenses, true);
 
   titreSection('Résultat');

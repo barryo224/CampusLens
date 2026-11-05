@@ -71,9 +71,10 @@ describe('Simulateur — Évaluer ma situation', () => {
   it('calcule exactement comme la fonction de simulation (frais 178 + CVEC 105 inclus)', async () => {
     await ouvrir();
     await budgetDeReference();
-    const resume = screen.getByText(/Droits d’inscription de/);
-    expect(resume).toHaveTextContent('178');
-    expect(resume).toHaveTextContent('105');
+    const explication = screen.getByTestId('explication-tarif');
+    expect(explication).toHaveTextContent('Tarif national');
+    expect(explication).toHaveTextContent('178');
+    expect(explication).toHaveTextContent('105');
     expect(screen.getByRole('img', { name: /Reste-à-vivre : -125,58/ })).toBeInTheDocument();
   });
 
@@ -103,6 +104,47 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.getByRole('img', { name: /-102,00/ })).toBeInTheDocument(); // SIM-14
     await userEvent.click(screen.getByRole('radio', { name: 'Master' }));
     expect(screen.getByRole('img', { name: /-102,00/ })).toBeInTheDocument();
+  });
+
+  it('l’explication sous le résultat dit QUEL tarif est appliqué, dans les 4 situations', async () => {
+    await ouvrir();
+    await budgetDeReference();
+    const explication = () => screen.getByTestId('explication-tarif');
+
+    // Français / UE : tarif national.
+    expect(explication()).toHaveTextContent(
+      'Tarif national (licence) : droits d’inscription de 178 € et CVEC de 105 €',
+    );
+    expect(explication()).toHaveTextContent('soit 24 € par mois');
+    expect(explication()).not.toHaveTextContent('exonération');
+
+    // International non exonéré : droits différenciés, avec la piste de l'exonération.
+    await userEvent.click(screen.getByRole('radio', { name: /international hors UE/ }));
+    expect(explication()).toHaveTextContent('Tarif étudiant international (droits différenciés)');
+    expect(explication()).toHaveTextContent('droits d’inscription de 2 902 € et CVEC de 105 €');
+    expect(explication()).toHaveTextContent('soit 251 € par mois');
+    expect(explication()).toHaveTextContent('Une exonération des droits différenciés est possible');
+
+    // Master international : le tarif différencié du master.
+    await userEvent.click(screen.getByRole('radio', { name: 'Master' }));
+    expect(explication()).toHaveTextContent('(master)');
+    expect(explication()).toHaveTextContent('3 950 €');
+    await userEvent.click(screen.getByRole('radio', { name: 'Licence' }));
+
+    // International exonéré : retour au tarif national, et le dit.
+    await userEvent.click(screen.getByLabelText(/exonéré des droits différenciés/));
+    expect(explication()).toHaveTextContent('Exonération des droits différenciés : tarif national');
+    expect(explication()).toHaveTextContent('droits d’inscription de 178 €');
+    expect(explication()).not.toHaveTextContent(
+      'Une exonération des droits différenciés est possible',
+    );
+
+    // Boursier : tout est offert.
+    await userEvent.click(screen.getByLabelText('Je suis boursier CROUS'));
+    expect(explication()).toHaveTextContent(
+      'Boursier : droits d’inscription et CVEC offerts (0 €).',
+    );
+    expect(explication()).not.toHaveTextContent('178');
   });
 
   it('UI-03 : résultat négatif → « Budget en difficulté : des aides existent » + lien vers Mes aides', async () => {
@@ -166,6 +208,7 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(contenu).toContain('637,00');
     expect(contenu).toMatch(/125,58/);
     expect(contenu).toContain('Situation en difficulté');
+    expect(contenu).toContain('Tarif d’inscription appliqué : Tarif national');
     expect(contenu).toMatch(/Établi le \d{1,2} \p{L}+ \d{4}/u);
     expect(contenu).toContain('Service-Public.fr');
     expect(contenu.match(/• Service-Public\.fr/g)).toHaveLength(1); // pas de doublon de source

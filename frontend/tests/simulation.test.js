@@ -148,6 +148,22 @@ describe('calculerResteAVivre', () => {
     expect(r.resteAVivre).toBe(-102);
   });
 
+  it('SIM-15 : le résultat indique quel tarif d’inscription a été appliqué', () => {
+    const tarif = (profil) => calculerResteAVivre(profil, BUDGET, PARAMS).tarif;
+    expect(tarif(francais)).toBe('national');
+    expect(tarif({ statut: 'intl', niveau: 'licence' })).toBe('international');
+    expect(tarif({ statut: 'intl', niveau: 'master', exonere: true })).toBe(
+      'international_exonere',
+    );
+    expect(tarif({ ...francais, boursier: true })).toBe('boursier');
+    // Boursier prioritaire, même international non exonéré (cf. SIM-14).
+    expect(tarif({ statut: 'intl', niveau: 'master', boursier: true, exonere: false })).toBe(
+      'boursier',
+    );
+    // « exonéré » n'a aucun effet pour un étudiant français : tarif national.
+    expect(tarif({ ...francais, exonere: true })).toBe('national');
+  });
+
   it('accepte la virgule française et les chaînes numériques', () => {
     const r = calculerResteAVivre(francais, { job: '600,50', loyer: ' 637 ' }, PARAMS);
     expect(r.totalRevenus).toBe(600.5);

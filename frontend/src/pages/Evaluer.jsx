@@ -6,7 +6,7 @@ import Fraicheur from '../components/Fraicheur.jsx';
 import EstimationAide from '../components/EstimationAide.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
-import { calculerResteAVivre, trouverParametre } from '../lib/simulation.js';
+import { calculerResteAVivre, trouverParametre, LIBELLES_TARIF } from '../lib/simulation.js';
 import { choisirRecommandations } from '../lib/recommandations.js';
 import { telechargerBilan } from '../lib/bilan.js';
 import { formaterEuro, formaterEuroCentimes } from '../lib/format.js';
@@ -315,10 +315,28 @@ export default function Evaluer() {
                 <p className={`resultat-niveau texte-${CLASSE_NIVEAU[resultat.niveau]}`}>
                   {MESSAGES_NIVEAU[resultat.niveau]}
                 </p>
-                <p className="fraicheur" style={{ textAlign: 'center' }}>
-                  Droits d’inscription de {formaterEuro(resultat.droitsInscription)} et CVEC de{' '}
-                  {formaterEuro(resultat.cvec)} inclus, lissés sur 12 mois.
-                </p>
+                <div className="explication-tarif" data-testid="explication-tarif">
+                  <p>
+                    <strong>{LIBELLES_TARIF[resultat.tarif]}</strong>
+                    {resultat.tarif === 'boursier' ? (
+                      ' (0 €).'
+                    ) : (
+                      <>
+                        {' '}
+                        ({profil.niveau === 'master' ? 'master' : 'licence'}) : droits d’inscription
+                        de {formaterEuro(resultat.droitsInscription)} et CVEC de{' '}
+                        {formaterEuro(resultat.cvec)}, lissés sur 12 mois, soit{' '}
+                        {formaterEuro(resultat.fraisMensuels)} par mois inclus dans vos dépenses.
+                      </>
+                    )}
+                  </p>
+                  {resultat.tarif === 'international' && (
+                    <p>
+                      Une exonération des droits différenciés est possible : demandez-la à votre
+                      université, puis cochez « exonéré » ci-dessus pour voir la différence.
+                    </p>
+                  )}
+                </div>
                 <div className="resultat-actions">
                   <Link to={`/aides?profil=${codeProfilAides}`} className="bouton">
                     Voir les aides pour moi <span aria-hidden="true">→</span>
