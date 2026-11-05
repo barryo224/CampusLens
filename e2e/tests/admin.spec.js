@@ -112,16 +112,32 @@ test.describe('Espace administration : messages de contact', () => {
     await page.getByLabel('Adresse e-mail').fill(ADMIN.email);
     await page.getByLabel('Mot de passe').fill(ADMIN.motDePasse);
     await page.getByRole('button', { name: 'Se connecter' }).click();
-    await page.getByRole('link', { name: 'Messages' }).click();
+    // La pastille « non lus » est visible dès la connexion, sur n'importe quelle page de l'admin, et dans le titre
+    // de l'onglet du navigateur (on voit qu'un message attend sans même ouvrir la section Messages).
+    const lienMessages = page.getByRole('link', { name: /^Messages/ });
+    await expect(lienMessages).toContainText(/\d/);
+    await expect(lienMessages).toHaveAccessibleName(/Messages \d+ non lus?/);
+    await expect(page).toHaveTitle(/^\(\d+\) Espace administration/);
+    const nombre = async () => Number((await page.title()).match(/^\((\d+)\)/)?.[1] ?? 0);
+    const avant = await nombre();
+    expect(avant).toBeGreaterThanOrEqual(1);
+
+    await lienMessages.click();
     await expect(page).toHaveURL(/\/admin\/messages$/);
 
     const carte = page.getByRole('listitem').filter({ hasText: donnees.objet });
+    await expect(carte.getByText('Nouveau')).toBeVisible();
     await expect(carte).toContainText('e2e-etudiant@exemple.fr');
     await expect(carte).toContainText('ceci est un test');
     await expect(carte.getByRole('link', { name: /Répondre/ })).toHaveAttribute(
       'href',
       /^mailto:e2e-etudiant@exemple\.fr/,
     );
+
+    // « Marquer comme lu » : plus de « Nouveau », et le compteur de la pastille baisse de 1.
+    await carte.getByRole('button', { name: /^Marquer comme lu/ }).click();
+    await expect(carte.getByText('Nouveau')).toHaveCount(0);
+    await expect.poll(nombre).toBe(avant - 1);
 
     page.once('dialog', (d) => d.accept()); // fenêtre « Supprimer définitivement ? »
     await carte.getByRole('button', { name: /^Supprimer/ }).click();

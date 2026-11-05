@@ -145,6 +145,7 @@ test.describe('administration (réponses simulées)', () => {
         ],
       }),
     );
+    await page.route('**/api/admin/messages/non-lus', (r) => r.fulfill({ json: { nombre: 2 } }));
     await page.route('**/api/admin/messages', (r) =>
       r.fulfill({
         json: [

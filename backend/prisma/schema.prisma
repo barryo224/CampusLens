@@ -354,12 +354,13 @@ model Administrateur {
 
 /// Seule table alimentée par le public. Suppression automatique à supprimer_apres (RGPD).
 model MessageContact {
-  id             Int      @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   objet          String
   message        String
   email          String
-  creeLe         DateTime @default(now()) @map("cree_le")
-  supprimerApres DateTime @map("supprimer_apres")
+  creeLe         DateTime  @default(now()) @map("cree_le")
+  supprimerApres DateTime  @map("supprimer_apres")
+  luLe           DateTime? @map("lu_le") // vide = non lu (sert à la pastille et à la notification)
 
   @@index([supprimerApres])
   @@map("message_contact")

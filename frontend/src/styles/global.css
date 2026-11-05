@@ -1230,3 +1230,26 @@ a {
     --largeur-sidebar: 320px;
   }
 }
+
+/* ───── Pastille « messages non lus » (comme dans les applications) ───── */
+.pastille-compteur {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5em;
+  height: 1.5em;
+  margin-left: 8px;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--rouge);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.message-non-lu {
+  border-left: 5px solid var(--accent);
+}
+.badge-nouveau {
+  margin-left: 10px;
+  vertical-align: middle;
+}

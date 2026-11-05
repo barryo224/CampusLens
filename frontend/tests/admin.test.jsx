@@ -117,6 +117,7 @@ const MESSAGES = [
     message: 'Bonjour,\ncomment demander la bourse ?',
     creeLe: '2026-11-05T09:30:00Z',
     supprimerApres: '2027-05-05T09:30:00Z',
+    luLe: null,
   },
   {
     id: 3,
@@ -135,6 +136,7 @@ const connecte = (role = 'admin', extra = {}) =>
     '/admin/sources': SOURCES,
     '/admin/historique': HISTORIQUE,
     '/admin/messages': MESSAGES,
+    '/admin/messages/non-lus': { nombre: 2 },
     ...extra,
   });
 
@@ -192,7 +194,7 @@ describe('Espace administration', () => {
       'href',
       '/admin/historique',
     );
-    expect(within(nav).getByRole('link', { name: 'Messages' })).toHaveAttribute(
+    expect(within(nav).getByRole('link', { name: /^Messages/ })).toHaveAttribute(
       'href',
       '/admin/messages',
     );
@@ -440,11 +442,145 @@ describe('Espace administration', () => {
     expect(mock.mock.calls.some(([u]) => u === '/api/admin/historique/9/annuler')).toBe(true);
   });
 
+  describe('messages non lus : pastille, titre de l’onglet, marquer comme lu', () => {
+    it('la pastille affiche le nombre de messages non lus sur « Messages », sur toutes les pages de l’admin', async () => {
+      connecte();
+      rendreApp('/admin/sources'); // une autre page que Messages
+      const lien = await screen.findByRole('link', { name: /^Messages/ });
+      await vi.waitFor(() => expect(lien).toHaveTextContent('2'));
+      expect(lien).toHaveAccessibleName('Messages 2 non lus');
+      await vi.waitFor(() => expect(document.title).toBe('(2) Espace administration · CampusLens'));
+    });
+
+    it('au singulier, et rien du tout quand il n’y a aucun message non lu', async () => {
+      connecte('admin', { '/admin/messages/non-lus': { nombre: 1 } });
+      rendreApp('/admin');
+      expect(await screen.findByRole('link', { name: 'Messages 1 non lu' })).toBeInTheDocument();
+      cleanup();
+
+      connecte('admin', { '/admin/messages/non-lus': { nombre: 0 } });
+      rendreApp('/admin');
+      const lien = await screen.findByRole('link', { name: 'Messages' });
+      expect(lien.querySelector('.pastille-compteur')).toBeNull();
+      await vi.waitFor(() => expect(document.title).toBe('Espace administration · CampusLens'));
+    });
+
+    it('au-delà de 99, la pastille affiche « 99+ »', async () => {
+      connecte('admin', { '/admin/messages/non-lus': { nombre: 250 } });
+      rendreApp('/admin');
+      expect(await screen.findByRole('link', { name: 'Messages 99+ non lus' })).toBeInTheDocument();
+    });
+
+    it('le « relecteur » n’a ni la pastille ni aucun appel au compteur (données personnelles)', async () => {
+      const mock = connecte('relecteur');
+      rendreApp('/admin');
+      await screen.findByRole('navigation', { name: 'Sections de l’administration' });
+      expect(screen.queryByRole('link', { name: /^Messages/ })).not.toBeInTheDocument();
+      expect(mock.mock.calls.some(([u]) => u.includes('/non-lus'))).toBe(false);
+      expect(document.title).toBe('Espace administration · CampusLens');
+    });
+
+    it('une erreur passagère du compteur ne casse pas l’admin', async () => {
+      connecte('admin', { '/admin/messages/non-lus': new Error('panne') });
+      rendreApp('/admin');
+      expect(
+        await screen.findByRole('navigation', { name: 'Sections de l’administration' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('le compteur est relu à chaque changement de page et toutes les minutes', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const mock = connecte();
+        rendreApp('/admin/sources');
+        await screen.findByRole('link', { name: /^Messages/ });
+        const appels = () =>
+          mock.mock.calls.filter(([u]) => u === '/api/admin/messages/non-lus').length;
+        await vi.waitFor(() => expect(appels()).toBe(1));
+        await userEvent.click(screen.getByRole('link', { name: 'Historique' }));
+        await vi.waitFor(() => expect(appels()).toBe(2)); // changement de page
+        await vi.advanceTimersByTimeAsync(60_000);
+        await vi.waitFor(() => expect(appels()).toBeGreaterThanOrEqual(3)); // rappel automatique
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('dans Messages : « Nouveau » sur les non lus seulement, résumé et bouton « Tout marquer comme lu »', async () => {
+      connecte('admin', {
+        '/admin/messages': [
+          { ...MESSAGES[0], luLe: null },
+          { ...MESSAGES[1], luLe: '2026-11-05T12:00:00Z' },
+        ],
+      });
+      rendreApp('/admin/messages');
+      const nouveau = (
+        await screen.findByRole('heading', { name: /Question sur la bourse/ })
+      ).closest('li');
+      expect(within(nouveau).getByText('Nouveau')).toBeInTheDocument();
+      expect(within(nouveau).getByRole('button', { name: /Marquer comme lu/ })).toBeInTheDocument();
+      const lu = screen.getByRole('heading', { name: /Erreur sur une aide/ }).closest('li');
+      expect(within(lu).queryByText('Nouveau')).not.toBeInTheDocument();
+      expect(
+        within(lu).queryByRole('button', { name: /Marquer comme lu/ }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('1 message non lu')).toBeInTheDocument();
+    });
+
+    it('« Marquer comme lu » : POST, puis la liste et la pastille sont rafraîchies', async () => {
+      let lu = false;
+      const mock = connecte('admin', {
+        '/admin/messages': () => [{ ...MESSAGES[0], luLe: lu ? '2026-11-05T12:00:00Z' : null }],
+        '/admin/messages/non-lus': () => ({ nombre: lu ? 0 : 1 }),
+        '/admin/messages/4/lu': () => {
+          lu = true;
+          return {};
+        },
+      });
+      rendreApp('/admin/messages');
+      await userEvent.click(await screen.findByRole('button', { name: /Marquer comme lu/ }));
+      await vi.waitFor(() => expect(screen.queryByText('Nouveau')).not.toBeInTheDocument());
+      expect(mock.mock.calls.find(([u]) => u === '/api/admin/messages/4/lu')[1].method).toBe(
+        'POST',
+      );
+      await vi.waitFor(() =>
+        expect(screen.getByRole('link', { name: 'Messages' })).toBeInTheDocument(),
+      ); // plus de pastille
+      expect(document.title).toBe('Espace administration · CampusLens');
+    });
+
+    it('« Tout marquer comme lu » : POST, confirmation, plus aucun « Nouveau »', async () => {
+      let tout = false;
+      const mock = connecte('admin', {
+        '/admin/messages': () =>
+          MESSAGES.map((m) => ({ ...m, luLe: tout ? '2026-11-05T12:00:00Z' : null })),
+        '/admin/messages/non-lus': () => ({ nombre: tout ? 0 : 2 }),
+        '/admin/messages/tout-lire': () => {
+          tout = true;
+          return { marques: 2 };
+        },
+      });
+      rendreApp('/admin/messages');
+      await userEvent.click(await screen.findByRole('button', { name: 'Tout marquer comme lu' }));
+      expect(await screen.findByRole('status')).toHaveTextContent(
+        'Tous les messages sont marqués comme lus.',
+      );
+      await vi.waitFor(() => expect(screen.queryByText('Nouveau')).not.toBeInTheDocument());
+      expect(mock.mock.calls.find(([u]) => u === '/api/admin/messages/tout-lire')[1].method).toBe(
+        'POST',
+      );
+      expect(
+        screen.queryByRole('button', { name: 'Tout marquer comme lu' }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it('onglet Messages : liste les messages avec expéditeur, dates et lien pour répondre', async () => {
     connecte();
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
-    const carte = (await screen.findByRole('heading', { name: 'Question sur la bourse' })).closest(
+    await userEvent.click(await screen.findByRole('link', { name: /^Messages/ }));
+    const carte = (await screen.findByRole('heading', { name: /^Question sur la bourse/ })).closest(
       'li',
     );
     expect(within(carte).getByRole('link', { name: 'etudiant@exemple.fr' })).toHaveAttribute(
@@ -464,7 +600,7 @@ describe('Espace administration', () => {
   it('un message contenant du code HTML est affiché comme du texte, jamais interprété', async () => {
     connecte();
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: /^Messages/ }));
     const texte = await screen.findByText(/<script>alert\(1\)<\/script> Le lien est cassé\./);
     expect(texte.tagName).toBe('P');
     expect(document.querySelector('script[src], .message-texte script')).toBeNull();
@@ -481,7 +617,7 @@ describe('Espace administration', () => {
     });
     const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(true);
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: /^Messages/ }));
     await userEvent.click(
       await screen.findByRole('button', { name: /^Supprimer.*Question sur la bourse/ }),
     );
@@ -489,7 +625,7 @@ describe('Espace administration', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Message supprimé.');
     await vi.waitFor(() =>
       expect(
-        screen.queryByRole('heading', { name: 'Question sur la bourse' }),
+        screen.queryByRole('heading', { name: /^Question sur la bourse/ }),
       ).not.toBeInTheDocument(),
     );
     expect(
@@ -502,7 +638,7 @@ describe('Espace administration', () => {
     const mock = connecte();
     const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: /^Messages/ }));
     await userEvent.click(
       await screen.findByRole('button', { name: /^Supprimer.*Question sur la bourse/ }),
     );
@@ -513,7 +649,7 @@ describe('Espace administration', () => {
   it('aucun message : le dit clairement ; erreur de suppression : message, pas de plantage', async () => {
     connecte('admin', { '/admin/messages': [] });
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: /^Messages/ }));
     expect(await screen.findByText(/Aucun message reçu/)).toBeInTheDocument();
     cleanup();
 
@@ -522,7 +658,7 @@ describe('Espace administration', () => {
     });
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     rendreApp('/admin');
-    await userEvent.click(await screen.findByRole('link', { name: 'Messages' }));
+    await userEvent.click(await screen.findByRole('link', { name: /^Messages/ }));
     await userEvent.click(
       await screen.findByRole('button', { name: /^Supprimer.*Question sur la bourse/ }),
     );
@@ -537,7 +673,7 @@ describe('Espace administration', () => {
       await screen.findByRole('heading', { name: /Droits d’inscription nationaux/ }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', { name: 'Question sur la bourse' }),
+      screen.queryByRole('heading', { name: /^Question sur la bourse/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -545,7 +681,7 @@ describe('Espace administration', () => {
     connecte('relecteur');
     rendreApp('/admin');
     await screen.findByRole('link', { name: 'Historique' });
-    expect(screen.queryByRole('link', { name: 'Messages' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Messages/ })).not.toBeInTheDocument();
   });
 
   describe('Mon compte : changer son mot de passe', () => {
@@ -730,8 +866,8 @@ describe('Espace administration', () => {
     await userEvent.click(screen.getByRole('link', { name: 'Historique' }));
     await screen.findByRole('table', { name: 'Dernières modifications de données' });
     expect(await violationsAxe(b.container)).toEqual([]);
-    await userEvent.click(screen.getByRole('link', { name: 'Messages' }));
-    await screen.findByRole('heading', { name: 'Question sur la bourse' });
+    await userEvent.click(screen.getByRole('link', { name: /^Messages/ }));
+    await screen.findByRole('heading', { name: /^Question sur la bourse/ });
     expect(await violationsAxe(b.container)).toEqual([]);
   });
 });

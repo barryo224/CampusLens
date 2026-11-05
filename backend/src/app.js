@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { routesPubliques } from './routes/publiques.js';
 import { routeContact } from './routes/contact.js';
 import { routeSimulation } from './routes/simulation.js';
+import { notificateurDepuisEnv } from './notifications/courriel.js';
 import { routesAdmin } from './routes/admin.js';
 import { StockageSessions } from './admin/sessions.js';
 
@@ -19,6 +20,7 @@ export function createApp({
   prisma,
   fetchImpl = fetch,
   maintenant = () => new Date(),
+  notificateur = notificateurDepuisEnv(prisma),
   urlOpenfisca = process.env.OPENFISCA_URL,
   corsOrigin = process.env.CORS_ORIGIN,
   sessionSecret = process.env.SESSION_SECRET,
@@ -95,7 +97,10 @@ export function createApp({
     '/api',
     routeSimulation(prisma, { fetchImpl, maintenant, ...(urlOpenfisca && { urlOpenfisca }) }),
   );
-  app.use('/api', routeContact(prisma, { moisConservation: moisConservationContact }));
+  app.use(
+    '/api',
+    routeContact(prisma, { moisConservation: moisConservationContact, notificateur }),
+  );
 
   // Toute route inconnue (ou méthode non prévue : PUT, DELETE…) : 404 JSON propre.
   app.use((_req, res) => res.status(404).json({ error: 'Ressource introuvable.' }));

@@ -231,6 +231,57 @@ describe('API admin : sources, changements, historique', () => {
       expect(res.body[0]).toMatchObject({ objet: 'Bourse', email: 'x@exemple.fr' });
     });
 
+    it('non lus : le compteur de la pastille ; « lu » le décrémente ; « tout lire » le remet à zéro', async () => {
+      const a = await creer('A');
+      await creer('B');
+      await creer('C');
+      expect((await admin.get('/api/admin/messages/non-lus')).body).toEqual({ nombre: 3 });
+      expect((await admin.get('/api/admin/messages')).body.every((m) => m.luLe === null)).toBe(
+        true,
+      );
+
+      expect((await admin.post(`/api/admin/messages/${a.id}/lu`)).status).toBe(204);
+      expect((await admin.get('/api/admin/messages/non-lus')).body).toEqual({ nombre: 2 });
+      expect(
+        (await admin.get('/api/admin/messages')).body.find((m) => m.id === a.id).luLe,
+      ).not.toBeNull();
+      // Idempotent : marquer deux fois ne change pas la date de lecture.
+      const premiere = (await prisma.messageContact.findUniqueOrThrow({ where: { id: a.id } }))
+        .luLe;
+      await admin.post(`/api/admin/messages/${a.id}/lu`).expect(204);
+      expect((await prisma.messageContact.findUniqueOrThrow({ where: { id: a.id } })).luLe).toEqual(
+        premiere,
+      );
+
+      expect((await admin.post('/api/admin/messages/tout-lire')).body).toEqual({ marques: 2 });
+      expect((await admin.get('/api/admin/messages/non-lus')).body).toEqual({ nombre: 0 });
+    });
+
+    it('non lus : réservé au rôle admin ; message inconnu → 404 ; identifiant invalide → 400 ; sans session → 401', async () => {
+      const m = await creer('Privé');
+      for (const [methode, url] of [
+        ['get', '/api/admin/messages/non-lus'],
+        ['post', '/api/admin/messages/tout-lire'],
+        ['post', `/api/admin/messages/${m.id}/lu`],
+      ]) {
+        expect((await relecteur[methode](url)).status, `relecteur ${url}`).toBe(403);
+        expect((await request(app)[methode](url)).status, `anonyme ${url}`).toBe(401);
+      }
+      expect(
+        (await prisma.messageContact.findUniqueOrThrow({ where: { id: m.id } })).luLe,
+      ).toBeNull(); // rien modifié
+      expect((await admin.post('/api/admin/messages/999999/lu')).status).toBe(404);
+      expect((await admin.post('/api/admin/messages/abc/lu')).status).toBe(400);
+    });
+
+    it('un nouveau message envoyé depuis le site est compté comme non lu', async () => {
+      await request(app)
+        .post('/api/contact')
+        .send({ objet: 'Bourse', email: 'x@exemple.fr', message: 'Comment faire ?' })
+        .expect(201);
+      expect((await admin.get('/api/admin/messages/non-lus')).body).toEqual({ nombre: 1 });
+    });
+
     it('suppression anticipée (droit à l’effacement) : le message disparaît ; inconnu → 404 ; id invalide → 400', async () => {
       const m = await creer('À effacer');
       expect((await admin.delete(`/api/admin/messages/${m.id}`)).status).toBe(204);

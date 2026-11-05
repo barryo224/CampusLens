@@ -217,6 +217,31 @@ export function routesAdmin(prisma, { fetchImpl = fetch } = {}) {
     res.json(messages);
   });
 
+  // Pastille « non lus » : le nombre de messages jamais ouverts.
+  r.get('/messages/non-lus', exigerRoleAdmin, async (_req, res) => {
+    res.json({ nombre: await prisma.messageContact.count({ where: { luLe: null } }) });
+  });
+
+  r.post('/messages/tout-lire', exigerRoleAdmin, async (_req, res) => {
+    const { count } = await prisma.messageContact.updateMany({
+      where: { luLe: null },
+      data: { luLe: new Date() },
+    });
+    res.json({ marques: count });
+  });
+
+  r.post('/messages/:id/lu', exigerRoleAdmin, async (req, res) => {
+    const id = valider(idSchema, req.params.id);
+    if (!(await prisma.messageContact.findUnique({ where: { id }, select: { id: true } }))) {
+      return res.status(404).json({ error: 'Message introuvable.' });
+    }
+    await prisma.messageContact.updateMany({
+      where: { id, luLe: null },
+      data: { luLe: new Date() },
+    });
+    res.status(204).end();
+  });
+
   r.delete('/messages/:id', exigerRoleAdmin, async (req, res) => {
     const id = valider(idSchema, req.params.id);
     const { count } = await prisma.messageContact.deleteMany({ where: { id } });

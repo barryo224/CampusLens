@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, NavLink, Navigate, Outlet, useOutletContext } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, NavLink, Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom';
 import Logo from '../components/Logo.jsx';
 import MessageErreur from '../components/MessageErreur.jsx';
 import ZoneDefilante from '../components/ZoneDefilante.jsx';
@@ -398,7 +398,7 @@ function Historique({ role }) {
   );
 }
 
-function Messages() {
+function Messages({ surChangement }) {
   // Pendant un rechargement (après une action), la liste précédente reste affichée : la confirmation apparaît tout de suite.
   const { data, erreur, recharger } = useApi('/admin/messages', { garderAnciennes: true });
   const [message, setMessage] = useState(null);
@@ -410,6 +410,30 @@ function Messages() {
       </p>
     );
 
+  const nonLus = data.filter((m) => !m.luLe).length;
+
+  async function marquerLu(m) {
+    try {
+      await post(`/admin/messages/${m.id}/lu`, {});
+      recharger();
+      surChangement?.();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  async function toutLire() {
+    setMessage(null);
+    try {
+      await post('/admin/messages/tout-lire', {});
+      setMessage('Tous les messages sont marqués comme lus.');
+      recharger();
+      surChangement?.();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
   async function effacer(m) {
     if (!window.confirm(`Supprimer définitivement le message « ${m.objet} » de ${m.email} ?`))
       return;
@@ -418,6 +442,7 @@ function Messages() {
       await supprimer(`/admin/messages/${m.id}`);
       setMessage('Message supprimé.');
       recharger();
+      surChangement?.();
     } catch (err) {
       setMessage(err.message);
     }
@@ -433,6 +458,16 @@ function Messages() {
           {message}
         </p>
       )}
+      {nonLus > 0 && (
+        <p className="barre-admin">
+          <strong>
+            {nonLus} message{nonLus > 1 ? 's' : ''} non lu{nonLus > 1 ? 's' : ''}
+          </strong>
+          <button type="button" className="bouton bouton-secondaire" onClick={toutLire}>
+            Tout marquer comme lu
+          </button>
+        </p>
+      )}
       {data.length === 0 ? (
         <p className="message">Aucun message reçu pour l’instant.</p>
       ) : (
@@ -440,8 +475,11 @@ function Messages() {
           <h2 className="sr-only">Messages reçus</h2>
           <ul className="grille" style={{ listStyle: 'none', padding: 0 }}>
             {data.map((m) => (
-              <li key={m.id} className="carte changement">
-                <h3>{m.objet}</h3>
+              <li key={m.id} className={`carte changement${m.luLe ? '' : ' message-non-lu'}`}>
+                <h3>
+                  {m.objet}
+                  {!m.luLe && <span className="badge badge-orange badge-nouveau">Nouveau</span>}
+                </h3>
                 <p className="fraicheur">
                   De <a href={`mailto:${m.email}`}>{m.email}</a> · reçu le{' '}
                   {formaterDateHeure(m.creeLe)} · supprimé automatiquement le{' '}
@@ -450,7 +488,7 @@ function Messages() {
                 <p className="message-texte">{m.message}</p>
                 <div
                   className="resultat-actions"
-                  style={{ gridTemplateColumns: 'auto auto', justifyContent: 'start' }}
+                  style={{ gridTemplateColumns: 'repeat(3, auto)', justifyContent: 'start' }}
                 >
                   <a
                     className="bouton"
@@ -458,6 +496,15 @@ function Messages() {
                   >
                     Répondre<span className="sr-only"> à {m.email}</span>
                   </a>
+                  {!m.luLe && (
+                    <button
+                      type="button"
+                      className="bouton bouton-secondaire"
+                      onClick={() => marquerLu(m)}
+                    >
+                      Marquer comme lu<span className="sr-only"> : {m.objet}</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="bouton bouton-secondaire"
@@ -601,10 +648,10 @@ export const PageChangements = () => <Changements />;
 export const PageSources = () => <Sources role={useOutletContext().admin.role} />;
 export const PageHistorique = () => <Historique role={useOutletContext().admin.role} />;
 export function PageMessages() {
-  const { admin } = useOutletContext();
+  const { admin, rafraichirNonLus } = useOutletContext();
   // Un « relecteur » qui tape l'adresse à la main est ramené à une page qu'il peut voir.
   if (admin.role !== 'admin') return <Navigate to="/admin/changements" replace />;
-  return <Messages />;
+  return <Messages surChangement={rafraichirNonLus} />;
 }
 export const PageCompte = () => <MonCompte />;
 export const AccueilAdmin = () => <Navigate to="/admin/changements" replace />;
@@ -614,9 +661,27 @@ export const AccueilAdmin = () => <Navigate to="/admin/changements" replace />;
  * Un lien « Voir le site » permet d'en sortir volontairement ; la session reste ouverte.
  */
 export default function AdminLayout() {
-  usePageTitre('Espace administration');
   const [admin, setAdmin] = useState(undefined); // undefined = on vérifie ; null = non connecté
   const [erreur, setErreur] = useState(null);
+  const [nonLus, setNonLus] = useState(0);
+  const { pathname } = useLocation();
+  // « (2) Espace administration » : on voit qu'un message attend, même depuis un autre onglet du navigateur.
+  usePageTitre(nonLus > 0 ? `(${nonLus}) Espace administration` : 'Espace administration');
+
+  const rafraichirNonLus = useCallback(() => {
+    get('/admin/messages/non-lus')
+      .then((r) => setNonLus(Number(r?.nombre) || 0))
+      .catch(() => {}); // une erreur passagère ne doit pas gêner : on garde le dernier nombre connu
+  }, []);
+
+  // Seul le rôle « admin » voit les messages. Mise à jour à l'ouverture, à chaque changement de page,
+  // puis toutes les minutes tant que l'onglet reste ouvert.
+  useEffect(() => {
+    if (admin?.role !== 'admin') return undefined;
+    rafraichirNonLus();
+    const minuterie = setInterval(rafraichirNonLus, 60_000);
+    return () => clearInterval(minuterie);
+  }, [admin, pathname, rafraichirNonLus]);
 
   useEffect(() => {
     // Page non publique : on demande aux moteurs de recherche de ne pas l'indexer.
@@ -665,6 +730,19 @@ export default function AdminLayout() {
             {SECTIONS.filter((o) => !o.roleRequis || o.roleRequis === admin.role).map((o) => (
               <NavLink key={o.chemin} to={`/admin/${o.chemin}`}>
                 {o.libelle}
+                {o.chemin === 'messages' && nonLus > 0 && ' '}
+                {o.chemin === 'messages' && nonLus > 0 && (
+                  <>
+                    {/* Pastille visuelle (décorative) + phrase complète pour les lecteurs d'écran. */}
+                    <span className="pastille-compteur" aria-hidden="true">
+                      {nonLus > 99 ? '99+' : nonLus}
+                    </span>
+                    <span className="sr-only">
+                      {' '}
+                      {nonLus > 99 ? '99+' : nonLus} non lu{nonLus > 1 ? 's' : ''}
+                    </span>
+                  </>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -701,7 +779,7 @@ export default function AdminLayout() {
         )}
         {erreur && <MessageErreur erreur={erreur} />}
         {admin === null && <Connexion surConnecte={setAdmin} />}
-        {admin && <Outlet context={{ admin }} />}
+        {admin && <Outlet context={{ admin, rafraichirNonLus }} />}
       </main>
     </div>
   );

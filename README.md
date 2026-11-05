@@ -85,6 +85,15 @@ ADMIN_EMAIL=vous@exemple.fr ADMIN_PASSWORD='un mot de passe de 12+ caractères' 
 Il permet de valider ou rejeter les changements détectés sur les pages web, de suivre l'état des sources, de lancer
 un robot et d'annuler une modification (rôle `admin`).
 
+### Savoir qu'on vous a écrit
+
+- **Pastille « non lus »** sur « Messages » dans l'administration, visible sur toutes ses pages, et nombre dans le titre
+  de l'onglet : « (2) Espace administration ». Les messages ont un état lu / non lu.
+- **E-mail de prévenance (facultatif)** : renseigner `SMTP_URL`, `NOTIFICATION_EMAIL` (et `SITE_URL`) dans `backend/.env`
+  (exemple Gmail dans `.env.example` : il faut un « mot de passe d'application »). Pour vérifier la configuration :
+  `npm run notif:tester -w backend`. Le courriel ne contient **jamais** le message ni l'expéditeur, seulement le nombre
+  de messages non lus et un lien ; au plus un courriel toutes les 10 minutes (les messages sont regroupés).
+
 ## Sécurité et vie privée
 
 - Le simulateur calcule dans le navigateur : aucun montant n'est envoyé.
