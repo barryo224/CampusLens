@@ -1259,10 +1259,10 @@ export const TARIFS_TRANSPORT = [
     reseau: 'Citura',
     typeTarif: 'etudiant',
     libelle: 'Abonnement étudiant',
-    montantAnnuel: 267.36,
-    montantMensuel: 29.7,
+    montantAnnuel: 280,
+    montantMensuel: 31,
     conditions:
-      'Mensuel 29,70 €, annuel 267,36 € (+4 € si prélevé). Tarif affiché au 1er août 2023 sur la page officielle : à confirmer auprès de Citura.',
+      'Étudiants de l’enseignement supérieur (justificatif demandé) : 31 € par mois ou 280 € par an.',
     urlTarifs:
       'https://www.citura.fr/fr/tarifs/7/Fare/abonnement-annuel-etudiant/3?Profile=All&Frequency=All',
   },
