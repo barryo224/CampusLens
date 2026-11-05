@@ -3,9 +3,12 @@
 //   ex. : node scripts/test-charge.mjs http://localhost:3101 10 10,50,100,200
 // Chaque « visiteur » enchaîne des requêtes (comme quelqu'un qui navigue), sans aucune pause, ce qui est plus dur que la réalité.
 // Aucune dépendance : http natif de Node. Le test LIT seulement (aucune écriture en base).
-import http from 'node:http';
+import httpSimple from 'node:http';
+import https from 'node:https';
 
 const BASE = new URL(process.argv[2] ?? 'http://localhost:3101');
+// Adresse en https:// (site en ligne) ou http:// (local).
+const http = BASE.protocol === 'https:' ? https : httpSimple;
 const SECONDES = Number(process.argv[3] ?? 10);
 // Comme un vrai navigateur : il demande les réponses compressées (la charge de compression pèse donc sur le serveur).
 const RAMPE_MS = Number(process.env.RAMPE_MS ?? 0);
