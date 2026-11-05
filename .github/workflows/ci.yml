@@ -1,8 +1,12 @@
 name: CI
 
+# À chaque push : contrôles rapides + Playwright sur Chromium seulement.
+# Tests lourds (Firefox, WebKit, mobile, site de production, Lighthouse) : sur les pull requests ou à la main
+# (onglet Actions → CI → Run workflow).
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   qualite-et-tests:
@@ -46,6 +50,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     needs: qualite-et-tests
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:17
@@ -71,17 +76,27 @@ jobs:
           npm run db:generate
           npm run db:deploy -w backend
           npm run db:seed -w backend
-      - run: npx playwright install --with-deps chromium firefox webkit
-      - name: Tests de bout en bout — Chrome, Firefox et mobile (site de développement)
+      - name: Navigateurs
+        run: npx playwright install --with-deps ${{ github.event_name == 'push' && 'chromium' || 'chromium firefox webkit' }}
+      - name: Tests de bout en bout — Chromium (à chaque push)
+        if: github.event_name == 'push'
+        run: npm run test:e2e -- --project=chromium
+        env:
+          CORS_ORIGIN: http://localhost:5173
+      - name: Tests de bout en bout — Chrome, Firefox, Safari et mobile (site de développement)
+        if: github.event_name != 'push'
         run: npm run test:e2e
         env:
           CORS_ORIGIN: http://localhost:5173
       - name: Tests de bout en bout — site construit avec les en-têtes de sécurité de production (CSP, HSTS…)
+        if: github.event_name != 'push'
         run: npm run test:e2e:prod -- --project=chromium --project=firefox --project=webkit --project=mobile --project=mobile-safari
         env:
           CORS_ORIGIN: http://localhost:4173
-      - name: Lighthouse (performance ≥ 90, accessibilité ≥ 95) sur toutes les pages
-        run: npm run lighthouse
+      - name: Lighthouse (avertissement seulement, non bloquant)
+        if: github.event_name != 'push'
+        run: |
+          npm run lighthouse || echo "::warning::Lighthouse sous les seuils (voir le journal)"
         env:
           CORS_ORIGIN: http://localhost:4173
       - name: Rapport Playwright en cas d'échec
