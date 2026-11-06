@@ -38,7 +38,8 @@ export async function get(chemin, { signal, controle = false } = {}) {
   try {
     reponse = await fetch(`${BASE}/api${chemin}`, {
       signal,
-      headers: { Accept: 'application/json' },
+      // « X-Controle » : le serveur ne compte pas cette requête comme une action de l'administrateur (délai d'inactivité).
+      headers: { Accept: 'application/json', ...(controle ? { 'X-Controle': '1' } : {}) },
     });
   } catch (e) {
     if (e?.name === 'AbortError') throw e;

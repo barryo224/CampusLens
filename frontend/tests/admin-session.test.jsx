@@ -167,6 +167,24 @@ describe('Session d’administration expirée', () => {
   });
 });
 
+describe('Contrôles d’arrière-plan', () => {
+  it('le contrôle de la session et le compteur de non lus se signalent au serveur (ils ne comptent pas comme une action)', async () => {
+    const mock = simulerApi({
+      '/admin/me': COMPTE,
+      '/admin/2fa': { actif: true },
+      '/admin/messages/non-lus': { nombre: 0, avis: 0 },
+    });
+    rendreApp('/admin/compte');
+    await screen.findByRole('heading', { name: 'Changer mon mot de passe' });
+    const appels = mock.mock.calls.filter(([u]) => u.includes('/admin/messages/non-lus'));
+    expect(appels.length).toBeGreaterThan(0);
+    for (const [, options] of appels) expect(options.headers['X-Controle']).toBe('1');
+    // La lecture de la page elle-même (contrôle initial du compte, double authentification) est une vraie action.
+    const initial = mock.mock.calls.find(([u]) => u === '/api/admin/me');
+    expect(initial[1].headers['X-Controle']).toBeUndefined();
+  });
+});
+
 describe('Déconnexion automatique après inactivité', () => {
   const lancer = async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
@@ -185,12 +203,12 @@ describe('Déconnexion automatique après inactivité', () => {
       await vi.advanceTimersByTimeAsync(minutes * 60_000);
     });
 
-  it('30 minutes sans aucun geste : déconnexion, message clair, et la page demandée reste la même', async () => {
+  it('20 minutes sans aucun geste : déconnexion, message clair, et la page demandée reste la même', async () => {
     const mock = await lancer();
-    await avancer(31);
+    await avancer(21);
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(
-      'déconnecté après 30 minutes d’inactivité',
+      'déconnecté après 20 minutes d’inactivité',
     );
     expect(mock.mock.calls.some(([u]) => u === '/api/admin/logout')).toBe(true); // la session est aussi fermée côté serveur
     expect(screen.queryByRole('navigation', { name: 'Sections de l’administration' })).toBeNull();
@@ -198,14 +216,14 @@ describe('Déconnexion automatique après inactivité', () => {
 
   it('un geste (touche, clic, toucher, défilement) repousse la déconnexion', async () => {
     await lancer();
-    await avancer(20);
+    await avancer(12);
     act(() => {
       window.dispatchEvent(new Event('keydown'));
     });
-    await avancer(20); // 40 minutes en tout, mais seulement 20 depuis le dernier geste
+    await avancer(12); // 24 minutes en tout, mais seulement 12 depuis le dernier geste
     expect(screen.queryByRole('heading', { name: 'Connexion' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Changer mon mot de passe' })).toBeInTheDocument();
-    await avancer(11); // 31 minutes sans geste
+    await avancer(9); // 21 minutes sans geste
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
   });
 });

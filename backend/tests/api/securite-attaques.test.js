@@ -145,6 +145,61 @@ describe('Attaques simulées', () => {
       expect(expiree.body.code).toBe('session_expiree');
     });
 
+    describe('inactivité : on ne reste pas connecté indéfiniment sans rien faire', () => {
+      /** Modifie la session enregistrée en base (on « vieillit » le temps sans attendre). */
+      const modifierSession = async (changements) => {
+        const ligne = await prisma.sessionAdmin.findFirstOrThrow();
+        await prisma.sessionAdmin.update({
+          where: { sid: ligne.sid },
+          data: { donnees: { ...ligne.donnees, ...changements } },
+        });
+      };
+      const lireSession = async () => (await prisma.sessionAdmin.findFirstOrThrow()).donnees;
+
+      it('la connexion enregistre l’heure de la dernière action', async () => {
+        const app = createApp({ prisma });
+        await connecte(app);
+        expect(Date.now() - (await lireSession()).derniereActivite).toBeLessThan(5_000);
+      });
+
+      it('plus de 20 minutes sans aucune action : session refusée, même si le navigateur garde son cookie', async () => {
+        const app = createApp({ prisma });
+        const admin = await connecte(app);
+        expect((await admin.get('/api/admin/me')).status).toBe(200);
+        await modifierSession({ derniereActivite: Date.now() - 21 * 60_000 });
+        const res = await admin.get('/api/admin/me');
+        expect(res.status).toBe(401);
+        expect(res.body.code).toBe('session_expiree');
+        expect(res.body.error).toMatch(/inactivité/);
+        // La session a été détruite côté serveur : le même cookie ne rouvre plus rien.
+        expect((await admin.get('/api/admin/me')).status).toBe(401);
+        expect(await prisma.sessionAdmin.count()).toBe(0);
+      });
+
+      it('moins de 20 minutes : la session reste valable, et chaque vraie action repousse l’échéance', async () => {
+        const app = createApp({ prisma });
+        const admin = await connecte(app);
+        await modifierSession({ derniereActivite: Date.now() - 15 * 60_000 });
+        expect((await admin.get('/api/admin/changements')).status).toBe(200); // une vraie action
+        expect(Date.now() - (await lireSession()).derniereActivite).toBeLessThan(5_000);
+      });
+
+      it('les requêtes d’arrière-plan du site (en-tête X-Controle) ne prolongent PAS la session', async () => {
+        const app = createApp({ prisma });
+        const admin = await connecte(app);
+        const il_y_a_19_min = Date.now() - 19 * 60_000;
+        await modifierSession({ derniereActivite: il_y_a_19_min });
+        // Un onglet laissé ouvert interroge le serveur chaque minute : cela ne doit pas garder la session en vie.
+        expect((await admin.get('/api/admin/me').set('X-Controle', '1')).status).toBe(200);
+        expect((await lireSession()).derniereActivite).toBe(il_y_a_19_min);
+        // …et une fois le délai dépassé, ce même contrôle constate l’expiration.
+        await modifierSession({ derniereActivite: Date.now() - 21 * 60_000 });
+        const res = await admin.get('/api/admin/me').set('X-Controle', '1');
+        expect(res.status).toBe(401);
+        expect(res.body.code).toBe('session_expiree');
+      });
+    });
+
     it('en production, le cookie de session est protégé (Secure, HttpOnly, SameSite=Strict, préfixe __Host-)', async () => {
       const app = createApp({
         prisma,

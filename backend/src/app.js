@@ -9,7 +9,7 @@ import { routeContact } from './routes/contact.js';
 import { routeAvis } from './routes/avis.js';
 import { routeSimulation } from './routes/simulation.js';
 import { notificateurDepuisEnv } from './notifications/courriel.js';
-import { routesAdmin } from './routes/admin.js';
+import { routesAdmin, INACTIVITE_MAX_MS } from './routes/admin.js';
 import { StockageSessions } from './admin/sessions.js';
 import { METHODES_ECRITURE, origineAutorisee } from './lib/securite.js';
 import { nomCookieSession } from './lib/cookie.js';
@@ -139,7 +139,8 @@ export function createApp({
         httpOnly: true,
         secure: production,
         sameSite: 'strict',
-        maxAge: 2 * 60 * 60 * 1000,
+        // Le cookie lui-même expire après le délai d'inactivité (renouvelé à chaque requête, voir « rolling »).
+        maxAge: INACTIVITE_MAX_MS,
       },
     }),
     routesAdmin(prisma, { fetchImpl, production, chiffreur }),

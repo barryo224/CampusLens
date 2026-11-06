@@ -34,6 +34,10 @@ export const DUREE_ATTENTE_CODE_MS = 5 * 60 * 1000;
 export const ESSAIS_CODE_PAR_CONNEXION = 5;
 /** Une session s'éteint au plus tard 12 h après la connexion, même si on l'utilise sans arrêt. */
 export const DUREE_ABSOLUE_SESSION_MS = 12 * 60 * 60 * 1000;
+// Inactivité : une session sans AUCUNE action de l'administrateur pendant ce délai est refusée par le serveur, même si le
+// navigateur garde le cookie et même si l'onglet est resté ouvert. Les requêtes d'arrière-plan du site (contrôle de la
+// session, compteur de non lus), signalées par l'en-tête « X-Controle: 1 », ne comptent pas comme une action.
+export const INACTIVITE_MAX_MS = 20 * 60 * 1000;
 /** Après 10 échecs de connexion d'affilée, le compte est verrouillé 15 minutes (quelle que soit l'adresse IP de l'attaquant). */
 export const ECHECS_AVANT_VERROU = 10;
 export const DUREE_VERROU_MS = 15 * 60 * 1000;
@@ -63,6 +67,10 @@ const HASH_FACTICE = bcrypt.hashSync('mot-de-passe-factice', 12);
 // et d'ouvrir la fenêtre de reconnexion sans perdre ce que l'administrateur était en train de saisir.
 const SESSION_REQUISE = { error: 'Authentification requise.', code: 'session_expiree' };
 const SESSION_EXPIREE = { error: 'Session expirée : reconnectez-vous.', code: 'session_expiree' };
+const SESSION_INACTIVE = {
+  error: 'Session expirée par inactivité : reconnectez-vous.',
+  code: 'session_expiree',
+};
 
 /** Garde : toute route admin exige une session ouverte. */
 export function exigerAdmin(req, res, next) {
@@ -74,6 +82,11 @@ export function exigerAdmin(req, res, next) {
   if (Date.now() - (req.session.connecteLe ?? 0) > DUREE_ABSOLUE_SESSION_MS) {
     return req.session.destroy(() => res.status(401).json(SESSION_EXPIREE));
   }
+  const derniereActivite = req.session.derniereActivite ?? req.session.connecteLe ?? 0;
+  if (Date.now() - derniereActivite > INACTIVITE_MAX_MS) {
+    return req.session.destroy(() => res.status(401).json(SESSION_INACTIVE));
+  }
+  if (req.get('X-Controle') !== '1') req.session.derniereActivite = Date.now();
   next();
 }
 
@@ -120,6 +133,7 @@ export function routesAdmin(
     await regenerer(req); // nouvelle session à chaque connexion (évite la fixation de session)
     req.session.adminId = admin.id;
     req.session.connecteLe = Date.now(); // pour la durée absolue de la session
+    req.session.derniereActivite = Date.now(); // pour le délai d'inactivité
     await prisma.administrateur.update({
       where: { id: admin.id },
       data: { derniereConnexion: new Date(), echecsConsecutifs: 0, verrouilleJusqua: null },
@@ -506,6 +520,7 @@ export function routesAdmin(
     );
     req.session.adminId = admin.id;
     req.session.connecteLe = connecteLe;
+    req.session.derniereActivite = Date.now();
     res.json({ message: 'Mot de passe modifié.' });
   });
 
