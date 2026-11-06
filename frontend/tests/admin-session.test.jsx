@@ -81,37 +81,27 @@ describe('Session d’administration expirée', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('une page qui n’a pas pu se charger est rechargée après la reconnexion', async () => {
-    let messagesDemandes = 0;
+  it('une page qui n’a pas pu se charger (session finie) : déconnexion avec un avertissement jaune ; la reconnexion repart de l’accueil de l’administration', async () => {
     simulerApi({
       '/admin/me': COMPTE,
       '/admin/messages/non-lus': { nombre: 0, avis: 0 },
-      '/admin/messages': () => {
-        messagesDemandes += 1;
-        return messagesDemandes === 1
-          ? SESSION_TERMINEE
-          : [
-              {
-                id: 1,
-                objet: 'Question sur la bourse',
-                email: 'a@exemple.fr',
-                message: 'Bonjour',
-                creeLe: '2026-11-05T09:30:00Z',
-                supprimerApres: '2027-05-05T09:30:00Z',
-                luLe: null,
-              },
-            ];
-      },
+      '/admin/messages': SESSION_TERMINEE,
       '/admin/login': COMPTE,
+      '/admin/changements': [],
     });
     rendreApp('/admin/messages');
-    const fenetre = await screen.findByRole('dialog', { name: 'Reconnexion' });
-    await userEvent.type(within(fenetre).getByLabelText('Mot de passe'), 'le-bon-mot-de-passe');
-    await userEvent.click(within(fenetre).getByRole('button', { name: 'Se connecter' }));
-    expect(
-      await screen.findByRole('heading', { name: /^Question sur la bourse/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
+    const avertissement = screen.getByRole('status');
+    expect(avertissement).toHaveTextContent('Session expirée. Veuillez vous reconnecter.');
+    expect(avertissement).toHaveClass('message-avertissement');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(avertissement).not.toHaveTextContent(/20 minutes|inactivité/);
+
+    await userEvent.type(screen.getByLabelText('Mot de passe'), 'le-bon-mot-de-passe');
+    await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
+    // On arrive sur l'accueil de l'administration (« Changements à valider »), pas sur la page « Messages » d'avant.
+    expect(await screen.findByText(/Aucun changement à valider/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /^Messages/ })).not.toBeInTheDocument();
   });
 
   it('le contrôle régulier de la session ouvre la reconnexion même si l’on ne touche à rien', async () => {
@@ -131,8 +121,12 @@ describe('Session d’administration expirée', () => {
       await vi.advanceTimersByTimeAsync(61_000);
     });
     expect(
-      await screen.findByRole('dialog', { name: 'Reconnexion' }, { timeout: 4000 }),
+      await screen.findByRole('heading', { name: 'Connexion' }, { timeout: 4000 }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Session expirée. Veuillez vous reconnecter.',
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('au retour sur l’onglet, la session est contrôlée tout de suite', async () => {
@@ -164,6 +158,30 @@ describe('Session d’administration expirée', () => {
     });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
+  });
+});
+
+describe('Déconnexion volontaire', () => {
+  it('on se déconnecte depuis une page précise, puis on se reconnecte : on arrive à l’accueil de l’administration, pas sur la même page', async () => {
+    simulerApi({
+      '/admin/me': COMPTE,
+      '/admin/2fa': { actif: true },
+      '/admin/messages/non-lus': { nombre: 0, avis: 0 },
+      '/admin/historique': [],
+      '/admin/changements': [],
+      '/admin/logout': {},
+      '/admin/login': COMPTE,
+    });
+    rendreApp('/admin/historique');
+    await screen.findByRole('button', { name: 'Se déconnecter' });
+    await userEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }));
+    expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
+    expect(screen.queryByRole('status')).toBeNull(); // déconnexion voulue : aucun avertissement
+
+    await userEvent.type(screen.getByLabelText('Adresse e-mail'), COMPTE.email);
+    await userEvent.type(screen.getByLabelText('Mot de passe'), 'le-bon-mot-de-passe');
+    await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
+    expect(await screen.findByText(/Aucun changement à valider/)).toBeInTheDocument();
   });
 });
 
@@ -203,13 +221,14 @@ describe('Déconnexion automatique après inactivité', () => {
       await vi.advanceTimersByTimeAsync(minutes * 60_000);
     });
 
-  it('20 minutes sans aucun geste : déconnexion, message clair, et la page demandée reste la même', async () => {
+  it('20 minutes sans aucun geste : déconnexion, avertissement « Session expirée » (sans explication sur les 20 minutes)', async () => {
     const mock = await lancer();
     await avancer(21);
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'déconnecté après 20 minutes d’inactivité',
-    );
+    const avertissement = screen.getByRole('status');
+    expect(avertissement).toHaveTextContent('Session expirée. Veuillez vous reconnecter.');
+    expect(avertissement).toHaveClass('message-avertissement');
+    expect(avertissement).not.toHaveTextContent(/20 minutes|inactivité/);
     expect(mock.mock.calls.some(([u]) => u === '/api/admin/logout')).toBe(true); // la session est aussi fermée côté serveur
     expect(screen.queryByRole('navigation', { name: 'Sections de l’administration' })).toBeNull();
   });

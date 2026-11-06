@@ -1313,6 +1313,15 @@ a {
 .message-erreur {
   margin-bottom: 16px;
 }
+/* Avertissement jaune (ex. « Session expirée ») : ni une erreur, ni une confirmation. */
+.message-avertissement {
+  border-color: #f3c775;
+  border-left: 5px solid var(--accent);
+  background: #fff6dc;
+  color: #5c3a00;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
 .texte-long {
   max-width: 760px;
 }

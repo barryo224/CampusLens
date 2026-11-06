@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, NavLink, Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom';
+import {
+  Link,
+  NavLink,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useOutletContext,
+} from 'react-router-dom';
 import Logo from '../components/Logo.jsx';
 import MessageErreur from '../components/MessageErreur.jsx';
 import ZoneDefilante from '../components/ZoneDefilante.jsx';
@@ -279,7 +287,7 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
         {titre}
       </h2>
       {avis && (
-        <p className="message" role="status">
+        <p className="message message-avertissement" role="status">
           {avis}
         </p>
       )}
@@ -1457,7 +1465,15 @@ export default function AdminLayout() {
   // La session s'est terminée alors qu'une page était ouverte : { lecture } (une lecture a échoué). La page reste affichée
   // sous la fenêtre de reconnexion, donc rien de ce qui était saisi n'est perdu.
   const [expiree, setExpiree] = useState(null);
-  const [motif, setMotif] = useState(null); // 'inactivite' : message affiché après une déconnexion automatique
+  const [motif, setMotif] = useState(null); // 'expiree' : avertissement jaune affiché après une déconnexion automatique
+  const navigate = useNavigate();
+  const [dernierEmail, setDernierEmail] = useState(''); // pour préremplir l'adresse après « Session expirée »
+  const emailRef = useRef('');
+  const memoriserAdmin = useCallback((compte) => {
+    if (compte?.email) emailRef.current = compte.email;
+    setAdmin(compte);
+  }, []);
+  const dernierGesteRef = useRef(0); // dernier geste de l'administrateur (voir le contrôle de session)
   const [cleContenu, setCleContenu] = useState(0); // change après une reconnexion pour recharger une page qui n'a pas pu se charger
   const [nonLus, setNonLus] = useState(0);
   const [avisNonLus, setAvisNonLus] = useState(0);
@@ -1503,7 +1519,7 @@ export default function AdminLayout() {
 
   useEffect(() => {
     get('/admin/me')
-      .then(setAdmin)
+      .then(memoriserAdmin)
       .catch((e) => {
         if (e instanceof ErreurApi && e.status === 401) setAdmin(null);
         else {
@@ -1511,26 +1527,42 @@ export default function AdminLayout() {
           setErreur(e);
         }
       });
-  }, []);
+  }, [memoriserAdmin]);
 
   const connecte = Boolean(admin);
 
   // Le serveur dit que la session est terminée (n'importe quelle requête de la page) : fenêtre de reconnexion.
   useEffect(() => {
     if (!connecte) return undefined;
-    const surExpiration = (e) =>
-      setExpiree((avant) => ({ lecture: Boolean(avant?.lecture) || Boolean(e.detail?.lecture) }));
+    const surExpiration = (e) => {
+      // Une page n'a pas pu se charger (ou un contrôle a échoué) : rien n'était en cours de saisie, on déconnecte et on
+      // revient à l'accueil de l'administration. Une action refusée (enregistrer, envoyer…) garde sa page sous la fenêtre
+      // de reconnexion, pour ne rien perdre de ce qui était saisi.
+      // Un contrôle d'arrière-plan qui trouve la session finie alors que personne ne touche à rien : même chose.
+      const inactif = Date.now() - dernierGesteRef.current > 30_000;
+      if (e.detail?.lecture || (e.detail?.controle && inactif)) {
+        setExpiree(null);
+        setMotif('expiree');
+        setDernierEmail(emailRef.current);
+        setAdmin(null);
+        navigate('/admin', { replace: true });
+        return;
+      }
+      setExpiree({ lecture: false });
+    };
     window.addEventListener(EVENEMENT_SESSION_EXPIREE, surExpiration);
     return () => window.removeEventListener(EVENEMENT_SESSION_EXPIREE, surExpiration);
-  }, [connecte]);
+  }, [connecte, navigate]);
 
   // Tant que la session est ouverte : contrôle chaque minute et au retour sur l'onglet, et déconnexion après 20 minutes
   // sans aucun geste (clic, touche, toucher, défilement). Un contrôle qui trouve la session terminée ouvre la fenêtre de reconnexion.
   useEffect(() => {
     if (!connecte || expiree) return undefined;
     let dernierGeste = Date.now();
+    dernierGesteRef.current = dernierGeste;
     const noter = () => {
       dernierGeste = Date.now();
+      dernierGesteRef.current = dernierGeste;
     };
     const gestes = ['pointerdown', 'pointermove', 'keydown', 'touchstart', 'wheel', 'scroll'];
     gestes.forEach((g) => window.addEventListener(g, noter, { passive: true, capture: true }));
@@ -1542,8 +1574,10 @@ export default function AdminLayout() {
           // La session est peut-être déjà terminée : on quitte l'écran quand même.
         }
         setExpiree(null);
-        setMotif('inactivite');
+        setMotif('expiree');
+        setDernierEmail(emailRef.current);
         setAdmin(null);
+        navigate('/admin', { replace: true });
         return;
       }
       get('/admin/me', { controle: true }).catch(() => {});
@@ -1560,11 +1594,11 @@ export default function AdminLayout() {
       document.removeEventListener('visibilitychange', auRetour);
       window.removeEventListener('focus', auRetour);
     };
-  }, [connecte, expiree]);
+  }, [connecte, expiree, navigate]);
 
   // Connexion réussie (première fois ou après une session expirée).
   function surConnexion(compte) {
-    setAdmin(compte);
+    memoriserAdmin(compte);
     if (expiree?.lecture) setCleContenu((n) => n + 1); // une page n'a pas pu se charger : on la recharge
     setExpiree(null);
     setMotif(null);
@@ -1573,9 +1607,9 @@ export default function AdminLayout() {
   // Relit le compte (par exemple après avoir activé la double authentification).
   const rafraichirAdmin = useCallback(() => {
     get('/admin/me')
-      .then(setAdmin)
+      .then(memoriserAdmin)
       .catch(() => {});
-  }, []);
+  }, [memoriserAdmin]);
 
   async function deconnecter() {
     try {
@@ -1586,6 +1620,7 @@ export default function AdminLayout() {
     setExpiree(null);
     setMotif(null);
     setAdmin(null);
+    navigate('/admin', { replace: true }); // une nouvelle connexion repart de l'accueil de l'administration
   }
 
   return (
@@ -1676,11 +1711,8 @@ export default function AdminLayout() {
         {admin === null && (
           <Connexion
             surConnecte={surConnexion}
-            message={
-              motif === 'inactivite'
-                ? 'Vous avez été déconnecté après 20 minutes d’inactivité, par sécurité. Reconnectez-vous pour continuer.'
-                : null
-            }
+            message={motif === 'expiree' ? 'Session expirée. Veuillez vous reconnecter.' : null}
+            emailInitial={motif === 'expiree' ? dernierEmail : ''}
           />
         )}
         {/* Rappel tant que la double authentification n'est pas activée (sauf sur la page qui la propose). */}
@@ -1702,7 +1734,7 @@ export default function AdminLayout() {
             <Connexion
               surConnecte={surConnexion}
               titre="Session expirée"
-              message="Votre session a expiré. Reconnectez-vous pour continuer : ce que vous étiez en train de saisir est conservé."
+              message="Session expirée. Reconnectez-vous : ce que vous étiez en train de saisir est conservé."
               emailInitial={admin.email}
             />
           </div>

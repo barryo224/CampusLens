@@ -23,9 +23,11 @@ export const MESSAGE_SESSION_EXPIREE =
   'Votre session a expiré. Reconnectez-vous, puis recommencez.';
 
 /** Si la réponse d'erreur signifie « session expirée », prévient l'application et renvoie l'erreur à lever. */
-function erreurDeSession(reponse, donnees, { lecture }) {
+function erreurDeSession(reponse, donnees, { lecture, controle = false }) {
   if (reponse.status !== 401 || donnees?.code !== 'session_expiree') return null;
-  window.dispatchEvent(new CustomEvent(EVENEMENT_SESSION_EXPIREE, { detail: { lecture } }));
+  window.dispatchEvent(
+    new CustomEvent(EVENEMENT_SESSION_EXPIREE, { detail: { lecture, controle } }),
+  );
   return new ErreurApi(MESSAGE_SESSION_EXPIREE, { status: 401 });
 }
 
@@ -48,7 +50,7 @@ export async function get(chemin, { signal, controle = false } = {}) {
   if (!reponse.ok) {
     const donnees = await reponse.json().catch(() => ({}));
     throw (
-      erreurDeSession(reponse, donnees, { lecture: !controle }) ??
+      erreurDeSession(reponse, donnees, { lecture: !controle, controle }) ??
       new ErreurApi(MESSAGE_INDISPONIBLE, { status: reponse.status })
     );
   }
