@@ -258,6 +258,7 @@ export function routesAdmin(
         niveau: s.type === 'page_web' || s.type === 'pdf' ? 3 : s.type === 'moteur_calcul' ? 2 : 1,
         frequenceHeures: s.frequenceHeures,
         statut: s.statut,
+        bloqueRobot: s.bloqueRobot,
         aVerifier: estAVerifier(s, s.dernierControle, maintenant),
         dernierControle: s.dernierControle,
         dernierChangement: s.dernierChangement,

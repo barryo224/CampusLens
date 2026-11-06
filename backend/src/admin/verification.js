@@ -74,6 +74,7 @@ const sourcePublique = (s) => ({
   organisme: s.organisme,
   url: s.url,
   statut: s.statut,
+  bloqueRobot: s.bloqueRobot,
   frequenceHeures: s.frequenceHeures,
   // Surveillée : un robot relit la page chaque jour ; la vérification reste valable tant qu'elle ne change pas.
   veille: Boolean(s.cle && ROBOTS[s.cle]?.veilleVerification),

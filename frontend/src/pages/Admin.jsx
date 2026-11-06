@@ -13,6 +13,31 @@ import FondMenu from '../components/FondMenu.jsx';
 import { useMenuRepliable } from '../lib/useMenuRepliable.js';
 import { blocageRobot } from '../lib/blocageRobot.js';
 
+const PHRASE_SITE_BLOQUE = 'Ce site refuse les robots du serveur : à vérifier à la main.';
+/** Le serveur a marqué la source comme bloquée, ou le dernier message du robot est un refus. */
+const siteBloque = (s) =>
+  Boolean(s.bloqueRobot) || Boolean(blocageRobot(s.derniereSynchronisation?.messageErreur));
+
+/**
+ * Rappel : un robot bloqué ne voit pas les changements de prix. Ces sources se revérifient à la main tous les 90 jours,
+ * et surtout en août-septembre, quand les réseaux de transport changent leurs tarifs.
+ */
+function RappelSitesBloques({ sources }) {
+  const bloquees = sources.filter(siteBloque);
+  if (bloquees.length === 0) return null;
+  return (
+    <div className="message" role="note" data-testid="rappel-sites-bloques">
+      <strong>
+        {bloquees.length} source{bloquees.length > 1 ? 's sont bloquées' : ' est bloquée'} par leur
+        site.
+      </strong>{' '}
+      Le robot ne peut pas les lire : rien ne vous prévient si un prix change. Revérifiez-les à la
+      main tous les 90 jours, et surtout en août et septembre, quand les réseaux changent leurs
+      tarifs. Concernées : {bloquees.map((s) => s.nom).join(', ')}.
+    </div>
+  );
+}
+
 const LIBELLE_STATUT_SOURCE = { ok: 'À jour', a_verifier: 'À vérifier', erreur: 'En erreur' };
 const CLASSE_STATUT_SOURCE = {
   ok: 'badge-vert',
@@ -352,6 +377,7 @@ function Sources({ role }) {
           {message}
         </p>
       )}
+      <RappelSitesBloques sources={data} />
       <ZoneDefilante libelle="Tableau des sources">
         <table className="tableau">
           <caption className="sr-only">État des sources de données</caption>
@@ -377,9 +403,12 @@ function Sources({ role }) {
                 </th>
                 <td>{typeDeSuivi(s)}</td>
                 <td>
-                  {s.statut === 'erreur' &&
-                  blocageRobot(s.derniereSynchronisation?.messageErreur) ? (
-                    <span className="badge badge-orange">À vérifier à la main</span>
+                  {siteBloque(s) ? (
+                    s.statut === 'ok' ? (
+                      <span className="badge badge-vert">À jour (vérifié à la main)</span>
+                    ) : (
+                      <span className="badge badge-orange">À vérifier à la main</span>
+                    )
                   ) : (
                     <span className={`badge ${CLASSE_STATUT_SOURCE[s.statut]}`}>
                       {LIBELLE_STATUT_SOURCE[s.statut]}
@@ -397,14 +426,16 @@ function Sources({ role }) {
                 <td>
                   {s.derniereSynchronisation ? (
                     <>
-                      {blocageRobot(s.derniereSynchronisation.messageErreur)
+                      {siteBloque(s)
                         ? 'Bloquée par le site'
                         : LIBELLE_SYNC[s.derniereSynchronisation.statut]}
                       {s.derniereSynchronisation.messageErreur && (
                         <span className="fraicheur">
                           <br />
                           {blocageRobot(s.derniereSynchronisation.messageErreur) ??
-                            s.derniereSynchronisation.messageErreur}
+                            (siteBloque(s)
+                              ? PHRASE_SITE_BLOQUE
+                              : s.derniereSynchronisation.messageErreur)}
                         </span>
                       )}
                     </>
@@ -1238,9 +1269,11 @@ function Verification() {
                 <p className="fraicheur">
                   {source.organisme} ·{' '}
                   <LienExterne href={source.url}>Ouvrir la source officielle</LienExterne> ·{' '}
-                  {source.veille
-                    ? 'page surveillée chaque jour : votre vérification reste valable tant qu’elle ne change pas'
-                    : `à revérifier tous les ${Math.max(1, Math.round(source.frequenceHeures / 24))} jours`}
+                  {source.bloqueRobot
+                    ? 'ce site refuse les robots : rien ne vous prévient s’il change, votre vérification vaut 90 jours'
+                    : source.veille
+                      ? 'page surveillée chaque jour : votre vérification reste valable tant qu’elle ne change pas'
+                      : `à revérifier tous les ${Math.max(1, Math.round(source.frequenceHeures / 24))} jours`}
                 </p>
                 <ul className="liste-verification">
                   {items.map((item) => (

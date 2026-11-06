@@ -92,6 +92,8 @@ model Source {
   dernierChangement DateTime?    @map("dernier_changement")
   statut            StatutSource @default(a_verifier)
   licence           String?
+  // Le site de la source refuse les robots du serveur (403, connexion coupée) : seule la vérification humaine compte.
+  bloqueRobot       Boolean      @default(false) @map("bloque_robot")
 
   parametres          Parametre[]
   aides               Aide[]

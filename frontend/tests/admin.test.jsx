@@ -598,9 +598,50 @@ describe('Espace administration', () => {
       expect(ligne(nom)).not.toHaveTextContent('En erreur');
       expect(ligne(nom)).not.toHaveTextContent('Échec');
     }
+    // Le rappel nomme les sources concernées et dit quand revérifier.
+    const rappel = screen.getByTestId('rappel-sites-bloques');
+    expect(rappel).toHaveTextContent('2 sources sont bloquées par leur site');
+    expect(rappel).toHaveTextContent('tous les 90 jours');
+    expect(rappel).toHaveTextContent('août et septembre');
+    expect(rappel).toHaveTextContent('Tarifs TCL (Lyon), Tarifs Tisséo (Toulouse)');
+    expect(rappel).not.toHaveTextContent('Carte des loyers');
     // Une vraie panne (500) reste signalée comme telle.
     expect(ligne('Carte des loyers')).toHaveTextContent('En erreur');
     expect(ligne('Carte des loyers')).toHaveTextContent('La source a répondu 500');
+  });
+
+  it('état des sources : une source bloquée mais vérifiée à la main reste « à jour » (drapeau du serveur), avec le rappel', async () => {
+    connecte('admin', {
+      '/admin/sources': [
+        {
+          id: 31,
+          cle: 'veille_transport_lyon',
+          nom: 'Tarifs TCL (Lyon)',
+          organisme: 'TCL',
+          niveau: 3,
+          statut: 'ok',
+          bloqueRobot: true,
+          aVerifier: false,
+          robot: true,
+          veille: true,
+          verificationManuelle: true,
+          frequenceHeures: 24,
+          dernierControle: '2026-11-06T10:00:00Z',
+          derniereSynchronisation: {
+            statut: 'echec',
+            messageErreur: 'La source a répondu 403 : https://www.tcl.fr/x',
+          },
+          changementsEnAttente: 0,
+        },
+      ],
+    });
+    rendreApp('/admin');
+    await userEvent.click(await screen.findByRole('link', { name: 'État des sources' }));
+    const tableau = await screen.findByRole('table', { name: 'État des sources de données' });
+    const ligne = within(tableau).getByRole('rowheader', { name: /Lyon/ }).closest('tr');
+    expect(ligne).toHaveTextContent('À jour (vérifié à la main)');
+    expect(ligne).toHaveTextContent('Bloquée par le site');
+    expect(screen.getByTestId('rappel-sites-bloques')).toHaveTextContent('1 source est bloquée');
   });
 
   it('état des sources : statut, dernier passage, message d’erreur ; lancer un robot (admin)', async () => {

@@ -3,6 +3,8 @@ import { empreinte as hash } from './outils.js';
 const DELAI_VERROU_MS = 30 * 60 * 1000; // une synchronisation « en cours » depuis plus longtemps est considérée comme morte
 
 /** Message d'erreur sûr à stocker et afficher (jamais de trace technique). */
+import { estBlocageRobot } from './blocage.js';
+
 const messageSur = (e) => String(e?.message ?? 'Erreur inconnue').slice(0, 300);
 
 const estConflitUnique = (e) =>
@@ -59,6 +61,9 @@ export async function synchroniser(
   try {
     // 2. Téléchargement puis validation du format (Zod) : en cas d'échec, on s'arrête ici.
     const brut = await robot.telecharger({ source, fetchImpl, prisma });
+    // La page a pu être lue : le site n'est (plus) fermé aux robots.
+    if (source.bloqueRobot)
+      await prisma.source.update({ where: { id: source.id }, data: { bloqueRobot: false } });
     const donnees = await robot.analyser(brut, { source, prisma });
     const nouvelleEmpreinte = (robot.empreinte ?? hash)(brut.contenu);
     const now = maintenant();
@@ -166,8 +171,12 @@ export async function synchroniser(
       synchronisationId: passage.id,
     };
   } catch (e) {
-    // Échec : données conservées, source en « erreur », nouvel essai au prochain passage.
-    await prisma.source.update({ where: { id: source.id }, data: { statut: 'erreur' } });
+    // Échec : données conservées, nouvel essai au prochain passage. Si le site refuse simplement les robots du serveur,
+    // la source n'est PAS mise « en erreur » : une vérification faite à la main reste valable (voir lib/fraicheur.js).
+    await prisma.source.update({
+      where: { id: source.id },
+      data: estBlocageRobot(e) ? { bloqueRobot: true } : { statut: 'erreur' },
+    });
     await terminer('echec', { messageErreur: messageSur(e) });
     return { statut: 'echec', message: messageSur(e), synchronisationId: passage.id };
   }
