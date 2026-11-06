@@ -61,13 +61,13 @@ describe('Page Accueil', () => {
     await screen.findByText('Garantie Visale');
   });
 
-  it('le bandeau : grand titre « Les repères pour bien vivre ses études en France », accroche « Pour étudier l’esprit tranquille » en petit', async () => {
+  it('le bandeau : grand titre « Les repères pour bien vivre ses études en France », accroche « Le guide des étudiants » en petit', async () => {
     simulerApi({ '/aides': AIDES_ACCUEIL });
     rendreApp('/');
     const titre = screen.getByRole('heading', { level: 1 });
     expect(titre).toHaveTextContent('Les repères pour bien vivre ses études en France');
-    expect(titre).not.toHaveTextContent('Pour étudier l’esprit tranquille'); // l'accroche n'est PAS le titre
-    const accroche = screen.getByText('Pour étudier l’esprit tranquille');
+    expect(titre).not.toHaveTextContent('Le guide des étudiants'); // l'accroche n'est PAS le titre
+    const accroche = screen.getByText('Le guide des étudiants');
     expect(accroche.tagName).toBe('P');
     expect(accroche).toHaveClass('hero-accroche');
     // La photo décrit la scène et réserve sa place (dimensions) : pas de saut de page au chargement.
