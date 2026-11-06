@@ -19,7 +19,7 @@ describe('Aperçu du lien partagé (WhatsApp, iMessage, Facebook, LinkedIn, X…
 
   it('l’image est une adresse complète (obligatoire pour les réseaux sociaux) vers un fichier qui existe', () => {
     const image = meta('og:image');
-    expect(image).toMatch(/^https:\/\/[^/]+\/og-image\.jpg$/);
+    expect(image).toMatch(/^https:\/\/[^/]+\/og-image\.jpg(\?v=\d+)?$/); // « ?v=N » : change quand l'image change (les messageries gardent l'ancienne en cache)
     expect(meta('twitter:image')).toBe(image);
     const fichier = resolve(racine, 'public', 'og-image.jpg');
     const octets = statSync(fichier).size;
