@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Jauge from '../components/Jauge.jsx';
 import MessageErreur from '../components/MessageErreur.jsx';
@@ -62,6 +62,45 @@ function Choix({ nom, valeur, courant, libelle, surChoix }) {
       />
       <span>{libelle}</span>
     </label>
+  );
+}
+
+/**
+ * Téléphone : le résultat se trouve tout en bas, bien après les champs que l'on remplit. Cette barre, collée sous la barre
+ * verte, montre le reste-à-vivre en direct pendant la saisie (elle reste visible même clavier ouvert) et mène au détail.
+ * Elle s'efface quand la carte du résultat est déjà à l'écran. Masquée sur grand écran (CSS).
+ */
+function BarreResultat({ montant, classe, niveau }) {
+  const [vu, setVu] = useState(false);
+  useEffect(() => {
+    const cible = document.getElementById('resultat-detail');
+    if (!cible || !('IntersectionObserver' in window)) return undefined;
+    const observateur = new IntersectionObserver(([e]) => setVu(e.isIntersecting), {
+      threshold: 0.25,
+    });
+    observateur.observe(cible);
+    return () => observateur.disconnect();
+  }, []);
+  return (
+    <div className={`barre-resultat${vu ? ' barre-resultat-cachee' : ''}`}>
+      <span aria-hidden="true" className="barre-resultat-texte">
+        <span className="barre-resultat-etiquette">Votre reste-à-vivre</span>
+        <b className={`texte-${classe}`}>{montant}</b>
+        <span className="barre-resultat-niveau">{niveau}</span>
+      </span>
+      <button
+        type="button"
+        className="bouton bouton-secondaire"
+        aria-label={`Aller au détail du résultat : reste-à-vivre ${montant}, situation ${niveau}`}
+        onClick={() =>
+          document
+            .getElementById('resultat-detail')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      >
+        Détail ↓
+      </button>
+    </div>
   );
 }
 
@@ -159,6 +198,13 @@ export default function Evaluer() {
 
         {parametres && (
           <>
+            {resultat && (
+              <BarreResultat
+                montant={formaterEuro(resultat.resteAVivre).replace('-', '− ')}
+                classe={CLASSE_NIVEAU[resultat.niveau]}
+                niveau={resultat.libelleNiveau}
+              />
+            )}
             <div className="grille grille-3 simulateur">
               <section className="carte" aria-labelledby="titre-profil">
                 <h2 id="titre-profil" className="titre-carte">
@@ -316,7 +362,12 @@ export default function Evaluer() {
               </section>
             </div>
 
-            <section className="carte resultat" aria-labelledby="titre-resultat" aria-live="polite">
+            <section
+              id="resultat-detail"
+              className="carte resultat"
+              aria-labelledby="titre-resultat"
+              aria-live="polite"
+            >
               <h2 id="titre-resultat" className="titre-carte">
                 Votre résultat
               </h2>

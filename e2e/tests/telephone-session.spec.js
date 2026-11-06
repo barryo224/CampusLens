@@ -216,3 +216,59 @@ test.describe('Session d’administration terminée', () => {
     expect(new URL(page.url()).pathname).toBe('/admin/compte');
   });
 });
+
+test.describe('Sur téléphone, on voit toujours ce qui vient de se passer', () => {
+  test.use({ viewport: { width: 360, height: 740 } });
+
+  test('un lien du pied de page (Contact) ramène en haut de la nouvelle page ; « Retour » retrouve la position', async ({
+    page,
+  }) => {
+    await page.goto('/a-propos');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const basDePage = await page.evaluate(() => window.scrollY);
+    expect(basDePage).toBeGreaterThan(500);
+
+    await page.getByRole('contentinfo').getByRole('link', { name: 'Contact' }).first().click();
+    await expect(page).toHaveURL(/\/contact$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Nous contacter' })).toBeInViewport();
+    expect(await page.evaluate(() => window.scrollY)).toBeLessThan(50);
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/a-propos$/);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(basDePage - 200);
+  });
+
+  test('simulateur : le reste-à-vivre reste affiché sous la barre pendant la saisie', async ({
+    page,
+  }) => {
+    await page.goto('/evaluer');
+    await page.getByLabel('Job étudiant (net)').fill('600');
+    await page.evaluate(() => window.scrollTo(0, 500));
+    const barre = page.locator('.barre-resultat');
+    await expect(barre).toBeVisible();
+    await expect(barre).toContainText('Votre reste-à-vivre');
+    await expect(barre).toBeInViewport();
+    // Quand la carte du résultat est à l'écran, la barre devient inutile et s'efface.
+    await page.locator('#resultat-detail').scrollIntoViewIfNeeded();
+    await expect(barre).toBeHidden();
+  });
+
+  test('après l’envoi du formulaire de contact, la confirmation est à l’écran', async ({
+    page,
+  }) => {
+    await page.route('**/api/contact', (r) => r.fulfill({ status: 201, json: { message: 'ok' } }));
+    await page.goto('/contact');
+    await page.getByLabel(/Objet/).fill('Question');
+    await page
+      .getByLabel(/Votre message|Message/)
+      .first()
+      .fill('Bonjour, ceci est un message de test. '.repeat(6));
+    await page
+      .getByLabel(/adresse e-mail|E-mail/i)
+      .first()
+      .fill('test@exemple.fr');
+    await page.getByRole('button', { name: /Envoyer/ }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Message envoyé' })).toBeInViewport();
+  });
+});

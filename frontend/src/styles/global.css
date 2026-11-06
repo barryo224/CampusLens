@@ -1102,7 +1102,6 @@ a {
   overflow: auto;
   /* Long tableau : il défile DANS son cadre (vertical et horizontal) au lieu d'allonger ou d'élargir la page. */
   max-height: min(75vh, 720px);
-  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: #6f8d96 #dbe6e9;
   /* Contenant de référence : sans lui, les textes cachés (.sr-only, en position absolue) des colonnes de droite
@@ -1842,7 +1841,9 @@ a {
 .contenu,
 .admin-contenu {
   min-width: 0;
-  overflow-wrap: anywhere; /* un lien ou une adresse sans espace passe à la ligne au lieu d'élargir la page */
+  /* Un lien ou une adresse sans espace passe à la ligne au lieu d'élargir la page. « break-word » (et non « anywhere ») :
+     il ne coupe un mot que s'il ne tient pas, sans écraser les colonnes des tableaux ni les éléments côte à côte. */
+  overflow-wrap: break-word;
 }
 .contenu
   :where(div, section, article, li, ul, ol, form, p, h1, h2, h3, h4, header, fieldset, details),
@@ -1853,7 +1854,7 @@ a {
 .admin-contenu pre,
 .admin-contenu .texte-message {
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .liste-verification,
 .changement {
@@ -1864,7 +1865,6 @@ a {
   max-height: min(60vh, 560px);
   overflow-y: auto;
   padding-right: 4px;
-  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: #6f8d96 #dbe6e9;
 }
@@ -1908,4 +1908,117 @@ a {
 .session-fenetre .carte-compte {
   margin-bottom: 0;
   box-shadow: 0 24px 60px rgba(8, 28, 36, 0.4);
+}
+
+/* Dans un tableau, les colonnes gardent leur largeur naturelle : c'est le cadre qui défile (horizontal et vertical),
+   pas le contenu qui s'écrase. Sur téléphone, le cadre laisse toujours voir un peu de page autour pour la faire défiler. */
+.tableau-defilant,
+.tableau-defilant * {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.tableau-defilant .tableau {
+  min-width: 100%;
+  width: max-content;
+}
+@media (max-width: 900px) {
+  .tableau-defilant {
+    max-height: 62vh;
+    border: 1px solid var(--bordure);
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .contenu .bouton,
+  .admin-contenu .bouton {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+/* Boutons d'action d'une carte (lire, supprimer…) : ils passent à la ligne au lieu de dépasser de l'écran. */
+.resultat-actions {
+  flex-wrap: wrap;
+}
+
+/* Téléphone : les boutons d'une carte de l'administration s'empilent (leurs colonnes sont fixées en ligne dans la page). */
+@media (max-width: 900px) {
+  .admin-contenu .resultat-actions {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+.aide-defilement {
+  display: none;
+}
+@media (max-width: 900px) {
+  .aide-defilement {
+    display: block;
+    margin: 0 0 6px;
+    font-size: 0.8125rem;
+    color: var(--texte-doux);
+  }
+}
+
+/* ───── Téléphone : le résultat « en direct » reste visible pendant la saisie ───── */
+.barre-resultat {
+  display: none;
+}
+@media (max-width: 900px) {
+  .barre-resultat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: sticky;
+    top: var(--hauteur-barre);
+    z-index: 25;
+    margin: 0 -16px 14px;
+    padding: 8px 16px;
+    background: var(--carte);
+    border-bottom: 1px solid var(--bordure);
+    box-shadow: 0 6px 14px rgba(16, 36, 43, 0.12);
+  }
+  .barre-resultat-cachee {
+    display: none;
+  }
+  .barre-resultat-texte {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+  .barre-resultat-etiquette,
+  .barre-resultat-niveau {
+    font-size: 0.8125rem;
+    color: var(--texte-doux);
+  }
+  .barre-resultat b {
+    font-size: 1.375rem;
+    font-weight: 800;
+  }
+  .barre-resultat .bouton {
+    padding: 8px 14px;
+    flex: none;
+  }
+}
+/* Le contenu reçoit le focus après un changement de page : pas de cadre autour de toute la page. */
+#contenu:focus,
+#contenu-admin:focus {
+  outline: none;
+}
+/* Un message qui apparaît s'arrête sous la barre verte, pas dessous. */
+[role='alert'],
+[role='status'] {
+  scroll-margin-top: 90px;
+}
+
+/* Administration : la confirmation d'une action s'affiche en haut de la page ; dans une longue liste on ne la verrait pas.
+   Elle reste donc collée sous la barre verte, visible où que l'on soit dans la page, sans rien faire défiler. */
+.admin-contenu > .message:not(.rappel-2fa) {
+  position: sticky;
+  top: calc(var(--hauteur-barre) + 10px);
+  z-index: 24;
+  box-shadow: 0 6px 16px rgba(16, 36, 43, 0.16);
 }
