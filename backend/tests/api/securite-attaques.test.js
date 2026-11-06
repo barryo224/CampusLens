@@ -162,11 +162,11 @@ describe('Attaques simulées', () => {
         expect(Date.now() - (await lireSession()).derniereActivite).toBeLessThan(5_000);
       });
 
-      it('plus de 20 minutes sans aucune action : session refusée, même si le navigateur garde son cookie', async () => {
+      it('plus de 10 minutes sans aucune action : session refusée, même si le navigateur garde son cookie', async () => {
         const app = createApp({ prisma });
         const admin = await connecte(app);
         expect((await admin.get('/api/admin/me')).status).toBe(200);
-        await modifierSession({ derniereActivite: Date.now() - 21 * 60_000 });
+        await modifierSession({ derniereActivite: Date.now() - 11 * 60_000 });
         const res = await admin.get('/api/admin/me');
         expect(res.status).toBe(401);
         expect(res.body.code).toBe('session_expiree');
@@ -176,10 +176,10 @@ describe('Attaques simulées', () => {
         expect(await prisma.sessionAdmin.count()).toBe(0);
       });
 
-      it('moins de 20 minutes : la session reste valable, et chaque vraie action repousse l’échéance', async () => {
+      it('moins de 10 minutes : la session reste valable, et chaque vraie action repousse l’échéance', async () => {
         const app = createApp({ prisma });
         const admin = await connecte(app);
-        await modifierSession({ derniereActivite: Date.now() - 15 * 60_000 });
+        await modifierSession({ derniereActivite: Date.now() - 5 * 60_000 });
         expect((await admin.get('/api/admin/changements')).status).toBe(200); // une vraie action
         expect(Date.now() - (await lireSession()).derniereActivite).toBeLessThan(5_000);
       });
@@ -187,13 +187,13 @@ describe('Attaques simulées', () => {
       it('les requêtes d’arrière-plan du site (en-tête X-Controle) ne prolongent PAS la session', async () => {
         const app = createApp({ prisma });
         const admin = await connecte(app);
-        const il_y_a_19_min = Date.now() - 19 * 60_000;
-        await modifierSession({ derniereActivite: il_y_a_19_min });
+        const il_y_a_9_min = Date.now() - 9 * 60_000;
+        await modifierSession({ derniereActivite: il_y_a_9_min });
         // Un onglet laissé ouvert interroge le serveur chaque minute : cela ne doit pas garder la session en vie.
         expect((await admin.get('/api/admin/me').set('X-Controle', '1')).status).toBe(200);
-        expect((await lireSession()).derniereActivite).toBe(il_y_a_19_min);
+        expect((await lireSession()).derniereActivite).toBe(il_y_a_9_min);
         // …et une fois le délai dépassé, ce même contrôle constate l’expiration.
-        await modifierSession({ derniereActivite: Date.now() - 21 * 60_000 });
+        await modifierSession({ derniereActivite: Date.now() - 11 * 60_000 });
         const res = await admin.get('/api/admin/me').set('X-Controle', '1');
         expect(res.status).toBe(401);
         expect(res.body.code).toBe('session_expiree');

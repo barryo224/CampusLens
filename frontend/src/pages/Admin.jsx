@@ -70,9 +70,9 @@ const LIBELLE_PARAM = {
 const nomParametre = (p) =>
   `${LIBELLE_PARAM[p.cle] ?? p.cle}${p.niveau !== 'aucun' ? ` (${p.niveau})` : ''}${p.profil ? ` — ${p.profil}` : ''}`;
 
-// Sécurité de l'administration : un onglet laissé ouvert sans aucune action est déconnecté après 20 minutes (comme une
+// Sécurité de l'administration : un onglet laissé ouvert sans aucune action est déconnecté après 10 minutes (comme une
 // banque), et la session est contrôlée chaque minute, au retour sur l'onglet et à la réouverture de l'ordinateur.
-const INACTIVITE_MAX_MS = 20 * 60 * 1000; // même délai que le serveur (INACTIVITE_MAX_MS dans routes/admin.js)
+const INACTIVITE_MAX_MS = 10 * 60 * 1000; // même délai que le serveur (INACTIVITE_MAX_MS dans routes/admin.js)
 const VERIFICATION_SESSION_MS = 60 * 1000;
 
 /**
@@ -1585,7 +1585,7 @@ export default function AdminLayout() {
     return () => window.removeEventListener(EVENEMENT_SESSION_EXPIREE, surExpiration);
   }, [connecte, navigate]);
 
-  // Tant que la session est ouverte : contrôle chaque minute et au retour sur l'onglet, et déconnexion après 20 minutes
+  // Tant que la session est ouverte : contrôle chaque minute et au retour sur l'onglet, et déconnexion après 10 minutes
   // sans aucun geste (clic, touche, toucher, défilement). Un contrôle qui trouve la session terminée ouvre la fenêtre de reconnexion.
   useEffect(() => {
     if (!connecte || expiree) return undefined;

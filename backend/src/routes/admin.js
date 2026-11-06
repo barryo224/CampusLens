@@ -46,7 +46,7 @@ export const DUREE_ABSOLUE_SESSION_MS = 12 * 60 * 60 * 1000;
 // Inactivité : une session sans AUCUNE action de l'administrateur pendant ce délai est refusée par le serveur, même si le
 // navigateur garde le cookie et même si l'onglet est resté ouvert. Les requêtes d'arrière-plan du site (contrôle de la
 // session, compteur de non lus), signalées par l'en-tête « X-Controle: 1 », ne comptent pas comme une action.
-export const INACTIVITE_MAX_MS = 20 * 60 * 1000;
+export const INACTIVITE_MAX_MS = 10 * 60 * 1000;
 /** Après 10 échecs de connexion d'affilée, le compte est verrouillé 15 minutes (quelle que soit l'adresse IP de l'attaquant). */
 export const ECHECS_AVANT_VERROU = 10;
 export const DUREE_VERROU_MS = 15 * 60 * 1000;

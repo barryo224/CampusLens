@@ -95,7 +95,7 @@ describe('Session d’administration expirée', () => {
     expect(avertissement).toHaveTextContent('Session expirée. Veuillez vous reconnecter.');
     expect(avertissement).toHaveClass('message-avertissement');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(avertissement).not.toHaveTextContent(/20 minutes|inactivité/);
+    expect(avertissement).not.toHaveTextContent(/10 minutes|inactivité/);
 
     await userEvent.type(screen.getByLabelText('Mot de passe'), 'le-bon-mot-de-passe');
     await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
@@ -221,28 +221,28 @@ describe('Déconnexion automatique après inactivité', () => {
       await vi.advanceTimersByTimeAsync(minutes * 60_000);
     });
 
-  it('20 minutes sans aucun geste : déconnexion, avertissement « Session expirée » (sans explication sur les 20 minutes)', async () => {
+  it('10 minutes sans aucun geste : déconnexion, avertissement « Session expirée » (sans explication sur les 10 minutes)', async () => {
     const mock = await lancer();
-    await avancer(21);
+    await avancer(11);
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
     const avertissement = screen.getByRole('status');
     expect(avertissement).toHaveTextContent('Session expirée. Veuillez vous reconnecter.');
     expect(avertissement).toHaveClass('message-avertissement');
-    expect(avertissement).not.toHaveTextContent(/20 minutes|inactivité/);
+    expect(avertissement).not.toHaveTextContent(/10 minutes|inactivité/);
     expect(mock.mock.calls.some(([u]) => u === '/api/admin/logout')).toBe(true); // la session est aussi fermée côté serveur
     expect(screen.queryByRole('navigation', { name: 'Sections de l’administration' })).toBeNull();
   });
 
   it('un geste (touche, clic, toucher, défilement) repousse la déconnexion', async () => {
     await lancer();
-    await avancer(12);
+    await avancer(6);
     act(() => {
       window.dispatchEvent(new Event('keydown'));
     });
-    await avancer(12); // 24 minutes en tout, mais seulement 12 depuis le dernier geste
+    await avancer(6); // 12 minutes en tout, mais seulement 6 depuis le dernier geste
     expect(screen.queryByRole('heading', { name: 'Connexion' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Changer mon mot de passe' })).toBeInTheDocument();
-    await avancer(9); // 21 minutes sans geste
+    await avancer(5); // 11 minutes sans geste
     expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeInTheDocument();
   });
 });
