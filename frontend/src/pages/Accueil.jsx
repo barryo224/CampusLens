@@ -59,7 +59,7 @@ export default function Accueil() {
           </div>
           <div className="hero-contenu">
             <div className="hero-haut">
-              <p className="hero-accroche">Le guide des étudiants</p>
+              <p className="hero-accroche">Comprendre, choisir, avancer</p>
               <h1 id="titre-hero">Les repères pour bien vivre ses études en France</h1>
             </div>
             <div className="hero-bas">
