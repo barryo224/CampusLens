@@ -34,14 +34,19 @@ function erreurDeSession(reponse, donnees, { lecture, controle = false }) {
 /**
  * @param options.controle  lecture faite en arrière-plan (contrôle de la session, compteur de non lus) : si la session est
  *   terminée, on prévient l'application sans que cela compte comme « une page n'a pas pu se charger ».
+ * @param options.vivant  avec `controle` : le serveur compte quand même cette requête comme une action (l'administrateur est
+ *   en train d'utiliser la page : sa session ne doit pas expirer côté serveur pendant qu'il lit ou défile).
  */
-export async function get(chemin, { signal, controle = false } = {}) {
+export async function get(chemin, { signal, controle = false, vivant = false } = {}) {
   let reponse;
   try {
     reponse = await fetch(`${BASE}/api${chemin}`, {
       signal,
       // « X-Controle » : le serveur ne compte pas cette requête comme une action de l'administrateur (délai d'inactivité).
-      headers: { Accept: 'application/json', ...(controle ? { 'X-Controle': '1' } : {}) },
+      headers: {
+        Accept: 'application/json',
+        ...(controle && !vivant ? { 'X-Controle': '1' } : {}),
+      },
     });
   } catch (e) {
     if (e?.name === 'AbortError') throw e;

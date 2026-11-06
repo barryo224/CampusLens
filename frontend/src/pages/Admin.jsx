@@ -1611,7 +1611,10 @@ export default function AdminLayout() {
         navigate('/admin', { replace: true });
         return;
       }
-      get('/admin/me', { controle: true }).catch(() => {});
+      // Un geste dans la dernière minute (lecture, défilement…) : le contrôle compte aussi comme une action pour le serveur,
+      // sinon il jugerait inactif quelqu'un qui lit une page sans rien envoyer. Sans geste, il ne compte pas.
+      const vivant = Date.now() - dernierGeste <= VERIFICATION_SESSION_MS;
+      get('/admin/me', { controle: true, vivant }).catch(() => {});
     };
     const minuterie = setInterval(verifier, VERIFICATION_SESSION_MS);
     const auRetour = () => {

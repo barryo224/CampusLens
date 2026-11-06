@@ -203,6 +203,39 @@ describe('Contrôles d’arrière-plan', () => {
   });
 });
 
+describe('Le serveur et la page comptent l’inactivité de la même façon', () => {
+  it('un geste dans la dernière minute : le contrôle automatique compte comme une action ; sans geste, non', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    const mock = simulerApi({
+      '/admin/me': COMPTE,
+      '/admin/2fa': { actif: true },
+      '/admin/messages/non-lus': { nombre: 0, avis: 0 },
+    });
+    rendreApp('/admin/compte');
+    await screen.findByRole('heading', { name: 'Changer mon mot de passe' });
+    const controles = () =>
+      mock.mock.calls
+        .filter(([u]) => u === '/api/admin/me')
+        .map(([, o]) => o.headers['X-Controle']);
+    const avant = controles().length;
+
+    // Un geste (défilement), puis le contrôle de la minute : il compte comme une action (pas d'en-tête X-Controle).
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(controles().slice(avant)).toEqual([undefined]);
+
+    // Plus aucun geste : la minute suivante, le contrôle ne compte plus comme une action.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(controles().slice(avant)).toEqual([undefined, '1']);
+  });
+});
+
 describe('Déconnexion automatique après inactivité', () => {
   const lancer = async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
