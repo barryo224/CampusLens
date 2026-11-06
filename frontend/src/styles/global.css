@@ -812,9 +812,16 @@ a {
   .hero-bas {
     margin-top: 14px;
   }
+  /* Téléphone : l'accroche reste sur une seule ligne, avec ses deux traits jaunes (filets plus courts, texte resserré). */
+  .hero-accroche {
+    gap: 8px;
+    font-size: 0.8125rem;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
   .hero-accroche::before,
   .hero-accroche::after {
-    display: none; /* sur petit écran l'accroche passe sur deux lignes : pas de filets décoratifs */
+    width: 18px;
   }
   .hero-photo {
     order: 2;
