@@ -387,7 +387,8 @@ describe('Espace administration', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
     const code = await screen.findByLabelText('Code de sécurité');
     expect(code).toHaveFocus();
-    await userEvent.type(code, '123456'); // dès le 6e chiffre, le code est validé tout seul
+    await userEvent.type(code, '123456'); // tapé à la main : c'est vous qui validez
+    await userEvent.click(screen.getByRole('button', { name: 'Valider' }));
     expect(
       await screen.findByRole('table', { name: 'État des sources de données' }),
     ).toBeInTheDocument();

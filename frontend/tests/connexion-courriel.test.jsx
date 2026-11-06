@@ -76,7 +76,7 @@ describe('Connexion : code reçu par e-mail', () => {
     expect(screen.getByRole('button', { name: /Renvoyer le code/ })).toHaveTextContent('dans 30 s');
   });
 
-  it('dès que 6 chiffres sont saisis (ou collés depuis le clavier), le code est envoyé tout seul', async () => {
+  it('code tapé à la main : rien ne part tant que vous ne cliquez pas sur « Valider »', async () => {
     let ouvert = false;
     const mock = await ouvrirEtapeCode(ETAPE_COURRIEL, {
       '/admin/me': () => (ouvert ? COMPTE : { __status: 401 }),
@@ -84,17 +84,47 @@ describe('Connexion : code reçu par e-mail', () => {
         ouvert = true;
         return COMPTE;
       },
-      '/admin/sources': [],
+      '/admin/changements': [],
     });
     const champ = await screen.findByLabelText('Code reçu par e-mail');
-    await userEvent.type(champ, '12345', { advanceTimers: vi.advanceTimersByTime });
-    expect(mock.mock.calls.some(([u]) => u === '/api/admin/login/code')).toBe(false); // 5 chiffres : on attend
-    await userEvent.type(champ, '6', { advanceTimers: vi.advanceTimersByTime });
+    await userEvent.type(champ, '123456', { advanceTimers: vi.advanceTimersByTime });
+    expect(champ).toHaveValue('123456');
+    expect(mock.mock.calls.some(([u]) => u === '/api/admin/login/code')).toBe(false);
+    await userEvent.click(screen.getByRole('button', { name: 'Valider' }), {
+      advanceTimers: vi.advanceTimersByTime,
+    });
     await waitFor(() =>
       expect(mock.mock.calls.some(([u]) => u === '/api/admin/login/code')).toBe(true),
     );
     const appel = mock.mock.calls.find(([u]) => u === '/api/admin/login/code');
     expect(JSON.parse(appel[1].body)).toEqual({ code: '123456' });
+  });
+
+  it('code proposé par le clavier (ou collé) : il arrive d’un coup et se valide tout seul', async () => {
+    let ouvert = false;
+    const mock = await ouvrirEtapeCode(ETAPE_COURRIEL, {
+      '/admin/me': () => (ouvert ? COMPTE : { __status: 401 }),
+      '/admin/login/code': () => {
+        ouvert = true;
+        return COMPTE;
+      },
+      '/admin/changements': [],
+    });
+    const champ = await screen.findByLabelText('Code reçu par e-mail');
+    await userEvent.click(champ, { advanceTimers: vi.advanceTimersByTime });
+    await userEvent.paste('654321');
+    await waitFor(() =>
+      expect(mock.mock.calls.some(([u]) => u === '/api/admin/login/code')).toBe(true),
+    );
+    const appel = mock.mock.calls.find(([u]) => u === '/api/admin/login/code');
+    expect(JSON.parse(appel[1].body)).toEqual({ code: '654321' });
+  });
+
+  it('il n’y a pas de bouton « Retour » : seul le « Retour » du navigateur ramène en arrière', async () => {
+    await ouvrirEtapeCode(ETAPE_COURRIEL);
+    await screen.findByLabelText('Code reçu par e-mail');
+    expect(screen.queryByRole('button', { name: 'Retour' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Valider' })).toBeInTheDocument();
   });
 
   it('un code faux est signalé et le champ se vide', async () => {
@@ -103,6 +133,9 @@ describe('Connexion : code reçu par e-mail', () => {
     });
     const champ = await screen.findByLabelText('Code reçu par e-mail');
     await userEvent.type(champ, '000000', { advanceTimers: vi.advanceTimersByTime });
+    await userEvent.click(screen.getByRole('button', { name: 'Valider' }), {
+      advanceTimers: vi.advanceTimersByTime,
+    });
     expect(await screen.findByRole('alert')).toHaveTextContent('Code incorrect.');
     expect(champ).toHaveValue('');
   });

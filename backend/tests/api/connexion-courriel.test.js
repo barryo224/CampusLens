@@ -171,6 +171,23 @@ describe('Connexion : mot de passe puis code reçu par e-mail', () => {
     expect(boite).toHaveLength(4);
   });
 
+  it('« annuler » détruit la connexion en cours : même le bon code ne sert plus', async () => {
+    const agent = request.agent(app);
+    await agent.post('/api/admin/login').send(identifiants).expect(200);
+    const code = dernierCode();
+    await agent.post('/api/admin/login/annuler').expect(204);
+    expect((await agent.post('/api/admin/login/code').send({ code })).status).toBe(401);
+    expect((await agent.get('/api/admin/me')).status).toBe(401);
+  });
+
+  it('« annuler » ne touche jamais une session déjà ouverte', async () => {
+    const agent = request.agent(app);
+    await agent.post('/api/admin/login').send(identifiants).expect(200);
+    await agent.post('/api/admin/login/code').send({ code: dernierCode() }).expect(200);
+    await agent.post('/api/admin/login/annuler').expect(204);
+    expect((await agent.get('/api/admin/me')).status).toBe(200);
+  });
+
   it('« Renvoyer » sans connexion en cours : refusé', async () => {
     expect((await request(app).post('/api/admin/login/renvoyer')).status).toBe(401);
   });

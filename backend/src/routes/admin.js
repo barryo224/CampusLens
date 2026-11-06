@@ -269,6 +269,14 @@ export function routesAdmin(
     await ouvrirSession(req, res, admin);
   });
 
+  // Abandon de la connexion en cours (« Retour » du navigateur à l'étape du code) : la tentative est détruite côté serveur,
+  // il faudra ressaisir adresse et mot de passe. Ne touche jamais une session déjà ouverte.
+  r.post('/login/annuler', (req, res) => {
+    if (req.session?.attente2fa && !req.session.adminId)
+      return req.session.destroy(() => res.status(204).end());
+    res.status(204).end();
+  });
+
   // « Renvoyer le code » : 30 secondes après l'envoi précédent, au plus 4 envois par connexion. L'ancien code cesse de valoir.
   r.post('/login/renvoyer', limiteConnexion, async (req, res) => {
     const attente = req.session?.attente2fa;

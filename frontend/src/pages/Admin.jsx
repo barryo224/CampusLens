@@ -99,6 +99,33 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
   const [envoi, setEnvoi] = useState(false);
   const champCode = useRef(null);
 
+  // Flèches du navigateur. L'étape du code occupe sa propre entrée d'historique (« #verification »).
+  //  - « Retour » : la tentative est abandonnée (côté serveur aussi) et l'adresse comme le mot de passe sont vidés ;
+  //  - « Avancer » vers cette entrée ne rouvre jamais l'étape du code : seule une vraie réponse du serveur à votre mot de
+  //    passe l'ouvre. Aucune flèche ne peut donc remplacer l'authentification.
+  const navigate = useNavigate();
+  const { hash } = useLocation();
+  const [hashVu, setHashVu] = useState(hash);
+  const [abandons, setAbandons] = useState(0);
+  if (hash !== hashVu) {
+    setHashVu(hash);
+    if (etape === 'code' && hash !== '#verification') {
+      setEtape('mot-de-passe');
+      setChamps({ email: '', motDePasse: '' });
+      setCode('');
+      setInfoCode(null);
+      setErreur(null);
+      setConfirmation(null);
+      setAbandons((n) => n + 1);
+    }
+  }
+  useEffect(() => {
+    if (abandons > 0) post('/admin/login/annuler', {}).catch(() => {});
+  }, [abandons]);
+  useEffect(() => {
+    if (etape !== 'code' && hash === '#verification') navigate({ hash: '' }, { replace: true });
+  }, [etape, hash, navigate]);
+
   useEffect(() => {
     if (etape === 'code') champCode.current?.focus();
     else if (emailInitial) champMotDePasse.current?.focus();
@@ -120,6 +147,7 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
         setConfirmation(null);
         setCode('');
         setEtape('code');
+        navigate({ hash: '#verification' }); // « Retour » du navigateur = abandonner cette connexion
       } else surConnecte(r);
     } catch (err) {
       setErreur(message(err));
@@ -134,7 +162,9 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
     setErreur(null);
     setConfirmation(null);
     try {
-      surConnecte(await post('/admin/login/code', { code: valeur }));
+      const compte = await post('/admin/login/code', { code: valeur });
+      surConnecte(compte);
+      navigate({ hash: '' }, { replace: true }); // l'adresse retrouve sa forme normale (sans « #verification »)
     } catch (err) {
       setCode('');
       // Trop d'erreurs ou délai dépassé : le serveur a fermé la tentative, il faut ressaisir le mot de passe.
@@ -167,10 +197,12 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
     }
   }
 
-  // Le code arrive en 6 chiffres (souvent proposé par le clavier) : on valide dès que les 6 chiffres sont là.
+  // Code proposé par le clavier (ou collé) : il arrive d'un coup (au moins 2 caractères à la fois) et se valide tout seul
+  // s'il a 6 chiffres. Tapé à la main, chiffre par chiffre : c'est vous qui validez, avec le bouton.
   const surSaisieCode = (texte) => {
+    const ajout = texte.length - code.length;
     setCode(texte);
-    if (!envoi && /^\d{6}$/.test(texte.replace(/\s+/g, ''))) envoyerCode(null, texte);
+    if (!envoi && ajout >= 2 && /^\d{6}$/.test(texte.replace(/\s+/g, ''))) envoyerCode(null, texte);
   };
 
   if (etape === 'code') {
@@ -226,17 +258,6 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
           </div>
           <button type="submit" className="bouton" disabled={envoi || code.trim() === ''}>
             {envoi ? 'Vérification…' : 'Valider'}
-          </button>{' '}
-          <button
-            type="button"
-            className="bouton bouton-secondaire"
-            onClick={() => {
-              setEtape('mot-de-passe');
-              setCode('');
-              setErreur(null);
-            }}
-          >
-            Retour
           </button>
         </form>
         {infoCode?.methode === 'courriel' && (
@@ -1507,6 +1528,16 @@ export default function AdminLayout() {
     const minuterie = setInterval(rafraichirNonLus, 60_000);
     return () => clearInterval(minuterie);
   }, [admin, pathname, rafraichirNonLus]);
+
+  // Retour/avancer du navigateur vers une page d'administration gardée en mémoire (avec adresse et mot de passe déjà
+  // saisis) : on la recharge, pour repartir d'une page vierge. Rien de saisi ne peut ressortir de l'historique.
+  useEffect(() => {
+    const surAffichage = (e) => {
+      if (e.persisted) window.location.reload();
+    };
+    window.addEventListener('pageshow', surAffichage);
+    return () => window.removeEventListener('pageshow', surAffichage);
+  }, []);
 
   useEffect(() => {
     // Page non publique : on demande aux moteurs de recherche de ne pas l'indexer.
