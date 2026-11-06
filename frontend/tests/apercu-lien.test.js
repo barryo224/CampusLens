@@ -42,15 +42,40 @@ describe('Aperçu du lien partagé (WhatsApp, iMessage, Facebook, LinkedIn, X…
   });
 });
 
-describe('Référencement : plan du site et robots', () => {
+describe('Référencement : tout mène à la page d’accueil', () => {
   const sitemap = readFileSync(resolve(racine, 'public', 'sitemap.xml'), 'utf8');
   const robots = readFileSync(resolve(racine, 'public', 'robots.txt'), 'utf8');
+  const vercel = JSON.parse(readFileSync(resolve(racine, 'vercel.json'), 'utf8'));
 
-  it('le plan du site liste les pages publiques, jamais l’administration', () => {
+  it('le plan du site ne contient que la page d’accueil', () => {
     const adresses = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-    for (const chemin of ['/', '/evaluer', '/aides', '/budget', '/ressources', '/a-propos'])
-      expect(adresses).toContain(`https://campuslens-etudiants.vercel.app${chemin}`);
-    expect(adresses.some((a) => a.includes('/admin') || a.includes('/api'))).toBe(false);
+    expect(adresses).toEqual(['https://campuslens-etudiants.vercel.app/']);
+  });
+
+  it('les autres pages publiques demandent à Google de ne pas être indexées ; l’accueil, non', () => {
+    const regle = vercel.headers.find((h) =>
+      h.headers.some(
+        (x) => x.key === 'X-Robots-Tag' && /noindex/.test(x.value) && /evaluer/.test(h.source),
+      ),
+    );
+    expect(regle, 'règle noindex des pages intérieures').toBeDefined();
+    const motif = new RegExp(`^${regle.source}$`);
+    for (const chemin of [
+      '/evaluer',
+      '/aides',
+      '/budget',
+      '/ressources',
+      '/a-propos',
+      '/contact',
+      '/avis',
+      '/mentions-legales',
+      '/aides/',
+    ])
+      expect(motif.test(chemin), chemin).toBe(true);
+    expect(motif.test('/')).toBe(false);
+    // Aucune règle générale (« /(.*) ») ne doit interdire l'indexation de l'accueil.
+    const generale = vercel.headers.find((h) => h.source === '/(.*)');
+    expect(generale.headers.some((x) => x.key === 'X-Robots-Tag')).toBe(false);
   });
 
   it('robots.txt interdit l’administration et l’API, et indique le plan du site', () => {

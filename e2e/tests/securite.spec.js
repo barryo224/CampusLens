@@ -48,6 +48,27 @@ test('en-têtes de sécurité du site : CSP stricte, anti-iframe, HSTS, pas de s
   expect((await request.get(css)).headers()['cache-control']).toContain('immutable');
 });
 
+test('référencement : seule la page d’accueil est indexable, les autres pages et l’administration ne le sont pas', async ({
+  request,
+}) => {
+  const robots = async (chemin) => (await request.get(chemin)).headers()['x-robots-tag'];
+  expect(await robots('/')).toBeUndefined();
+  for (const chemin of [
+    '/evaluer',
+    '/aides',
+    '/budget',
+    '/ressources',
+    '/a-propos',
+    '/contact',
+    '/avis',
+    '/mentions-legales',
+  ])
+    expect(await robots(chemin), chemin).toMatch(/noindex/);
+  expect(await robots('/admin')).toMatch(/noindex/);
+  const plan = await (await request.get('/sitemap.xml')).text();
+  expect([...plan.matchAll(/<loc>([^<]+)<\/loc>/g)]).toHaveLength(1);
+});
+
 test('robots.txt valide : le site est indexable, l’admin et l’API ne le sont pas', async ({
   request,
 }) => {
