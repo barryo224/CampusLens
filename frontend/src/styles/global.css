@@ -1797,7 +1797,7 @@ a {
 }
 
 /* ───── Recherche de ville : suggestions pendant la frappe ───── */
-.champ-ville {
+.champ-suggestions {
   max-width: 420px;
   position: relative;
   /* Quand on touche le champ, la page le remonte sous la barre collante : le clavier n'a plus rien à cacher. */

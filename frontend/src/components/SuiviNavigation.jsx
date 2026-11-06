@@ -67,7 +67,7 @@ export function ResultatsVisibles() {
       const r = el.getBoundingClientRect();
       const bas = window.visualViewport?.height ?? window.innerHeight; // clavier exclu
       if (r.top >= 70 && r.bottom <= bas) return; // déjà visible, sous la barre verte
-      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
     };
     const observateur = new MutationObserver((mutations) => {
       for (const m of mutations) {
