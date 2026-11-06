@@ -49,23 +49,25 @@ describe('Page Accueil', () => {
     await screen.findByText('Garantie Visale'); // laisse finir le chargement
   });
 
-  it('le message du site parle de comprendre, découvrir ET évaluer (plus seulement de simuler)', async () => {
+  it('le message du site : guide calme, budget, villes, démarches et aides, sources officielles', async () => {
     simulerApi({ '/aides': AIDES_ACCUEIL });
     rendreApp('/');
     const description = document.querySelector('.hero-description');
-    expect(description).toHaveTextContent(/comprendre ses droits/);
-    expect(description).toHaveTextContent(/découvrir les aides, les villes et les démarches/);
-    expect(description).toHaveTextContent(/évaluer son budget/);
+    expect(description).toHaveTextContent(/CampusLens vous guide/);
+    expect(description).toHaveTextContent(/comparez les villes/);
+    expect(description).toHaveTextContent(/démarches et les aides utiles/);
+    expect(description).toHaveTextContent(/estimez votre budget/);
+    expect(description).toHaveTextContent(/informations officielles/);
     await screen.findByText('Garantie Visale');
   });
 
-  it('le bandeau : grand titre « Les repères pour bien vivre ses études en France », accroche « Comprendre pour agir ensemble » en petit', async () => {
+  it('le bandeau : grand titre « Les repères pour bien vivre ses études en France », accroche « Pour étudier l’esprit tranquille » en petit', async () => {
     simulerApi({ '/aides': AIDES_ACCUEIL });
     rendreApp('/');
     const titre = screen.getByRole('heading', { level: 1 });
     expect(titre).toHaveTextContent('Les repères pour bien vivre ses études en France');
-    expect(titre).not.toHaveTextContent('Comprendre pour agir ensemble'); // l'accroche n'est PAS le titre
-    const accroche = screen.getByText('Comprendre pour agir ensemble');
+    expect(titre).not.toHaveTextContent('Pour étudier l’esprit tranquille'); // l'accroche n'est PAS le titre
+    const accroche = screen.getByText('Pour étudier l’esprit tranquille');
     expect(accroche.tagName).toBe('P');
     expect(accroche).toHaveClass('hero-accroche');
     // La photo décrit la scène et réserve sa place (dimensions) : pas de saut de page au chargement.
