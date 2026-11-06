@@ -54,6 +54,7 @@ function Choix({ nom, valeur, courant, libelle, surChoix }) {
   return (
     <label className={`choix${courant === valeur ? ' choix-actif' : ''}`}>
       <input
+        autoComplete="off"
         type="radio"
         name={nom}
         value={valeur}
@@ -117,9 +118,11 @@ export default function Evaluer() {
   // Facultatif. Reste dans le navigateur : sert uniquement à personnaliser le PDF (jamais envoyé, jamais mémorisé).
   const [identite, setIdentite] = useState({ prenom: '', nom: '' });
   const [erreurPdf, setErreurPdf] = useState(null);
+  const [confirmationPdf, setConfirmationPdf] = useState(false);
 
   const parametres = data?.parametres;
   const maj = (champ) => (valeur) => {
+    setConfirmationPdf(false);
     setErreurPdf(null); // l'étudiant corrige : le message d'erreur disparaît
     setSaisie((s) => ({ ...s, [champ]: valeur }));
   };
@@ -153,6 +156,7 @@ export default function Evaluer() {
 
   async function telecharger() {
     setErreurPdf(null);
+    setConfirmationPdf(false);
     // Un bilan sans aucun montant n'aurait aucun sens : on le refuse avec un message clair
     // et on place le curseur dans le premier champ à remplir.
     if (resultat.totalRevenus === 0 && resultat.totalDepenses === 0) {
@@ -173,6 +177,10 @@ export default function Evaluer() {
       }
       const sources = [...parOrganisme.values()];
       await telechargerBilan({ profil, saisie, resultat, recommandations, sources, identite });
+      // Bilan téléchargé : le formulaire repart vide (les montants et le nom ne sont jamais gardés).
+      setSaisie({});
+      setIdentite({ prenom: '', nom: '' });
+      setConfirmationPdf(true);
     } catch {
       setErreurPdf('Le bilan n’a pas pu être généré. Réessayez.');
     }
@@ -253,7 +261,7 @@ export default function Evaluer() {
                   <input
                     id="identite-prenom"
                     type="text"
-                    autoComplete="given-name"
+                    autoComplete="off"
                     maxLength={60}
                     value={identite.prenom}
                     onChange={(e) => setIdentite({ ...identite, prenom: e.target.value })}
@@ -264,7 +272,7 @@ export default function Evaluer() {
                   <input
                     id="identite-nom"
                     type="text"
-                    autoComplete="family-name"
+                    autoComplete="off"
                     maxLength={60}
                     value={identite.nom}
                     onChange={(e) => setIdentite({ ...identite, nom: e.target.value })}
@@ -277,6 +285,7 @@ export default function Evaluer() {
                 {/* Mêmes cases pour les deux statuts. Boursier et exonéré s'excluent : l'un remplace l'autre. */}
                 <label className="case">
                   <input
+                    autoComplete="off"
                     type="checkbox"
                     checked={profil.boursier}
                     onChange={(e) =>
@@ -293,6 +302,7 @@ export default function Evaluer() {
                   <>
                     <label className="case">
                       <input
+                        autoComplete="off"
                         type="checkbox"
                         checked={profil.exonere}
                         onChange={(e) =>
@@ -449,6 +459,11 @@ export default function Evaluer() {
                       Télécharger mon bilan (PDF)
                     </button>
                   </div>
+                  {confirmationPdf && (
+                    <p role="status" className="message" style={{ marginTop: 12 }}>
+                      Votre bilan est téléchargé. Le formulaire a été vidé : rien n’est conservé.
+                    </p>
+                  )}
                   {erreurPdf && (
                     <p role="alert" className="message message-erreur" style={{ marginTop: 12 }}>
                       {erreurPdf}

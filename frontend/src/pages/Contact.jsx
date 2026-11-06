@@ -64,6 +64,7 @@ export default function Contact() {
           <div className="champ">
             <label htmlFor="contact-objet">Objet</label>
             <input
+              autoComplete="off"
               id="contact-objet"
               type="text"
               required
@@ -87,6 +88,7 @@ export default function Contact() {
           <div className="champ">
             <label htmlFor="contact-message">Message</label>
             <textarea
+              autoComplete="off"
               id="contact-message"
               required
               rows={6}

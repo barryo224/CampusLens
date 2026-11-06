@@ -348,6 +348,7 @@ export default function Aides() {
                 {PROFILS.map((p) => (
                   <label key={p.code} className={`choix${profil === p.code ? ' choix-actif' : ''}`}>
                     <input
+                      autoComplete="off"
                       type="radio"
                       name="profil"
                       value={p.code}
@@ -361,6 +362,7 @@ export default function Aides() {
               <div className="champ">
                 <label htmlFor="besoin">Besoin</label>
                 <select
+                  autoComplete="off"
                   id="besoin"
                   value={besoin}
                   onChange={(e) => changer('besoin', e.target.value)}

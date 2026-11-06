@@ -84,6 +84,7 @@ export default function EstimationAide({ saisie, resteAVivre }) {
             <div className="champ">
               <label htmlFor="est-ville">Ville où vous étudiez</label>
               <select
+                autoComplete="off"
                 id="est-ville"
                 value={champs.ville}
                 onChange={(e) => setChamps({ ...champs, ville: e.target.value })}
@@ -113,6 +114,7 @@ export default function EstimationAide({ saisie, resteAVivre }) {
             <div className="champ">
               <label htmlFor="est-logement">Type de logement</label>
               <select
+                autoComplete="off"
                 id="est-logement"
                 value={champs.typeLogement}
                 onChange={(e) => setChamps({ ...champs, typeLogement: e.target.value })}

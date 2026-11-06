@@ -160,6 +160,7 @@ export default function Budget() {
           ))}
           <label className="case">
             <input
+              autoComplete="off"
               type="checkbox"
               checked={exonere}
               onChange={(e) => choisir({ exonere: e.target.checked ? 'oui' : null })}

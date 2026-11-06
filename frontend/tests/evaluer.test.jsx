@@ -284,6 +284,18 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
+  it('après un téléchargement réussi, le formulaire est vide à nouveau (montants et nom), avec une confirmation', async () => {
+    await ouvrir();
+    await budgetDeReference();
+    await saisir('Prénom (facultatif)', 'Awa');
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
+    await vi.waitFor(() => expect(pdf.sauvegardes).toEqual(['awa-mon-budget.pdf']));
+    expect(await screen.findByText(/Le formulaire a été vidé/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Job étudiant (net)')).toHaveValue('');
+    expect(screen.getByLabelText('Loyer charges comprises')).toHaveValue('');
+    expect(screen.getByLabelText('Prénom (facultatif)')).toHaveValue('');
+  });
+
   it('UI-08 : « Télécharger mon bilan » génère un PDF avec profil, montants, résultat et date', async () => {
     await ouvrir();
     await budgetDeReference();
@@ -312,8 +324,8 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(nom).toHaveValue('');
     expect(prenom).not.toBeRequired();
     expect(nom).not.toBeRequired();
-    expect(prenom).toHaveAttribute('autocomplete', 'given-name');
-    expect(nom).toHaveAttribute('autocomplete', 'family-name');
+    expect(prenom).toHaveAttribute('autocomplete', 'off');
+    expect(nom).toHaveAttribute('autocomplete', 'off');
     expect(screen.getByText(/Votre nom n’est pas envoyé/)).toBeInTheDocument();
     // Sans nom, le bilan se télécharge normalement.
     await budgetDeReference();

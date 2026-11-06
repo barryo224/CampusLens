@@ -98,6 +98,7 @@ export default function Avis() {
                   className={`choix note${champs.note === valeur ? ' choix-actif' : ''}`}
                 >
                   <input
+                    autoComplete="off"
                     type="radio"
                     name="note"
                     value={valeur}
@@ -119,6 +120,7 @@ export default function Avis() {
           <div className="champ">
             <label htmlFor="avis-commentaire">Racontez votre expérience</label>
             <textarea
+              autoComplete="off"
               id="avis-commentaire"
               rows={6}
               required
@@ -136,6 +138,7 @@ export default function Avis() {
           <div className="champ">
             <label htmlFor="avis-profil">Vous êtes (facultatif)</label>
             <select
+              autoComplete="off"
               id="avis-profil"
               value={champs.profil}
               onChange={(e) => setChamps((c) => ({ ...c, profil: e.target.value }))}

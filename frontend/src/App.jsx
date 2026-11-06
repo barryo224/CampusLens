@@ -1,7 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout.jsx';
-import { ScrollEnHaut, ResultatsVisibles } from './components/SuiviNavigation.jsx';
+import {
+  ScrollEnHaut,
+  ResultatsVisibles,
+  ReinitialiserPage,
+} from './components/SuiviNavigation.jsx';
 import Accueil from './pages/Accueil.jsx';
 import Evaluer from './pages/Evaluer.jsx';
 import Aides from './pages/Aides.jsx';
@@ -30,40 +34,42 @@ export default function App() {
     <>
       <ScrollEnHaut />
       <ResultatsVisibles />
-      <Suspense
-        fallback={
-          <p className="message" role="status" style={{ margin: 24 }}>
-            Chargement…
-          </p>
-        }
-      >
-        <Routes>
-          {/* Espace administration : sa propre mise en page, sans le menu du site public. */}
-          <Route path="admin" element={<AdminLayout />}>
-            <Route index element={<AccueilAdmin />} />
-            <Route path="changements" element={<PageChangements />} />
-            <Route path="sources" element={<PageSources />} />
-            <Route path="historique" element={<PageHistorique />} />
-            <Route path="verification" element={<PageVerification />} />
-            <Route path="messages" element={<PageMessages />} />
-            <Route path="avis" element={<PageAvis />} />
-            <Route path="compte" element={<PageCompte />} />
-            <Route path="*" element={<AccueilAdmin />} />
-          </Route>
-          <Route element={<Layout />}>
-            <Route index element={<Accueil />} />
-            <Route path="evaluer" element={<Evaluer />} />
-            <Route path="aides" element={<Aides />} />
-            <Route path="budget" element={<Budget />} />
-            <Route path="ressources" element={<Ressources />} />
-            <Route path="a-propos" element={<APropos />} />
-            <Route path="contact" element={<Contact />} />
-            <Route path="avis" element={<Avis />} />
-            <Route path="mentions-legales" element={<MentionsLegales />} />
-            <Route path="*" element={<Bientot titre="Page introuvable" />} />
-          </Route>
-        </Routes>
-      </Suspense>
+      <ReinitialiserPage>
+        <Suspense
+          fallback={
+            <p className="message" role="status" style={{ margin: 24 }}>
+              Chargement…
+            </p>
+          }
+        >
+          <Routes>
+            {/* Espace administration : sa propre mise en page, sans le menu du site public. */}
+            <Route path="admin" element={<AdminLayout />}>
+              <Route index element={<AccueilAdmin />} />
+              <Route path="changements" element={<PageChangements />} />
+              <Route path="sources" element={<PageSources />} />
+              <Route path="historique" element={<PageHistorique />} />
+              <Route path="verification" element={<PageVerification />} />
+              <Route path="messages" element={<PageMessages />} />
+              <Route path="avis" element={<PageAvis />} />
+              <Route path="compte" element={<PageCompte />} />
+              <Route path="*" element={<AccueilAdmin />} />
+            </Route>
+            <Route element={<Layout />}>
+              <Route index element={<Accueil />} />
+              <Route path="evaluer" element={<Evaluer />} />
+              <Route path="aides" element={<Aides />} />
+              <Route path="budget" element={<Budget />} />
+              <Route path="ressources" element={<Ressources />} />
+              <Route path="a-propos" element={<APropos />} />
+              <Route path="contact" element={<Contact />} />
+              <Route path="avis" element={<Avis />} />
+              <Route path="mentions-legales" element={<MentionsLegales />} />
+              <Route path="*" element={<Bientot titre="Page introuvable" />} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </ReinitialiserPage>
     </>
   );
 }

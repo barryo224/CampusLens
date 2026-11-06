@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { useLocation, useNavigationType } from 'react-router-dom';
+import { Fragment, useState } from 'react';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 
 // Position de défilement de chaque page visitée, pour que « Retour » ramène là où l'on était.
 const positions = new Map();
@@ -51,10 +52,17 @@ export function ScrollEnHaut() {
  * la page défile jusqu'à lui. Les textes réservés aux lecteurs d'écran (« sr-only ») sont ignorés.
  */
 export function ResultatsVisibles() {
+  const { pathname } = useLocation();
+  const derniere = useRef(0);
+  // Changer de page (menu, pied de page, retour) n'est pas une action « avec résultat » : on arrive en haut de la page,
+  // sans descendre sur le décompte des aides ou des ressources.
+  useLayoutEffect(() => {
+    derniere.current = 0;
+  }, [pathname]);
   useEffect(() => {
-    let derniereAction = 0;
-    const noter = () => {
-      derniereAction = Date.now();
+    const noter = (e) => {
+      if (e.target instanceof Element && e.target.closest('a[href]')) return; // un lien ne produit pas de « résultat »
+      derniere.current = Date.now();
     };
     const gestes = ['pointerup', 'keyup', 'submit', 'click'];
     gestes.forEach((g) => document.addEventListener(g, noter, true));
@@ -63,7 +71,7 @@ export function ResultatsVisibles() {
     const montrer = (el) => {
       if (!(el instanceof Element) || el.closest('.sr-only')) return;
       if (!el.textContent.trim()) return;
-      if (Date.now() - derniereAction > 60_000) return; // pas lié à une action : on ne bouge pas
+      if (Date.now() - derniere.current > 60_000) return; // pas lié à une action : on ne bouge pas
       const r = el.getBoundingClientRect();
       const bas = window.visualViewport?.height ?? window.innerHeight; // clavier exclu
       if (r.top >= 70 && r.bottom <= bas) return; // déjà visible, sous la barre verte
@@ -94,4 +102,75 @@ export function ResultatsVisibles() {
     };
   }, []);
   return null;
+}
+
+/**
+ * Recharger la page (F5, « restaurer ») repart de zéro : les choix gardés dans l'adresse (profil, niveau, besoin, onglet…)
+ * sont effacés, comme dans les pages sans adresse paramétrée. Seul le chargement initial est concerné : un lien interne
+ * « Voir les aides pour moi » garde, lui, son profil.
+ */
+let rechargementAPurger = (() => {
+  try {
+    return performance.getEntriesByType('navigation')[0]?.type === 'reload';
+  } catch {
+    return false;
+  }
+})();
+
+/**
+ * Pages publiques : recliquer sur le lien de la page où l'on se trouve (menu, logo, pied de page) la remet à zéro et
+ * en haut, comme un premier passage. Le contenu est remonté à neuf (choix par défaut, saisies vides). Jamais dans l'admin.
+ */
+export function ReinitialiserPage({ children }) {
+  const navigate = useNavigate();
+  const { pathname, search, state } = useLocation();
+  const demande = state?.rafraichir ?? null;
+  const [vue, setVue] = useState(demande);
+  const [cle, setCle] = useState(0);
+  if (demande && demande !== vue) {
+    setVue(demande);
+    setCle((c) => c + 1);
+  }
+
+  // Rechargement (F5, « restaurer ») : le navigateur remet lui-même les choix précédents dans les cases et les listes.
+  // Une fois le chargement terminé, on remonte la page à neuf (il ne restaure plus rien à ce moment-là) et on efface
+  // l'adresse paramétrée : tout revient aux valeurs par défaut.
+  const [cleRechargement, setCleRechargement] = useState(0);
+  useEffect(() => {
+    if (!rechargementAPurger) return undefined;
+    const purger = () => {
+      if (!rechargementAPurger) return;
+      rechargementAPurger = false;
+      if (search && !pathname.startsWith('/admin')) navigate(pathname, { replace: true });
+      setCleRechargement((c) => c + 1);
+    };
+    if (document.readyState === 'complete') purger();
+    else window.addEventListener('load', purger, { once: true });
+    return () => window.removeEventListener('load', purger);
+  }, [navigate, pathname, search]);
+
+  useLayoutEffect(() => {
+    if (cle > 0) {
+      window.scrollTo(0, 0);
+      document.getElementById('contenu')?.focus({ preventScroll: true });
+    }
+  }, [cle]);
+
+  useEffect(() => {
+    const surClic = (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+        return;
+      const lien = e.target instanceof Element ? e.target.closest('a[href]') : null;
+      if (!lien || lien.target === '_blank' || lien.hasAttribute('download')) return;
+      const url = new URL(lien.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname !== pathname) return;
+      if (pathname.startsWith('/admin') || url.search || url.hash) return;
+      e.preventDefault();
+      navigate(pathname, { state: { rafraichir: Date.now() } });
+    };
+    document.addEventListener('click', surClic, true);
+    return () => document.removeEventListener('click', surClic, true);
+  }, [navigate, pathname]);
+
+  return <Fragment key={`${cle}-${cleRechargement}`}>{children}</Fragment>;
 }
