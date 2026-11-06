@@ -45,7 +45,7 @@
       ]
     },
     {
-      "source": "/(evaluer|aides|budget|ressources|a-propos|contact|avis|mentions-legales)/?",
+      "source": "/:page(evaluer|aides|budget|ressources|a-propos|contact|avis|mentions-legales)",
       "headers": [
         {
           "key": "X-Robots-Tag",
@@ -54,7 +54,16 @@
       ]
     },
     {
-      "source": "/admin(.*)",
+      "source": "/:page(evaluer|aides|budget|ressources|a-propos|contact|avis|mentions-legales)/",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
+      "source": "/admin/:chemin*",
       "headers": [
         {
           "key": "X-Robots-Tag",

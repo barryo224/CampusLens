@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { motifDeSource } from '../../scripts/motif-vercel.mjs';
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -53,13 +54,15 @@ describe('Référencement : tout mène à la page d’accueil', () => {
   });
 
   it('les autres pages publiques demandent à Google de ne pas être indexées ; l’accueil, non', () => {
-    const regle = vercel.headers.find((h) =>
-      h.headers.some(
-        (x) => x.key === 'X-Robots-Tag' && /noindex/.test(x.value) && /evaluer/.test(h.source),
-      ),
-    );
-    expect(regle, 'règle noindex des pages intérieures').toBeDefined();
-    const motif = new RegExp(`^${regle.source}$`);
+    const motifs = vercel.headers
+      .filter((h) =>
+        h.headers.some(
+          (x) => x.key === 'X-Robots-Tag' && /noindex/.test(x.value) && /evaluer/.test(h.source),
+        ),
+      )
+      .map((h) => motifDeSource(h.source));
+    expect(motifs.length, 'règles noindex des pages intérieures').toBeGreaterThan(0);
+    const bloquee = (chemin) => motifs.some((m) => m.test(chemin));
     for (const chemin of [
       '/evaluer',
       '/aides',
@@ -71,11 +74,16 @@ describe('Référencement : tout mène à la page d’accueil', () => {
       '/mentions-legales',
       '/aides/',
     ])
-      expect(motif.test(chemin), chemin).toBe(true);
-    expect(motif.test('/')).toBe(false);
+      expect(bloquee(chemin), chemin).toBe(true);
+    expect(bloquee('/')).toBe(false);
+    expect(bloquee('/assets/index.js')).toBe(false);
     // Aucune règle générale (« /(.*) ») ne doit interdire l'indexation de l'accueil.
     const generale = vercel.headers.find((h) => h.source === '/(.*)');
     expect(generale.headers.some((x) => x.key === 'X-Robots-Tag')).toBe(false);
+    // L'administration est exclue, y compris l'adresse « /admin » seule.
+    const admin = vercel.headers.find((h) => h.source.startsWith('/admin'));
+    expect(motifDeSource(admin.source).test('/admin')).toBe(true);
+    expect(motifDeSource(admin.source).test('/admin/messages')).toBe(true);
   });
 
   it('robots.txt interdit l’administration et l’API, et indique le plan du site', () => {

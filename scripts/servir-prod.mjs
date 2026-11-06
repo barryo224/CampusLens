@@ -4,6 +4,7 @@
 //  - /api relayé vers l'API locale (comme le rewrite de Vercel).
 // Usage : node scripts/servir-prod.mjs [port]   (après « npm run build -w frontend »)
 import http from 'node:http';
+import { motifDeSource } from './motif-vercel.mjs';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
@@ -33,7 +34,7 @@ const cache = new Map();
 function entetesPour(chemin) {
   const sortie = {};
   for (const { source, headers } of config.headers ?? []) {
-    const motif = new RegExp(`^${source.replace('(.*)', '.*')}$`);
+    const motif = motifDeSource(source);
     if (motif.test(chemin)) for (const { key, value } of headers) sortie[key] = value;
   }
   return sortie;
