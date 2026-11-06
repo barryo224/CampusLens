@@ -59,6 +59,7 @@ export default function Accueil() {
           </div>
           <div className="hero-contenu">
             <div className="hero-haut">
+              <p className="hero-accroche">Pour étudier l’esprit tranquille</p>
               <h1 id="titre-hero">Les repères pour bien vivre ses études en France</h1>
             </div>
             <div className="hero-bas">

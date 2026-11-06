@@ -462,6 +462,26 @@ a {
   max-width: 760px;
   margin: 0 auto;
 }
+.hero-accroche {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 10px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #fff;
+}
+/* Filets orange de part et d'autre de l'accroche : l'orange de la charte, en décor (jamais en texte). */
+.hero-accroche::before,
+.hero-accroche::after {
+  content: '';
+  width: 34px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
 .hero h1 {
   font-size: clamp(2.1rem, 4.2cqw, 4rem);
   font-weight: 800;
@@ -791,6 +811,10 @@ a {
   }
   .hero-bas {
     margin-top: 14px;
+  }
+  .hero-accroche::before,
+  .hero-accroche::after {
+    display: none; /* sur petit écran l'accroche passe sur deux lignes : pas de filets décoratifs */
   }
   .hero-photo {
     order: 2;
