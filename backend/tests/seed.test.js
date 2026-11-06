@@ -164,6 +164,16 @@ describe('Base de données et seed', () => {
     expect(villes.find((v) => v.nom === 'Rennes').codeInsee).toBe('35238');
   });
 
+  it('propose la ressource santé : la page officielle d’Ameli (Assurance Maladie) pour les étudiants', async () => {
+    const sante = await prisma.ressource.findMany({ where: { categorie: 'sante' } });
+    expect(sante).toHaveLength(1);
+    expect(sante[0].organisme).toMatch(/ameli\.fr/);
+    expect(sante[0].url).toBe(
+      'https://www.ameli.fr/assure/droits-demarches/etudes-stages/etudiant',
+    );
+    expect(sante[0].type).toBe('Page d’information');
+  });
+
   it('relie chaque robot à sa source (cle) avec une adresse officielle', async () => {
     const cles = (await prisma.source.findMany({ where: { cle: { not: null } } }))
       .map((s) => s.cle)

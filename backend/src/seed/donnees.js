@@ -1011,6 +1011,14 @@ export const RESSOURCES = [
     annee: '2026',
     url: 'https://www.defenseurdesdroits.fr',
   },
+  {
+    titre: 'Assurance maladie des étudiants : prise en charge et démarches',
+    type: 'Page d’information',
+    categorie: 'sante',
+    organisme: 'ameli.fr (Assurance Maladie)',
+    annee: '2026',
+    url: 'https://www.ameli.fr/assure/droits-demarches/etudes-stages/etudiant',
+  },
 ];
 
 // Abonnements de transport étudiants relevés sur les pages officielles des réseaux (5 novembre 2026).

@@ -38,13 +38,19 @@ describe('Ressources', () => {
       aVerifier: true,
     });
     simulerApi({
-      '/ressources': [r(1, 'etudiants_etrangers'), r(2, 'etudes'), r(3, 'cout_de_la_vie')],
+      '/ressources': [
+        r(1, 'etudiants_etrangers'),
+        r(2, 'etudes'),
+        r(3, 'cout_de_la_vie'),
+        r(4, 'sante'),
+      ],
     });
     rendreApp('/ressources');
     await screen.findByRole('rowheader', { name: /Ressource 1/ });
     const groupe = screen.getByRole('group', { name: 'Catégorie' });
     expect(within(groupe).getByRole('button', { name: 'Étudiants étrangers' })).toBeInTheDocument();
     expect(within(groupe).getByRole('button', { name: 'Études' })).toBeInTheDocument();
+    expect(within(groupe).getByRole('button', { name: 'Santé' })).toBeInTheDocument(); // et non « Sante »
     expect(within(groupe).getByRole('button', { name: 'Cout de la vie' })).toBeInTheDocument(); // repli
   });
 

@@ -16,6 +16,7 @@ const LIBELLES_CATEGORIES = {
   alimentation: 'Alimentation',
   emploi: 'Emploi',
   droits: 'Droits',
+  sante: 'Santé',
 };
 const libelleCategorie = (c) => {
   if (LIBELLES_CATEGORIES[c]) return LIBELLES_CATEGORIES[c];
