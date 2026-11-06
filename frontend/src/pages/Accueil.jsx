@@ -60,7 +60,7 @@ export default function Accueil() {
           <div className="hero-contenu">
             <div className="hero-haut">
               <p className="hero-accroche">Comprendre pour agir ensemble</p>
-              <h1 id="titre-hero">La précarité étudiante en France</h1>
+              <h1 id="titre-hero">Les repères pour bien vivre ses études en France</h1>
             </div>
             <div className="hero-bas">
               <p className="hero-description">

@@ -14,9 +14,14 @@ describe('Page Accueil', () => {
     simulerApi({ '/aides': AIDES_ACCUEIL });
     rendreApp('/');
     expect(
-      screen.getByRole('heading', { level: 1, name: /La précarité étudiante en France/ }),
+      screen.getByRole('heading', {
+        level: 1,
+        name: /Les repères pour bien vivre ses études en France/,
+      }),
     ).toBeInTheDocument();
-    const hero = within(screen.getByRole('region', { name: /La précarité étudiante en France/ }));
+    const hero = within(
+      screen.getByRole('region', { name: /Les repères pour bien vivre ses études en France/ }),
+    );
     expect(hero.getByRole('link', { name: /Évaluer ma situation/ })).toHaveAttribute(
       'href',
       '/evaluer',
@@ -54,11 +59,11 @@ describe('Page Accueil', () => {
     await screen.findByText('Garantie Visale');
   });
 
-  it('le bandeau : grand titre « La précarité étudiante en France », accroche « Comprendre pour agir ensemble » en petit', async () => {
+  it('le bandeau : grand titre « Les repères pour bien vivre ses études en France », accroche « Comprendre pour agir ensemble » en petit', async () => {
     simulerApi({ '/aides': AIDES_ACCUEIL });
     rendreApp('/');
     const titre = screen.getByRole('heading', { level: 1 });
-    expect(titre).toHaveTextContent('La précarité étudiante en France');
+    expect(titre).toHaveTextContent('Les repères pour bien vivre ses études en France');
     expect(titre).not.toHaveTextContent('Comprendre pour agir ensemble'); // l'accroche n'est PAS le titre
     const accroche = screen.getByText('Comprendre pour agir ensemble');
     expect(accroche.tagName).toBe('P');

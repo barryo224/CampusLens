@@ -3,7 +3,10 @@ import { test, expect } from '@playwright/test';
 test('le site et l’API répondent', async ({ page, request }) => {
   await page.goto('/');
   await expect(
-    page.getByRole('heading', { level: 1, name: /La précarité étudiante en France/ }),
+    page.getByRole('heading', {
+      level: 1,
+      name: /Les repères pour bien vivre ses études en France/,
+    }),
   ).toBeVisible();
 
   const res = await request.get('http://localhost:3001/api/health');

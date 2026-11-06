@@ -7,7 +7,7 @@ const PAGES = [
   { lien: 'Préparer mon budget', titre: /Préparez votre budget/ },
   { lien: 'Ressources', titre: /Guides et sources utiles/ },
   { lien: 'À propos', titre: 'À propos' },
-  { lien: 'Accueil', titre: /La précarité étudiante en France/ },
+  { lien: 'Accueil', titre: /Les repères pour bien vivre ses études en France/ },
 ];
 
 test('E2E-03 : navigation entre les 6 pages, élément actif correct', async ({ page }) => {
