@@ -76,6 +76,17 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
   const champMotDePasse = useRef(null);
   const [etape, setEtape] = useState('mot-de-passe'); // « code » : la double authentification attend le code
   const [code, setCode] = useState('');
+  // Code reçu par e-mail : adresse masquée, compte à rebours avant de pouvoir le redemander, bascule vers l'application.
+  const [infoCode, setInfoCode] = useState(null);
+  const [restant, setRestant] = useState(0);
+  const [modeApplication, setModeApplication] = useState(false);
+  const [confirmation, setConfirmation] = useState(null);
+  const decompteEnCours = restant > 0;
+  useEffect(() => {
+    if (!decompteEnCours) return undefined;
+    const minuterie = setInterval(() => setRestant((r) => Math.max(0, r - 1)), 1000);
+    return () => clearInterval(minuterie);
+  }, [decompteEnCours]);
   const [erreur, setErreur] = useState(null);
   const [envoi, setEnvoi] = useState(false);
   const champCode = useRef(null);
@@ -94,8 +105,14 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
     setErreur(null);
     try {
       const r = await post('/admin/login', champs);
-      if (r.etape === 'code') setEtape('code');
-      else surConnecte(r);
+      if (r.etape === 'code') {
+        setInfoCode(r);
+        setRestant(r.methode === 'courriel' ? (r.renvoyerApres ?? 30) : 0);
+        setModeApplication(r.methode !== 'courriel');
+        setConfirmation(null);
+        setCode('');
+        setEtape('code');
+      } else surConnecte(r);
     } catch (err) {
       setErreur(message(err));
     } finally {
@@ -103,12 +120,13 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
     }
   }
 
-  async function envoyerCode(e) {
-    e.preventDefault();
+  async function envoyerCode(e, valeur = code) {
+    e?.preventDefault();
     setEnvoi(true);
     setErreur(null);
+    setConfirmation(null);
     try {
-      surConnecte(await post('/admin/login/code', { code }));
+      surConnecte(await post('/admin/login/code', { code: valeur }));
     } catch (err) {
       setCode('');
       // Trop d'erreurs ou délai dépassé : le serveur a fermé la tentative, il faut ressaisir le mot de passe.
@@ -122,16 +140,60 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
     }
   }
 
+  // « Renvoyer le code » : possible 30 s après l'envoi précédent (le serveur le vérifie aussi).
+  async function renvoyerCode() {
+    setErreur(null);
+    setConfirmation(null);
+    try {
+      const r = await post('/admin/login/renvoyer', {});
+      setRestant(r.renvoyerApres ?? 30);
+      setCode('');
+      setConfirmation('Un nouveau code vient d’être envoyé. L’ancien ne fonctionne plus.');
+      champCode.current?.focus();
+    } catch (err) {
+      if (/recommencez/i.test(err.message)) {
+        setEtape('mot-de-passe');
+        setChamps((c) => ({ ...c, motDePasse: '' }));
+      }
+      setErreur(message(err));
+    }
+  }
+
+  // Le code arrive en 6 chiffres (souvent proposé par le clavier) : on valide dès que les 6 chiffres sont là.
+  const surSaisieCode = (texte) => {
+    setCode(texte);
+    if (!envoi && /^\d{6}$/.test(texte.replace(/\s+/g, ''))) envoyerCode(null, texte);
+  };
+
   if (etape === 'code') {
+    const parCourriel = infoCode?.methode === 'courriel' && !modeApplication;
     return (
       <section className="carte carte-compte" aria-labelledby="titre-code">
         <h2 id="titre-code" className="titre-carte">
-          Double authentification
+          {parCourriel ? 'Vérification par e-mail' : 'Double authentification'}
         </h2>
-        <p>
-          Ouvrez votre application d’authentification et saisissez le code à 6 chiffres. Si vous
-          avez perdu votre téléphone, saisissez l’un de vos codes de secours.
-        </p>
+        {infoCode?.courrielEchec && (
+          <p className="message message-erreur" role="alert">
+            L’envoi du code par e-mail n’a pas fonctionné : utilisez votre application
+            d’authentification.
+          </p>
+        )}
+        {parCourriel ? (
+          <p>
+            Un code à 6 chiffres vient d’être envoyé à <strong>{infoCode.adresse}</strong>.
+            Saisissez-le ci-dessous : il est valable 5 minutes.
+          </p>
+        ) : (
+          <p>
+            Ouvrez votre application d’authentification et saisissez le code à 6 chiffres. Si vous
+            avez perdu votre téléphone, saisissez l’un de vos codes de secours.
+          </p>
+        )}
+        {confirmation && (
+          <p className="message message-succes" role="status">
+            {confirmation}
+          </p>
+        )}
         {erreur && (
           <p className="message message-erreur" role="alert">
             {erreur}
@@ -139,17 +201,19 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
         )}
         <form onSubmit={envoyerCode}>
           <div className="champ">
-            <label htmlFor="admin-code">Code de sécurité</label>
+            <label htmlFor="admin-code">
+              {parCourriel ? 'Code reçu par e-mail' : 'Code de sécurité'}
+            </label>
             <input
               id="admin-code"
               ref={champCode}
               type="text"
-              inputMode="text"
+              inputMode={parCourriel ? 'numeric' : 'text'}
               required
               autoComplete="one-time-code"
               maxLength={20}
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => surSaisieCode(e.target.value)}
             />
           </div>
           <button type="submit" className="bouton" disabled={envoi || code.trim() === ''}>
@@ -167,6 +231,44 @@ function Connexion({ surConnecte, titre = 'Connexion', message: avis = null, ema
             Retour
           </button>
         </form>
+        {infoCode?.methode === 'courriel' && (
+          <div className="renvoi-code">
+            {parCourriel && (
+              <p className="fraicheur">
+                Vous n’avez rien reçu ? Regardez dans vos courriers indésirables, ou redemandez un
+                code.
+              </p>
+            )}
+            {parCourriel && (
+              <button
+                type="button"
+                className="bouton bouton-secondaire"
+                onClick={renvoyerCode}
+                disabled={decompteEnCours}
+              >
+                {decompteEnCours ? `Renvoyer le code dans ${restant} s` : 'Renvoyer le code'}
+              </button>
+            )}
+            {infoCode.application && (
+              <p>
+                <button
+                  type="button"
+                  className="lien-action"
+                  onClick={() => {
+                    setModeApplication(!modeApplication);
+                    setCode('');
+                    setErreur(null);
+                    setConfirmation(null);
+                  }}
+                >
+                  {modeApplication
+                    ? 'Recevoir un code par e-mail à la place'
+                    : 'Utiliser mon application d’authentification à la place'}
+                </button>
+              </p>
+            )}
+          </div>
+        )}
       </section>
     );
   }

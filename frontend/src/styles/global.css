@@ -1779,6 +1779,23 @@ a {
 .lien-action {
   font-weight: 700;
 }
+/* Un bouton qui ressemble à un lien (ex. « Utiliser mon application à la place »). */
+button.lien-action {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--primaire);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.renvoi-code {
+  margin-top: 18px;
+}
+.renvoi-code .fraicheur {
+  margin-bottom: 10px;
+}
 
 /* ───── Double authentification ───── */
 .rappel-2fa {

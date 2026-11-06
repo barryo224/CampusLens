@@ -22,6 +22,15 @@ import { chiffreurDepuisEnv } from '../lib/chiffrement.js';
 import { adresseOtpauth, formaterSecret, genererSecret, verifierCode } from '../admin/totp.js';
 import { empreinteCode, genererCodesSecours, trouverCode } from '../admin/codes-secours.js';
 import { ROBOTS } from '../sync/robots/index.js';
+import {
+  DELAI_RENVOI_MS,
+  ENVOIS_MAX_PAR_CONNEXION,
+  ENVOYEUR_INACTIF,
+  codeCorrect,
+  genererCode,
+  masquerAdresse,
+  preparerCode,
+} from '../admin/code-courriel.js';
 
 const loginSchema = z.object({
   email: z.email().max(254),
@@ -92,7 +101,12 @@ export function exigerAdmin(req, res, next) {
 
 export function routesAdmin(
   prisma,
-  { fetchImpl = fetch, production = false, chiffreur = chiffreurDepuisEnv({ production }) } = {},
+  {
+    fetchImpl = fetch,
+    production = false,
+    chiffreur = chiffreurDepuisEnv({ production }),
+    envoyeurCode = ENVOYEUR_INACTIF,
+  } = {},
 ) {
   const r = Router();
 
@@ -141,6 +155,19 @@ export function routesAdmin(
     res.json({ email: admin.email, role: admin.role });
   }
 
+  /** Génère un code, le range (empreinte seulement) dans l'attente de connexion et l'envoie. true si le message est parti. */
+  async function envoyerCodeCourriel(attente, admin) {
+    const maintenant = Date.now();
+    const code = genererCode();
+    const parti = await envoyeurCode.envoyer(admin.email, code);
+    if (parti) {
+      attente.codeCourriel = preparerCode(code, maintenant);
+      attente.envois += 1;
+      attente.le = maintenant; // la fenêtre de saisie repart à chaque envoi
+    }
+    return parti;
+  }
+
   const verrouille = (admin, maintenant) =>
     Boolean(admin?.verrouilleJusqua && admin.verrouilleJusqua > maintenant);
   const REPONSE_VERROU = { error: 'Trop de tentatives. Réessayez dans quelques minutes.' };
@@ -159,7 +186,29 @@ export function routesAdmin(
       if (admin) await enregistrerEchec(admin, maintenant);
       return res.status(401).json({ error: 'Identifiants incorrects.' });
     }
-    // Double authentification activée : le mot de passe ne suffit PAS. La session n'est pas ouverte : elle attend le code.
+    // Code reçu par e-mail (si l'envoi d'e-mails est configuré) : le mot de passe ne suffit PAS. La session n'est pas
+    // ouverte : elle attend le code. Si l'envoi échoue, l'application d'authentification prend le relais (si elle existe).
+    if (envoyeurCode.actif) {
+      await regenerer(req);
+      req.session.attente2fa = { adminId: admin.id, le: Date.now(), essais: 0, envois: 0 };
+      const parti = await envoyerCodeCourriel(req.session.attente2fa, admin);
+      const reponse = {
+        etape: 'code',
+        application: Boolean(admin.totpActifLe),
+        renvoyerApres: Math.round(DELAI_RENVOI_MS / 1000),
+      };
+      if (parti)
+        return res.json({ ...reponse, methode: 'courriel', adresse: masquerAdresse(admin.email) });
+      if (admin.totpActifLe)
+        return res.json({ ...reponse, methode: 'application', courrielEchec: true });
+      return req.session.destroy(() =>
+        res.status(503).json({
+          error:
+            'Impossible d’envoyer le code par e-mail pour le moment. Réessayez dans un instant.',
+        }),
+      );
+    }
+    // Double authentification par application seule (aucun envoi d'e-mail configuré).
     if (admin.totpActifLe) {
       await regenerer(req);
       req.session.attente2fa = { adminId: admin.id, le: Date.now(), essais: 0 };
@@ -177,7 +226,7 @@ export function routesAdmin(
     }
     const admin = await prisma.administrateur.findUnique({ where: { id: attente.adminId } });
     const maintenant = new Date();
-    if (!admin?.totpActifLe)
+    if (!admin || (!admin.totpActifLe && !attente.codeCourriel))
       return res.status(401).json({ error: 'Session de connexion expirée : recommencez.' });
     if (verrouille(admin, maintenant)) return res.status(429).json(REPONSE_VERROU);
 
@@ -193,6 +242,13 @@ export function routesAdmin(
       res.status(401).json({ error: 'Code incorrect.' });
     };
 
+    // 1. Le code reçu par e-mail (valable une seule fois : on l'oublie dès qu'il a servi).
+    if (attente.codeCourriel && codeCorrect(code, attente.codeCourriel)) {
+      delete attente.codeCourriel;
+      return ouvrirSession(req, res, admin);
+    }
+    // 2. Sinon l'application d'authentification, puis un code de secours (si la double authentification est activée).
+    if (!admin.totpActifLe) return echouer();
     const secret = chiffreur.dechiffrer(admin.totpSecret);
     const pas = verifierCode(secret, code, { dernierPas: admin.totpDernierPas });
     if (pas !== null) {
@@ -211,6 +267,42 @@ export function routesAdmin(
       data: { codesSecours: restants },
     });
     await ouvrirSession(req, res, admin);
+  });
+
+  // « Renvoyer le code » : 30 secondes après l'envoi précédent, au plus 4 envois par connexion. L'ancien code cesse de valoir.
+  r.post('/login/renvoyer', limiteConnexion, async (req, res) => {
+    const attente = req.session?.attente2fa;
+    if (
+      !envoyeurCode.actif ||
+      !attente?.codeCourriel ||
+      Date.now() - attente.le > DUREE_ATTENTE_CODE_MS
+    ) {
+      return res.status(401).json({ error: 'Session de connexion expirée : recommencez.' });
+    }
+    const depuis = Date.now() - attente.codeCourriel.envoyeLe;
+    if (depuis < DELAI_RENVOI_MS) {
+      const secondes = Math.ceil((DELAI_RENVOI_MS - depuis) / 1000);
+      return res.status(429).json({
+        error: `Patientez encore ${secondes} s avant de redemander un code.`,
+        attendre: secondes,
+      });
+    }
+    if (attente.envois >= ENVOIS_MAX_PAR_CONNEXION) {
+      return req.session.destroy(() =>
+        res.status(429).json({ error: 'Trop de codes demandés : recommencez la connexion.' }),
+      );
+    }
+    const admin = await prisma.administrateur.findUnique({ where: { id: attente.adminId } });
+    if (!admin || verrouille(admin, new Date())) return res.status(429).json(REPONSE_VERROU);
+    const parti = await envoyerCodeCourriel(attente, admin);
+    if (!parti)
+      return res
+        .status(503)
+        .json({ error: 'Envoi impossible pour le moment. Réessayez dans un instant.' });
+    res.json({
+      renvoyerApres: Math.round(DELAI_RENVOI_MS / 1000),
+      adresse: masquerAdresse(admin.email),
+    });
   });
 
   // Tout ce qui suit exige une session. (Routes de validation : phase 6.)

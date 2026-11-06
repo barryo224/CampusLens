@@ -9,6 +9,7 @@ import { routeContact } from './routes/contact.js';
 import { routeAvis } from './routes/avis.js';
 import { routeSimulation } from './routes/simulation.js';
 import { notificateurDepuisEnv } from './notifications/courriel.js';
+import { envoyeurCodeDepuisEnv } from './admin/code-courriel.js';
 import { routesAdmin, INACTIVITE_MAX_MS } from './routes/admin.js';
 import { StockageSessions } from './admin/sessions.js';
 import { METHODES_ECRITURE, origineAutorisee } from './lib/securite.js';
@@ -26,6 +27,7 @@ export function createApp({
   fetchImpl = fetch,
   maintenant = () => new Date(),
   notificateur = notificateurDepuisEnv(prisma),
+  envoyeurCode = envoyeurCodeDepuisEnv(),
   urlOpenfisca = process.env.OPENFISCA_URL,
   corsOrigin = process.env.CORS_ORIGIN,
   sessionSecret = process.env.SESSION_SECRET,
@@ -143,7 +145,7 @@ export function createApp({
         maxAge: INACTIVITE_MAX_MS,
       },
     }),
-    routesAdmin(prisma, { fetchImpl, production, chiffreur }),
+    routesAdmin(prisma, { fetchImpl, production, chiffreur, envoyeurCode }),
   );
 
   app.use('/api', routesPubliques(prisma));
