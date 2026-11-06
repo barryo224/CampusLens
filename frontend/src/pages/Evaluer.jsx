@@ -431,9 +431,9 @@ export default function Evaluer() {
                         {resultat.ressourcesVisa.suffisantes
                           ? 'ce montant atteint le seuil.'
                           : 'ce montant est en dessous du seuil.'}{' '}
-                        Indicatif : la préfecture apprécie votre situation. À l’arrivée s’ajoute une
-                        taxe de validation du visa : voir{' '}
-                        <Link to="/budget?profil=intl">le budget de rentrée</Link>.
+                        Ce seuil est un repère. La décision revient à la préfecture, selon
+                        l’ensemble de votre dossier. À l’arrivée s’ajoute une taxe de validation du
+                        visa : voir <Link to="/budget?profil=intl">le budget de rentrée</Link>.
                       </p>
                     )}
                     {resultat.tarif === 'international' && (
