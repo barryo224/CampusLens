@@ -11,6 +11,7 @@ import LienExterne from '../components/LienExterne.jsx';
 import BoutonMenu from '../components/BoutonMenu.jsx';
 import FondMenu from '../components/FondMenu.jsx';
 import { useMenuRepliable } from '../lib/useMenuRepliable.js';
+import { blocageRobot } from '../lib/blocageRobot.js';
 
 const LIBELLE_STATUT_SOURCE = { ok: 'À jour', a_verifier: 'À vérifier', erreur: 'En erreur' };
 const CLASSE_STATUT_SOURCE = {
@@ -337,7 +338,7 @@ function Sources({ role }) {
     try {
       const r = await post(`/admin/sources/${s.id}/synchroniser`, {});
       setMessage(
-        `${s.nom} : ${LIBELLE_SYNC[r.statut] ?? r.statut}${r.message ? ` — ${r.message}` : ''}`,
+        `${s.nom} : ${blocageRobot(r.message) ? 'Bloquée par le site' : (LIBELLE_SYNC[r.statut] ?? r.statut)}${r.message ? ` — ${blocageRobot(r.message) ?? r.message}` : ''}`,
       );
       recharger();
     } catch (err) {
@@ -376,9 +377,14 @@ function Sources({ role }) {
                 </th>
                 <td>{typeDeSuivi(s)}</td>
                 <td>
-                  <span className={`badge ${CLASSE_STATUT_SOURCE[s.statut]}`}>
-                    {LIBELLE_STATUT_SOURCE[s.statut]}
-                  </span>
+                  {s.statut === 'erreur' &&
+                  blocageRobot(s.derniereSynchronisation?.messageErreur) ? (
+                    <span className="badge badge-orange">À vérifier à la main</span>
+                  ) : (
+                    <span className={`badge ${CLASSE_STATUT_SOURCE[s.statut]}`}>
+                      {LIBELLE_STATUT_SOURCE[s.statut]}
+                    </span>
+                  )}
                   {!s.robot && (
                     <span className="fraicheur">
                       <br />
@@ -391,11 +397,14 @@ function Sources({ role }) {
                 <td>
                   {s.derniereSynchronisation ? (
                     <>
-                      {LIBELLE_SYNC[s.derniereSynchronisation.statut]}
+                      {blocageRobot(s.derniereSynchronisation.messageErreur)
+                        ? 'Bloquée par le site'
+                        : LIBELLE_SYNC[s.derniereSynchronisation.statut]}
                       {s.derniereSynchronisation.messageErreur && (
                         <span className="fraicheur">
                           <br />
-                          {s.derniereSynchronisation.messageErreur}
+                          {blocageRobot(s.derniereSynchronisation.messageErreur) ??
+                            s.derniereSynchronisation.messageErreur}
                         </span>
                       )}
                     </>

@@ -539,6 +539,70 @@ describe('Espace administration', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('déjà été traité');
   });
 
+  it('état des sources : un site qui refuse les robots (403, connexion coupée) est présenté comme « à vérifier à la main », pas comme un échec', async () => {
+    const base = {
+      cle: 'veille_transport_lyon',
+      organisme: 'TCL / SYTRAL Mobilités',
+      niveau: 3,
+      statut: 'erreur',
+      aVerifier: true,
+      robot: true,
+      veille: true,
+      verificationManuelle: true,
+      frequenceHeures: 24,
+      dernierControle: null,
+      changementsEnAttente: 0,
+    };
+    connecte('admin', {
+      '/admin/sources': [
+        {
+          ...base,
+          id: 21,
+          nom: 'Tarifs TCL (Lyon)',
+          derniereSynchronisation: {
+            statut: 'echec',
+            messageErreur: 'La source a répondu 403 : https://www.tcl.fr/x',
+          },
+        },
+        {
+          ...base,
+          id: 22,
+          nom: 'Tarifs Tisséo (Toulouse)',
+          derniereSynchronisation: {
+            statut: 'echec',
+            messageErreur: 'Source injoignable (erreur réseau) : https://eboutique.tisseo.fr/x',
+          },
+        },
+        {
+          ...base,
+          id: 23,
+          nom: 'Carte des loyers',
+          derniereSynchronisation: { statut: 'echec', messageErreur: 'La source a répondu 500' },
+        },
+      ],
+    });
+    rendreApp('/admin');
+    await userEvent.click(await screen.findByRole('link', { name: 'État des sources' }));
+    const tableau = await screen.findByRole('table', { name: 'État des sources de données' });
+    const ligne = (nom) =>
+      within(tableau)
+        .getByRole('rowheader', { name: new RegExp(nom) })
+        .closest('tr');
+    for (const [nom, phrase] of [
+      ['Lyon', 'refuse les robots du serveur'],
+      ['Toulouse', 'ne répond pas aux robots du serveur'],
+    ]) {
+      expect(ligne(nom)).toHaveTextContent('À vérifier à la main');
+      expect(ligne(nom)).toHaveTextContent('Bloquée par le site');
+      expect(ligne(nom)).toHaveTextContent(phrase);
+      expect(ligne(nom)).not.toHaveTextContent('En erreur');
+      expect(ligne(nom)).not.toHaveTextContent('Échec');
+    }
+    // Une vraie panne (500) reste signalée comme telle.
+    expect(ligne('Carte des loyers')).toHaveTextContent('En erreur');
+    expect(ligne('Carte des loyers')).toHaveTextContent('La source a répondu 500');
+  });
+
   it('état des sources : statut, dernier passage, message d’erreur ; lancer un robot (admin)', async () => {
     const mock = connecte('admin', {
       '/admin/sources/2/synchroniser': { statut: 'succes', nbChangements: 3 },
