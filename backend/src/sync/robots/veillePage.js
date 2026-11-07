@@ -2,6 +2,13 @@ import { z } from 'zod';
 import { telecharger, ErreurSource } from '../http.js';
 import { texteDepuisHtml } from '../outils.js';
 
+/** Texte de la page jusqu'au bloc mouvant (exclu), s'il y en a un. */
+export function couper(texte, coupeA) {
+  if (!coupeA) return texte;
+  const i = texte.search(coupeA);
+  return i > 0 ? texte.slice(0, i).trimEnd() : texte;
+}
+
 const MIN_CARACTERES = 400; // en dessous : page d'erreur ou page vide, pas un vrai contenu
 
 /**
@@ -10,8 +17,16 @@ const MIN_CARACTERES = 400; // en dessous : page d'erreur ou page vide, pas un v
  *
  * @param cle           identifiant de la source
  * @param extraire      (texte, { parametres, annees }) → [{ parametreId, valeur }] valeurs repérées
+ * @param coupeA        expression : le texte est coupé à la première ligne qui y correspond. Sert à ignorer les blocs
+ *                      qui changent tout seuls (« articles recommandés »…), sinon chaque lecture ressemblerait à un
+ *                      changement de la page.
  */
-export function creerVeillePage({ cle, extraire = () => [], veilleVerification = false }) {
+export function creerVeillePage({
+  cle,
+  extraire = () => [],
+  veilleVerification = false,
+  coupeA = null,
+}) {
   return {
     cle,
     niveau: 3,
@@ -21,7 +36,7 @@ export function creerVeillePage({ cle, extraire = () => [], veilleVerification =
 
     async telecharger({ source, fetchImpl }) {
       const reponse = await telecharger(source.url, { fetchImpl });
-      return { contenu: texteDepuisHtml(reponse.texte) };
+      return { contenu: couper(texteDepuisHtml(reponse.texte), coupeA) };
     },
 
     async analyser({ contenu }) {

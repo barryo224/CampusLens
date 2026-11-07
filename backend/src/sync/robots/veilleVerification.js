@@ -4,7 +4,17 @@ import { creerVeillePage } from './veillePage.js';
  * Veille des pages officielles dont dépendent les aides saisies à la main (APL, Visale, aide spécifique…).
  * Elle ne remplit aucune valeur : elle sert à savoir si la page a changé depuis la dernière vérification.
  */
-export const creerVeilleVerification = (cle) => creerVeillePage({ cle, veilleVerification: true });
+/**
+ * Pages dont une partie change toute seule (blocs « articles recommandés » qui tournent) : on n'en surveille que le texte
+ * principal, qui précède ces blocs. Vérifié sur la page de Campus France : le texte principal ne bouge pas, les
+ * « Recommended items » changent d'une heure à l'autre et déclenchaient une fausse alerte à chaque fois.
+ */
+const BLOCS_MOUVANTS = {
+  veille_travail_etranger: /^(Related contents|Recommended items|All items)$/m,
+};
+
+export const creerVeilleVerification = (cle) =>
+  creerVeillePage({ cle, veilleVerification: true, coupeA: BLOCS_MOUVANTS[cle] ?? null });
 
 export const CLES_VEILLE = [
   'veille_apl',

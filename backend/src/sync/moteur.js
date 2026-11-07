@@ -133,24 +133,30 @@ export async function synchroniser(
       prisma,
       ancienneEmpreinte: source.empreinte,
     });
-    const dejaSignale = await prisma.changementDetecte.findFirst({
-      where: { sourceId: source.id, statut: 'a_valider', nouvelleEmpreinte },
+    // Une seule alerte en attente par source : si une attend déjà une validation, on la met à jour avec la page la plus
+    // récente (son « avant » reste la dernière version validée) au lieu d'en empiler une nouvelle à chaque lecture.
+    const enAttente = await prisma.changementDetecte.findFirst({
+      where: { sourceId: source.id, statut: 'a_valider' },
+      orderBy: { id: 'desc' },
     });
-    if (!dejaSignale) {
+    const donneesAlerte = {
+      synchronisationId: passage.id,
+      resume: proposition.resume,
+      nouvelleEmpreinte,
+      tableCible: proposition.suggestions?.length ? 'parametre' : null,
+      champ: proposition.suggestions?.length ? 'valeur' : null,
+      valeurProposee: proposition.suggestions?.length
+        ? JSON.stringify(proposition.suggestions)
+        : null,
+    };
+    let nouvelleAlerte = false;
+    if (!enAttente) {
       await prisma.changementDetecte.create({
-        data: {
-          sourceId: source.id,
-          synchronisationId: passage.id,
-          resume: proposition.resume,
-          ancienneEmpreinte: source.empreinte,
-          nouvelleEmpreinte,
-          tableCible: proposition.suggestions?.length ? 'parametre' : null,
-          champ: proposition.suggestions?.length ? 'valeur' : null,
-          valeurProposee: proposition.suggestions?.length
-            ? JSON.stringify(proposition.suggestions)
-            : null,
-        },
+        data: { sourceId: source.id, ancienneEmpreinte: source.empreinte, ...donneesAlerte },
       });
+      nouvelleAlerte = true;
+    } else if (enAttente.nouvelleEmpreinte !== nouvelleEmpreinte) {
+      await prisma.changementDetecte.update({ where: { id: enAttente.id }, data: donneesAlerte });
     }
     if (robot.veilleVerification) {
       await annulerVerifications(prisma, source, passage.id, now);
@@ -164,10 +170,10 @@ export async function synchroniser(
         ...(robot.veilleVerification && { empreinte: nouvelleEmpreinte, dernierChangement: now }),
       },
     });
-    await terminer('en_attente_validation', { nbChangements: dejaSignale ? 0 : 1 });
+    await terminer('en_attente_validation', { nbChangements: nouvelleAlerte ? 1 : 0 });
     return {
       statut: 'en_attente_validation',
-      nbChangements: dejaSignale ? 0 : 1,
+      nbChangements: nouvelleAlerte ? 1 : 0,
       synchronisationId: passage.id,
     };
   } catch (e) {
