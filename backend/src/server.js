@@ -21,7 +21,38 @@ serveur.requestTimeout = 70_000;
 const actif = process.env.SYNC_ENABLED
   ? process.env.SYNC_ENABLED === 'true'
   : process.env.NODE_ENV === 'production';
+let arreterRobots = () => {};
 if (actif) {
-  demarrerPlanificateur(prisma);
+  arreterRobots = demarrerPlanificateur(prisma);
   console.log('Robots de synchronisation activés.');
 }
+
+// ───── Filets de sécurité : le serveur ne doit pas tomber pour une erreur isolée ─────
+// Une erreur de connexion (base qui s'endort, réseau qui coupe) n'est pas un bug du site : on la note et on continue.
+// Toute autre erreur imprévue est notée, puis le serveur s'arrête proprement : Render le redémarre aussitôt.
+const ERREUR_RESEAU =
+  /ECONNRESET|ETIMEDOUT|ECONNREFUSED|EPIPE|terminating connection|Connection terminated|timeout/i;
+let arretEnCours = false;
+function arreter(code) {
+  if (arretEnCours) return;
+  arretEnCours = true;
+  arreterRobots();
+  const secours = setTimeout(() => process.exit(code), 10_000); // si la fermeture traîne, on force
+  secours.unref();
+  serveur.close(() => {
+    prisma
+      .$disconnect()
+      .catch(() => {})
+      .finally(() => process.exit(code));
+  });
+}
+process.on('unhandledRejection', (raison) => {
+  console.error('[erreur non gérée] promesse rejetée :', raison?.code ?? raison?.name ?? raison);
+});
+process.on('uncaughtException', (erreur) => {
+  console.error('[erreur non gérée]', erreur?.code ?? erreur?.name ?? 'erreur', erreur?.message);
+  if (!ERREUR_RESEAU.test(`${erreur?.code} ${erreur?.message}`)) arreter(1);
+});
+// Render envoie SIGTERM à chaque redéploiement : on termine les requêtes en cours avant de couper.
+process.on('SIGTERM', () => arreter(0));
+process.on('SIGINT', () => arreter(0));

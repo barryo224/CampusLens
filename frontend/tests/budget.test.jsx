@@ -140,6 +140,13 @@ describe('Préparer mon budget', () => {
     const arrivee = await screen.findByRole('button', { name: 'Je viens d’arriver en France' });
     expect(arrivee).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByText('Taxe de validation du visa (VLS-TS)')).toBeInTheDocument();
+    // Le rappel du profil garde la majuscule de « France » et des espaces insécables dans les guillemets.
+    const rappel = screen.getByText(/frais ponctuels pour le profil/);
+    expect(rappel.textContent).toContain('je viens d’arriver en France');
+    expect(rappel.textContent).not.toContain('en france');
+    expect(rappel.textContent).toMatch(
+      /«\u00a0International hors UE, je viens d’arriver en France\u00a0»/,
+    );
 
     const ressources = screen.getByRole('region', { name: /À justifier pour votre visa/ });
     expect(ressources).toHaveTextContent('877,50');

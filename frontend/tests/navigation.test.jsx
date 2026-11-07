@@ -59,5 +59,9 @@ describe('Navigation', () => {
   it('adresse inconnue : page « introuvable », pas de page blanche', () => {
     rendreApp('/nimporte-quoi');
     expect(screen.getByRole('heading', { level: 1, name: 'Page introuvable' })).toBeInTheDocument();
+    // Une page qui n'existe pas ne doit pas promettre qu'elle « arrive bientôt » : elle propose de revenir à l'accueil.
+    expect(screen.getByText('Cette page n’existe pas ou a été déplacée.')).toBeInTheDocument();
+    expect(screen.queryByText(/arrive très bientôt/)).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Retour à l’accueil' })).toHaveAttribute('href', '/');
   });
 });

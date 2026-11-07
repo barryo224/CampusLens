@@ -38,6 +38,9 @@ function fraisProfil(parametres, code, niveau, exonere = false) {
   }
 }
 
+/** « Je viens d’arriver en France » → « je viens d’arriver en France » (seule la première lettre change : « France » garde sa majuscule). */
+const minusculeInitiale = (texte) => texte.charAt(0).toLowerCase() + texte.slice(1);
+
 export default function Budget() {
   usePageTitre('Préparer mon budget');
   const [params, setParams] = useSearchParams();
@@ -189,11 +192,11 @@ export default function Budget() {
                 <p className="indicateur-nom">Budget de rentrée à prévoir</p>
                 <p className="indicateur-valeur">{montant(postes.data.total)}</p>
                 <p className="fraicheur">
-                  frais ponctuels pour le profil « {PROFILS.find((p) => p.code === profil).libelle}
-                  {profil === 'intl'
-                    ? `, ${SITUATIONS.find((s) => s.code === situation).libelle.toLowerCase()}`
-                    : ''}
-                  », année {postes.data.annee}
+                  {`frais ponctuels pour le profil «\u00a0${PROFILS.find((p) => p.code === profil).libelle}${
+                    profil === 'intl'
+                      ? `, ${minusculeInitiale(SITUATIONS.find((s) => s.code === situation).libelle)}`
+                      : ''
+                  }\u00a0», année ${postes.data.annee}`}
                 </p>
               </li>
               <li className="carte">
