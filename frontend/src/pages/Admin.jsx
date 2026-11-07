@@ -1768,7 +1768,7 @@ export default function AdminLayout() {
             <Connexion
               surConnecte={surConnexion}
               titre="Session expirée"
-              message="Session expirée. Reconnectez-vous : ce que vous étiez en train de saisir est conservé."
+              message="Session expirée. Reconnectez-vous pour continuer."
               emailInitial={admin.email}
             />
           </div>

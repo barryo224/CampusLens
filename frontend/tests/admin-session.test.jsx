@@ -44,7 +44,8 @@ describe('Session d’administration expirée', () => {
 
     const fenetre = await screen.findByRole('dialog', { name: 'Reconnexion' });
     expect(within(fenetre).getByRole('heading', { name: 'Session expirée' })).toBeInTheDocument();
-    expect(fenetre).toHaveTextContent('ce que vous étiez en train de saisir est conservé');
+    expect(fenetre).toHaveTextContent('Session expirée. Reconnectez-vous pour continuer.');
+    expect(fenetre).not.toHaveTextContent('conservé');
     // Adresse déjà remplie : on ne tape que le mot de passe.
     expect(within(fenetre).getByLabelText('Adresse e-mail')).toHaveValue(COMPTE.email);
     expect(within(fenetre).getByLabelText('Mot de passe')).toHaveFocus();

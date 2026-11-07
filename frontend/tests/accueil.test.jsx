@@ -49,25 +49,24 @@ describe('Page Accueil', () => {
     await screen.findByText('Garantie Visale'); // laisse finir le chargement
   });
 
-  it('le message du site : guide calme, budget, villes, démarches et aides, sources officielles', async () => {
+  it('le message du site : budget, villes étudiantes, démarches et aides essentielles, vie étudiante sereine', async () => {
     simulerApi({ '/aides': AIDES_ACCUEIL });
     rendreApp('/');
     const description = document.querySelector('.hero-description');
-    expect(description).toHaveTextContent(/CampusLens vous guide/);
-    expect(description).toHaveTextContent(/comparez les villes/);
-    expect(description).toHaveTextContent(/démarches et les aides utiles/);
-    expect(description).toHaveTextContent(/estimez votre budget/);
-    expect(description).toHaveTextContent(/informations officielles/);
+    expect(description).toHaveTextContent(/Estimez votre budget/);
+    expect(description).toHaveTextContent(/comparez les villes étudiantes/);
+    expect(description).toHaveTextContent(/démarches et aides essentielles/);
+    expect(description).toHaveTextContent(/aborder sereinement votre vie étudiante/);
     await screen.findByText('Garantie Visale');
   });
 
-  it('le bandeau : grand titre « Les repères pour bien vivre ses études en France », accroche « Comprendre, choisir, avancer » en petit', async () => {
+  it('le bandeau : grand titre « Les repères pour bien vivre ses études en France », accroche « S’informer, se préparer, réussir » en petit', async () => {
     simulerApi({ '/aides': AIDES_ACCUEIL });
     rendreApp('/');
     const titre = screen.getByRole('heading', { level: 1 });
     expect(titre).toHaveTextContent('Les repères pour bien vivre ses études en France');
-    expect(titre).not.toHaveTextContent('Comprendre, choisir, avancer'); // l'accroche n'est PAS le titre
-    const accroche = screen.getByText('Comprendre, choisir, avancer');
+    expect(titre).not.toHaveTextContent('S’informer, se préparer, réussir'); // l'accroche n'est PAS le titre
+    const accroche = screen.getByText('S’informer, se préparer, réussir');
     expect(accroche.tagName).toBe('P');
     expect(accroche).toHaveClass('hero-accroche');
     // La photo décrit la scène et réserve sa place (dimensions) : pas de saut de page au chargement.

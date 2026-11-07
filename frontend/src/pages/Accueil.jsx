@@ -59,13 +59,13 @@ export default function Accueil() {
           </div>
           <div className="hero-contenu">
             <div className="hero-haut">
-              <p className="hero-accroche">Comprendre, choisir, avancer</p>
+              <p className="hero-accroche">S’informer, se préparer, réussir</p>
               <h1 id="titre-hero">Les repères pour bien vivre ses études en France</h1>
             </div>
             <div className="hero-bas">
               <p className="hero-description">
-                CampusLens vous guide : estimez votre budget, comparez les villes, repérez les
-                démarches et les aides utiles, grâce à des informations officielles.
+                Estimez votre budget, comparez les villes étudiantes, découvrez les démarches et
+                aides essentielles. Tout pour aborder sereinement votre vie étudiante.
               </p>
               <div className="hero-actions">
                 <Link to="/evaluer" className="bouton">
