@@ -49,6 +49,13 @@ describe('Page Accueil', () => {
     await screen.findByText('Garantie Visale'); // laisse finir le chargement
   });
 
+  it('le titre de l’onglet (et de Google) dit le nom du site et ce qu’il apporte, pas seulement « Accueil »', () => {
+    simulerApi({ '/aides': AIDES_ACCUEIL });
+    rendreApp('/');
+    expect(document.title).toBe('CampusLens — Les repères pour bien vivre ses études en France');
+    expect(document.title).not.toMatch(/^Accueil/);
+  });
+
   it('le message du site : budget, villes étudiantes, démarches et aides essentielles, vie étudiante sereine', async () => {
     simulerApi({ '/aides': AIDES_ACCUEIL });
     rendreApp('/');

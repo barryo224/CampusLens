@@ -37,7 +37,7 @@ const ETAPES = [
 ];
 
 export default function Accueil() {
-  usePageTitre('Accueil');
+  usePageTitre(); // titre de l'accueil : nom du site + ce qu'il apporte (affiché par Google)
   const { data: aides, erreur, chargement, recharger } = useApi('/aides?miseEnAvant=true');
 
   return (
