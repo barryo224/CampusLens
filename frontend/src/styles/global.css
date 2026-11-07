@@ -1948,7 +1948,16 @@ button.lien-action {
   /* Quand on touche le champ, la page le remonte sous la barre collante : le clavier n'a plus rien à cacher. */
   scroll-margin-top: 76px;
 }
+.saisie-suggestions {
+  position: relative;
+}
 .suggestions {
+  /* Superposée aux résultats (jamais dans le flux) : la page ne bouge pas quand elle s'ouvre ou se ferme. */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 40;
   list-style: none;
   margin: 6px 0 0;
   padding: 4px;
@@ -1956,7 +1965,7 @@ button.lien-action {
   border: 1px solid var(--bordure);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(16, 36, 43, 0.14);
-  /* Jamais plus haute que l'espace visible au-dessus du clavier (mesuré en direct dans ChampVille). */
+  /* Jamais plus haute que l'espace visible au-dessus du clavier (mesuré en direct dans ChampSuggestions). */
   max-height: min(19rem, calc(var(--hauteur-visible, 100vh) - 230px));
   overflow-y: auto;
 }

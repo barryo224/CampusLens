@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { defilerVersResultats } from './defilerVersResultats.js';
 
 /**
  * Quand la recherche (ou un filtre) change alors qu'on a défilé loin dans une longue liste, la liste raccourcit et la page
@@ -12,8 +13,12 @@ export function useRemonterSurResultats(idResultats, ...dependances) {
       premiere.current = false; // au chargement de la page : on ne touche à rien
       return;
     }
-    const zone = document.getElementById(idResultats);
-    if (zone && zone.getBoundingClientRect().top < 0) zone.scrollIntoView?.({ block: 'start' });
+    // Un instant plus tard : Safari ajuste lui-même le défilement au moment de la frappe, notre déplacement doit passer APRÈS.
+    const minuterie = window.setTimeout(() => {
+      const zone = document.getElementById(idResultats);
+      if (zone && zone.getBoundingClientRect().top < 0) defilerVersResultats(zone);
+    }, 60);
+    return () => window.clearTimeout(minuterie);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, dependances);
 }
