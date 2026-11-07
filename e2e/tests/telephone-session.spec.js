@@ -36,16 +36,24 @@ test.describe('Aucun débordement à 360 px', () => {
     });
   }
 
-  test('le comparateur de villes défile dans son cadre : la page ne devient pas interminable', async ({
+  test('le comparateur de villes : des cartes lisibles et une liste par paquets (la page défile, aucun cadre)', async ({
     page,
   }) => {
     await page.goto('/aides?onglet=villes');
     const zone = page.getByRole('region', { name: 'Tableau du comparateur de villes' });
     await expect(zone).toBeVisible();
+    // 24 villes d'abord, pas 193 : la page reste agréable à parcourir sans cadre défilant.
+    await expect(zone.getByRole('rowheader')).toHaveCount(24);
     const hauteurPage = await page.evaluate(() => document.documentElement.scrollHeight);
-    expect(hauteurPage).toBeLessThan(6000); // sans cadre défilant : plus de 50 000 px pour 193 villes
-    const defile = await zone.evaluate((e) => e.scrollHeight > e.clientHeight);
-    expect(defile).toBe(true);
+    expect(hauteurPage).toBeLessThan(25000);
+    // Aucun défilement à l'intérieur du tableau, ni vertical ni horizontal.
+    const interne = await zone.evaluate((e) => ({
+      v: e.scrollHeight > e.clientHeight + 1,
+      h: e.scrollWidth > e.clientWidth + 1,
+    }));
+    expect(interne).toEqual({ v: false, h: false });
+    await page.getByRole('button', { name: /villes de plus/ }).click();
+    await expect(zone.getByRole('rowheader')).toHaveCount(48);
   });
 
   test('administration avec des contenus très longs : aucune page ne dépasse', async ({ page }) => {

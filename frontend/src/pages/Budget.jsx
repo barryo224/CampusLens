@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import MessageErreur from '../components/MessageErreur.jsx';
-import ZoneDefilante from '../components/ZoneDefilante.jsx';
+import TableauAdaptatif from '../components/TableauAdaptatif.jsx';
 import Fraicheur from '../components/Fraicheur.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
@@ -282,7 +282,7 @@ export default function Budget() {
                 Ce qui change selon votre profil
               </h2>
               {frais && (
-                <ZoneDefilante libelle="Tableau des règles par profil">
+                <TableauAdaptatif libelle="Tableau des règles par profil" seuil={640}>
                   <table className="tableau">
                     <caption className="sr-only">Règles par profil</caption>
                     <thead>
@@ -353,7 +353,7 @@ export default function Budget() {
                       )}
                     </tbody>
                   </table>
-                </ZoneDefilante>
+                </TableauAdaptatif>
               )}
               {parametres.data && (
                 <Fraicheur

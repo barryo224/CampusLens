@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import MessageErreur from '../components/MessageErreur.jsx';
-import ZoneDefilante from '../components/ZoneDefilante.jsx';
+import TableauAdaptatif from '../components/TableauAdaptatif.jsx';
 import Icone from '../components/Icone.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
@@ -141,7 +141,7 @@ export default function Ressources() {
                   Aucune ressource ne correspond à votre recherche.
                 </p>
               ) : (
-                <ZoneDefilante libelle="Tableau des ressources">
+                <TableauAdaptatif libelle="Tableau des ressources" seuil={860}>
                   <table className="tableau">
                     <caption className="sr-only">Démarches et documents officiels</caption>
                     <thead>
@@ -204,7 +204,7 @@ export default function Ressources() {
                       ))}
                     </tbody>
                   </table>
-                </ZoneDefilante>
+                </TableauAdaptatif>
               )}
             </div>
           </section>

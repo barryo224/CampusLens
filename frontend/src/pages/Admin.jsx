@@ -10,7 +10,7 @@ import {
 } from 'react-router-dom';
 import Logo from '../components/Logo.jsx';
 import MessageErreur from '../components/MessageErreur.jsx';
-import ZoneDefilante from '../components/ZoneDefilante.jsx';
+import TableauAdaptatif from '../components/TableauAdaptatif.jsx';
 import { get, post, supprimer, ErreurApi, EVENEMENT_SESSION_EXPIREE } from '../lib/api.js';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
@@ -509,7 +509,7 @@ function Sources({ role }) {
         </p>
       )}
       <RappelSitesBloques sources={data} />
-      <ZoneDefilante libelle="Tableau des sources">
+      <TableauAdaptatif libelle="Tableau des sources" seuil={1000}>
         <table className="tableau">
           <caption className="sr-only">État des sources de données</caption>
           <thead>
@@ -599,7 +599,7 @@ function Sources({ role }) {
             ))}
           </tbody>
         </table>
-      </ZoneDefilante>
+      </TableauAdaptatif>
     </>
   );
 }
@@ -635,7 +635,7 @@ function Historique({ role }) {
           {message}
         </p>
       )}
-      <ZoneDefilante libelle="Tableau de l’historique">
+      <TableauAdaptatif libelle="Tableau de l’historique" seuil={860}>
         <table className="tableau">
           <caption className="sr-only">Dernières modifications de données</caption>
           <thead>
@@ -675,7 +675,7 @@ function Historique({ role }) {
             ))}
           </tbody>
         </table>
-      </ZoneDefilante>
+      </TableauAdaptatif>
     </>
   );
 }

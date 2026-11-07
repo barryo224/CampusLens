@@ -880,7 +880,28 @@ a {
     border-color 0.15s ease,
     color 0.15s ease;
 }
+/* Liens : on sent toujours qu'on est dessus (souris seulement ; au clavier, le cadre de focus s'en charge). */
+a {
+  transition: color 0.15s ease;
+}
 @media (hover: hover) and (pointer: fine) {
+  /* Tous les liens de texte (menus, pied de page, liens dans les phrases, tableaux…) : trait souligné bien visible.
+     Les boutons, le logo et les cartes cliquables ont leur propre effet. */
+  a:not(.bouton):not(.bouton-secondaire):not(.bouton-clair):not(.logo):not(.admin-marque):not(
+      .raccourci
+    ):not(.lien-evitement):hover {
+    text-decoration-line: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
+  /* Dans les contenus : la couleur s'assombrit aussi. (Menus et pied de page, sur fond foncé, gardent leur blanc.) */
+  .contenu
+    a:not(.bouton):not(.bouton-secondaire):not(.bouton-clair):not(.raccourci):not(
+      [class*='badge']
+    ):hover,
+  .admin-contenu a:not(.bouton):not(.bouton-secondaire):not(.bouton-clair):hover {
+    color: #0a3540;
+  }
   /* Cartes de choix (profil, statut, niveau) : la carte « s'éveille », sauf celle déjà choisie. */
   .choix:not(.choix-actif):hover {
     border-color: var(--primaire);
@@ -1156,16 +1177,6 @@ a {
 .demarche h4 {
   margin: 0 0 6px;
 }
-.tableau-defilant {
-  overflow: auto;
-  /* Long tableau : il défile DANS son cadre (vertical et horizontal) au lieu d'allonger ou d'élargir la page. */
-  max-height: min(75vh, 720px);
-  scrollbar-width: thin;
-  scrollbar-color: #6f8d96 #dbe6e9;
-  /* Contenant de référence : sans lui, les textes cachés (.sr-only, en position absolue) des colonnes de droite
-     s'échappent du cadre défilant et élargissent toute la page (le téléphone dézoome alors tout le site). */
-  position: relative;
-}
 .tableau {
   width: 100%;
   border-collapse: collapse;
@@ -1179,9 +1190,6 @@ a {
 }
 .tableau thead th {
   background: var(--fond);
-  position: sticky; /* l'en-tête reste visible pendant le défilement du tableau */
-  top: 0;
-  z-index: 2;
   box-shadow: 0 1px 0 var(--bordure);
 }
 
@@ -1944,37 +1952,24 @@ button.lien-action {
 .changement {
   grid-template-columns: minmax(0, 1fr);
 }
-/* Longues listes de l'administration : zone défilante (barre visible) plutôt qu'une page interminable. */
+/* Listes de l'administration : elles s'étendent dans la page (la page défile, pas un cadre à l'intérieur).
+   Les textes très longs (adresses web, libellés) se coupent au lieu d'élargir la page. */
 .liste-verification {
-  max-height: min(60vh, 560px);
-  overflow-y: auto;
-  padding-right: 4px;
-  scrollbar-width: thin;
-  scrollbar-color: #6f8d96 #dbe6e9;
+  padding: 0;
+}
+.liste-verification li,
+.liste-verification li > div {
+  min-width: 0;
+}
+.liste-verification li > div {
+  flex: 1 1 0;
+  overflow-wrap: anywhere;
 }
 @media (max-width: 900px) {
   .liste-verification li {
     flex-wrap: wrap;
   }
 }
-/* Barres de défilement bien visibles (les navigateurs mobiles les masquent sinon). */
-.tableau-defilant::-webkit-scrollbar,
-.liste-verification::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-.tableau-defilant::-webkit-scrollbar-track,
-.liste-verification::-webkit-scrollbar-track {
-  background: #dbe6e9;
-  border-radius: 8px;
-}
-.tableau-defilant::-webkit-scrollbar-thumb,
-.liste-verification::-webkit-scrollbar-thumb {
-  background: #6f8d96;
-  border-radius: 8px;
-  border: 2px solid #dbe6e9;
-}
-
 /* ───── Session expirée : fenêtre de reconnexion par-dessus la page (la page dessous reste intacte) ───── */
 .session-fond {
   position: fixed;
@@ -1992,25 +1987,6 @@ button.lien-action {
 .session-fenetre .carte-compte {
   margin-bottom: 0;
   box-shadow: 0 24px 60px rgba(8, 28, 36, 0.4);
-}
-
-/* Dans un tableau, les colonnes gardent leur largeur naturelle : c'est le cadre qui défile (horizontal et vertical),
-   pas le contenu qui s'écrase. Sur téléphone, le cadre laisse toujours voir un peu de page autour pour la faire défiler. */
-.tableau-defilant,
-.tableau-defilant * {
-  overflow-wrap: normal;
-  word-break: normal;
-}
-.tableau-defilant .tableau {
-  min-width: 100%;
-  width: max-content;
-}
-@media (max-width: 900px) {
-  .tableau-defilant {
-    max-height: 62vh;
-    border: 1px solid var(--bordure);
-    border-radius: 12px;
-  }
 }
 
 @media (max-width: 900px) {
@@ -2031,18 +2007,6 @@ button.lien-action {
 @media (max-width: 900px) {
   .admin-contenu .resultat-actions {
     grid-template-columns: minmax(0, 1fr) !important;
-  }
-}
-
-.aide-defilement {
-  display: none;
-}
-@media (max-width: 900px) {
-  .aide-defilement {
-    display: block;
-    margin: 0 0 6px;
-    font-size: 0.8125rem;
-    color: var(--texte-doux);
   }
 }
 
@@ -2105,4 +2069,83 @@ button.lien-action {
   top: calc(var(--hauteur-barre) + 10px);
   z-index: 24;
   box-shadow: 0 6px 16px rgba(16, 36, 43, 0.16);
+}
+
+/* ───── Tableaux qui s'adaptent à la place disponible ─────
+   Assez large : un vrai tableau, en pleine largeur, sans cadre défilant (la page défile, rien d'autre).
+   Trop étroit (téléphone, tablette…) : chaque ligne devient une carte lisible, avec le nom de chaque colonne devant sa
+   valeur. Plus de défilement latéral : tout se voit en faisant défiler la page. */
+.tableau-adaptatif {
+  position: relative;
+  overflow-x: auto; /* seulement si, exceptionnellement, un tableau déborde ; sinon aucune barre n'apparaît */
+}
+.tableau-adaptatif .tableau {
+  overflow-wrap: break-word;
+}
+.tableau-adaptatif.en-cartes {
+  overflow: visible;
+}
+.tableau-adaptatif.en-cartes .tableau,
+.tableau-adaptatif.en-cartes .tableau tbody,
+.tableau-adaptatif.en-cartes .tableau tr,
+.tableau-adaptatif.en-cartes .tableau th,
+.tableau-adaptatif.en-cartes .tableau td {
+  display: block;
+  width: 100%;
+}
+/* En-têtes de colonnes : cachés à l'écran mais lus par les lecteurs d'écran. */
+.tableau-adaptatif.en-cartes .tableau thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.tableau-adaptatif.en-cartes .tableau tbody {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 12px;
+}
+.tableau-adaptatif.en-cartes .tableau tr {
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: 14px;
+  min-width: 0;
+}
+/* Première cellule (nom de la ville, de la source, de la règle…) : titre de la carte. */
+.tableau-adaptatif.en-cartes .tableau th[scope='row'] {
+  padding: 0 0 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--bordure);
+  font-size: 1.0625rem;
+  background: none;
+}
+.tableau-adaptatif.en-cartes .tableau td {
+  display: block; /* le nom de la colonne au-dessus de sa valeur : lisible quel que soit le contenu de la cellule */
+  padding: 7px 0;
+  border: 0;
+}
+.tableau-adaptatif.en-cartes .tableau td::before {
+  content: attr(data-label);
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--texte-doux);
+}
+
+/* Bouton « Afficher plus de villes » */
+.plus-de-villes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 18px;
+}
+.plus-de-villes .fraicheur {
+  flex-basis: 100%;
+  margin: 0;
 }

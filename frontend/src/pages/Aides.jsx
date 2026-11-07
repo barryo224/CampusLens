@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MessageErreur from '../components/MessageErreur.jsx';
-import ZoneDefilante from '../components/ZoneDefilante.jsx';
+import TableauAdaptatif from '../components/TableauAdaptatif.jsx';
 import Fraicheur from '../components/Fraicheur.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
@@ -161,10 +161,14 @@ function Associations() {
   );
 }
 
+/** Nombre de villes affichées d'un coup (puis « Afficher plus ») : la page reste agréable à parcourir. */
+const PAQUET_VILLES = 24;
+
 function Villes() {
   const { data, erreur, chargement, recharger } = useApi('/villes');
   const [recherche, setRecherche] = useState('');
   const [choix, setChoix] = useState(null); // ville touchée dans les suggestions : on n'affiche qu'elle
+  const [visibles, setVisibles] = useState(PAQUET_VILLES); // la liste s'allonge par paquets : la page ne devient pas interminable
   if (erreur) return <MessageErreur erreur={erreur} surReessayer={recharger} />;
   if (chargement || !data)
     return (
@@ -181,6 +185,8 @@ function Villes() {
     );
   }
   const filtrees = choix ? data.filter((v) => v.id === choix) : rechercherVilles(data, recherche);
+  const affichees = filtrees.slice(0, visibles);
+  const restantes = filtrees.length - affichees.length;
   const nombre = (n) => (n === null || n === undefined ? '—' : formaterEuro(n));
   return (
     <div>
@@ -191,10 +197,12 @@ function Villes() {
         surChangement={(texte) => {
           setRecherche(texte);
           setChoix(null);
+          setVisibles(PAQUET_VILLES);
         }}
         surChoix={(ville) => {
           setRecherche(ville.nom);
           setChoix(ville.id);
+          setVisibles(PAQUET_VILLES);
         }}
       />
       <p className="aide-organisme" id="note-villes">
@@ -205,7 +213,7 @@ function Villes() {
         : pas encore relevé).
       </p>
       <div id="resultats-villes" className="resultats-villes">
-        <ZoneDefilante libelle="Tableau du comparateur de villes">
+        <TableauAdaptatif libelle="Tableau du comparateur de villes" seuil={900}>
           <table className="tableau">
             <caption className="sr-only">Comparateur de villes</caption>
             <thead>
@@ -219,7 +227,7 @@ function Villes() {
               </tr>
             </thead>
             <tbody>
-              {filtrees.map((v) => (
+              {affichees.map((v) => (
                 <tr key={v.id}>
                   <th scope="row">
                     {v.nom} <span className="aide-organisme">{v.region}</span>
@@ -272,8 +280,30 @@ function Villes() {
               ))}
             </tbody>
           </table>
-        </ZoneDefilante>
+        </TableauAdaptatif>
       </div>
+      {restantes > 0 && (
+        <div className="plus-de-villes">
+          {/* aria-live (et non role="status") : annoncé aux lecteurs d'écran sans faire défiler la page vers ce texte. */}
+          <p className="fraicheur" aria-live="polite">
+            {affichees.length} villes affichées sur {filtrees.length}.
+          </p>
+          <button
+            type="button"
+            className="bouton bouton-secondaire"
+            onClick={() => setVisibles((n) => n + PAQUET_VILLES)}
+          >
+            Afficher {Math.min(PAQUET_VILLES, restantes)} villes de plus
+          </button>
+          <button
+            type="button"
+            className="lien-action"
+            onClick={() => setVisibles(filtrees.length)}
+          >
+            Tout afficher ({filtrees.length})
+          </button>
+        </div>
+      )}
       {filtrees.length === 0 && (
         <p className="message" role="status">
           Aucune ville ne correspond à « {recherche.trim()} ». Essayez le nom d’une ville, un code
