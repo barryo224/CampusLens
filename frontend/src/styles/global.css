@@ -1300,22 +1300,55 @@ a {
   border-radius: 6px;
 }
 .budget-bas {
+  /* Les deux blocs sont EMPILÉS, chacun sur toute la largeur : le tableau des profils a la place de s'afficher en
+     vrai tableau, et l'invitation à évaluer sa situation n'est plus étirée à la hauteur du tableau. */
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   margin-top: 16px;
-  align-items: stretch;
 }
 .appel {
   background: var(--sidebar);
   color: #fff;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  justify-content: space-between;
+  /* Bandeau : le texte à gauche, le bouton à droite, centrés ensemble. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'titre action'
+    'texte action';
+  gap: 6px 28px;
+  align-items: center;
+  padding: 22px 26px;
+}
+.appel h2 {
+  grid-area: titre;
+  margin: 0;
+  color: #fff;
+  font-size: 1.25rem;
 }
 .appel p {
+  grid-area: texte;
+  margin: 0;
+  max-width: 62ch;
   color: #e3f0f2;
+}
+.appel .bouton {
+  grid-area: action;
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .appel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'titre'
+      'texte'
+      'action';
+    gap: 8px;
+  }
+  .appel .bouton {
+    justify-self: start;
+    white-space: normal;
+  }
 }
 .bouton-clair {
   background: #fff;
@@ -2227,4 +2260,24 @@ button.lien-action {
   #resultats-ressources {
     scroll-margin-top: calc(var(--hauteur-barre) + 84px);
   }
+}
+
+/* Variante compacte (valeurs courtes : « Oui », un montant…) : nom de la colonne à gauche, valeur à droite. */
+.tableau-adaptatif.en-cartes.compact .tableau td {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 16px;
+  padding: 7px 0;
+  border-top: 1px dashed var(--bordure);
+  text-align: right;
+}
+.tableau-adaptatif.en-cartes.compact .tableau td:first-of-type {
+  border-top: 0;
+}
+.tableau-adaptatif.en-cartes.compact .tableau td::before {
+  margin: 0;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
 }

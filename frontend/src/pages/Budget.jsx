@@ -282,7 +282,7 @@ export default function Budget() {
                 Ce qui change selon votre profil
               </h2>
               {frais && (
-                <TableauAdaptatif libelle="Tableau des règles par profil" seuil={640}>
+                <TableauAdaptatif libelle="Tableau des règles par profil" seuil={640} compact>
                   <table className="tableau">
                     <caption className="sr-only">Règles par profil</caption>
                     <thead>

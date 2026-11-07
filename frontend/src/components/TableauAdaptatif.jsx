@@ -6,10 +6,11 @@ const nettoyer = (texte) => texte.replace(/\s+/g, ' ').trim();
  * Tableau qui s'adapte à la place disponible, sans jamais enfermer le contenu dans un cadre défilant :
  *  - assez large (`seuil` pixels) : un vrai tableau en pleine largeur ;
  *  - plus étroit (téléphone, tablette…) : chaque ligne devient une carte, avec le nom de la colonne devant chaque valeur.
- * La page seule défile. Les rôles ARIA sont posés explicitement pour que les lecteurs d'écran gardent la structure de
+ * `compact` : en cartes, le nom de la colonne est à gauche et la valeur à droite (tableaux de valeurs courtes, comme
+ * Oui / Non / un montant). La page seule défile. Les rôles ARIA sont posés explicitement pour que les lecteurs d'écran gardent la structure de
  * tableau même quand les cartes sont affichées (certains navigateurs la perdent quand l'affichage change).
  */
-export default function TableauAdaptatif({ libelle, seuil = 760, children }) {
+export default function TableauAdaptatif({ libelle, seuil = 760, compact = false, children }) {
   const zone = useRef(null);
   const [cartes, setCartes] = useState(false);
   const [defile, setDefile] = useState(false);
@@ -65,7 +66,7 @@ export default function TableauAdaptatif({ libelle, seuil = 760, children }) {
     // Focalisable seulement si le tableau déborde vraiment (règle WCAG « scrollable-region-focusable »).
     <div
       ref={zone}
-      className={`tableau-adaptatif${cartes ? ' en-cartes' : ''}`}
+      className={`tableau-adaptatif${cartes ? ' en-cartes' : ''}${compact ? ' compact' : ''}`}
       role="region"
       aria-label={libelle}
       tabIndex={defile && !cartes ? 0 : undefined}
