@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { post } from '../lib/api.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
-import { EMAIL_CONTACT } from '../lib/config.js';
 
 export default function Contact() {
   usePageTitre('Contact');
@@ -46,10 +45,6 @@ export default function Contact() {
       </header>
 
       <section className="carte" style={{ maxWidth: 640 }}>
-        <p className="contact-direct">
-          Vous préférez écrire directement ? Envoyez un e-mail à{' '}
-          <a href={`mailto:${EMAIL_CONTACT}`}>{EMAIL_CONTACT}</a>.
-        </p>
         {etat.succes && (
           <p className="message message-succes" role="status">
             Message envoyé. Merci, nous vous répondrons dès que possible.

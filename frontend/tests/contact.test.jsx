@@ -96,10 +96,11 @@ describe('Contact', () => {
     expect(piege.closest('[aria-hidden="true"]')).not.toBeNull();
   });
 
-  it('propose aussi l’adresse e-mail directe de l’équipe', () => {
-    rendreApp('/contact');
-    const lien = screen.getByRole('link', { name: 'ousmanebarrie224@gmail.com' });
-    expect(lien).toHaveAttribute('href', 'mailto:ousmanebarrie224@gmail.com');
+  it('n’affiche aucune adresse e-mail personnelle : on écrit par le formulaire', () => {
+    const { container } = rendreApp('/contact');
+    expect(container.querySelector('a[href^="mailto:"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/@gmail|@hotmail|@yahoo|@outlook/i);
+    expect(screen.queryByText(/Vous préférez écrire directement/)).not.toBeInTheDocument();
   });
 
   it('accessibilité : aucune violation axe-core', async () => {
@@ -119,10 +120,10 @@ describe('Mentions légales', () => {
     expect(screen.getByText(/CNIL/)).toBeInTheDocument();
     expect(screen.getByText(/Responsable de la publication : Ousmane Barry/)).toBeInTheDocument();
     expect(screen.queryByText(/nom et prénom à compléter/)).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'ousmanebarrie224@gmail.com' })).toHaveAttribute(
-      'href',
-      'mailto:ousmanebarrie224@gmail.com',
-    );
+    // Le contact passe par la page Contact : aucune adresse e-mail personnelle n'est publiée.
+    expect(container.querySelector('a[href^="mailto:"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/@gmail|@hotmail|@yahoo|@outlook/i);
+    expect(screen.getByRole('link', { name: 'page Contact' })).toHaveAttribute('href', '/contact');
     expect(await violationsAxe(container)).toEqual([]);
   });
 });

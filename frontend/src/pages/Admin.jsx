@@ -1021,7 +1021,11 @@ function DoubleAuthentification() {
     try {
       await post('/admin/2fa/desactiver', retrait);
       setRetrait(null);
-      setEtat({ envoi: false, erreur: null, message: 'Double authentification désactivée.' });
+      setEtat({
+        envoi: false,
+        erreur: null,
+        message: 'Application d’authentification désactivée.',
+      });
       recharger();
       rafraichirAdmin?.();
     } catch (err) {
@@ -1032,7 +1036,7 @@ function DoubleAuthentification() {
   return (
     <section className="carte carte-compte" aria-labelledby="titre-2fa">
       <h2 id="titre-2fa" className="titre-carte">
-        Double authentification
+        Application d’authentification
       </h2>
       {etat.message && (
         <p className="message message-succes" role="status">
@@ -1048,8 +1052,8 @@ function DoubleAuthentification() {
       {secours && (
         <div role="region" aria-label="Codes de secours" className="codes-secours">
           <p>
-            <strong>La double authentification est activée.</strong> Voici vos codes de secours.
-            Chacun ne sert qu’une fois, si vous perdez votre téléphone.{' '}
+            <strong>L’application d’authentification est activée.</strong> Voici vos codes de
+            secours. Chacun ne sert qu’une fois, si vous perdez votre téléphone.{' '}
             <strong>
               Notez-les maintenant dans un endroit sûr : ils ne seront plus jamais affichés.
             </strong>
@@ -1070,13 +1074,14 @@ function DoubleAuthentification() {
       {!secours && !data.actif && !preparation && (
         <>
           <p>
-            <strong>Non activée.</strong> Avec la double authentification, le mot de passe ne suffit
-            plus : il faut aussi un code à 6 chiffres qui change toutes les 30 secondes, produit par
-            une application sur votre téléphone (Google Authenticator, Microsoft Authenticator,
-            Aegis…). Même si votre mot de passe était volé, personne ne pourrait entrer.
+            <strong>Non activée.</strong> À chaque connexion, un code à 6 chiffres est déjà envoyé
+            par e-mail après votre mot de passe. L’application d’authentification ajoute une
+            protection qui ne dépend pas de votre boîte mail : elle affiche un code à 6 chiffres qui
+            change toutes les 30 secondes (Google Authenticator, Microsoft Authenticator, Aegis…).
+            Elle sert aussi de secours si l’e-mail n’arrive pas.
           </p>
           <button type="button" className="bouton" onClick={commencer} disabled={etat.envoi}>
-            Activer la double authentification
+            Activer l’application d’authentification
           </button>
         </>
       )}
@@ -1172,7 +1177,7 @@ function DoubleAuthentification() {
             />
           </div>
           <button type="submit" className="bouton" disabled={etat.envoi}>
-            Désactiver la double authentification
+            Désactiver l’application d’authentification
           </button>{' '}
           <button
             type="button"
@@ -1752,9 +1757,9 @@ export default function AdminLayout() {
         {/* Rappel tant que la double authentification n'est pas activée (sauf sur la page qui la propose). */}
         {admin && admin.deuxFacteurs === false && pathname !== '/admin/compte' && (
           <p className="message rappel-2fa" role="note">
-            <strong>Protégez votre compte.</strong> Les messages des visiteurs contiennent des
-            adresses e-mail : activez la double authentification dans{' '}
-            <Link to="/admin/compte">Mon compte</Link>.
+            <strong>Pour renforcer votre compte,</strong> ajoutez une application d’authentification
+            dans <Link to="/admin/compte">Mon compte</Link> : elle protège même si votre boîte mail
+            est piratée.
           </p>
         )}
         {admin && (

@@ -10,7 +10,9 @@ describe('Page À propos', () => {
     for (const titre of ['Informations fiables', 'Transparence', 'Gratuit et anonyme', 'Utile']) {
       expect(screen.getByRole('heading', { name: titre })).toBeInTheDocument();
     }
-    expect(screen.getByText(/Aider chaque étudiant à connaître ses droits/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Aider chaque étudiant à s’informer, à se préparer/),
+    ).toBeInTheDocument();
     const pied = screen.getByText('Liens utiles').closest('footer');
     expect(within(pied).getByRole('link', { name: 'Contact' })).toHaveAttribute('href', '/contact');
     expect(within(pied).getByRole('link', { name: 'Ressources' })).toHaveAttribute(

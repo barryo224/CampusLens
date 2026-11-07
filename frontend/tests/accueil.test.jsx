@@ -97,7 +97,7 @@ describe('Page Accueil', () => {
       'href',
       '/aides?profil=intl',
     );
-    expect(screen.getByRole('link', { name: /français ou européen/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /français ou UE/ })).toHaveAttribute(
       'href',
       '/aides?profil=fr_ue',
     );

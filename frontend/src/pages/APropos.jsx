@@ -74,8 +74,8 @@ export default function APropos() {
       <header className="page-titre">
         <h1>À propos</h1>
         <p>
-          CampusLens aide les étudiants en France à comprendre leurs droits, à découvrir les aides
-          et les démarches utiles, et à évaluer leur budget.
+          CampusLens aide les étudiants en France à s’informer, à se préparer et à bien vivre leurs
+          études : estimer leur budget, comparer les villes, trouver les démarches et aides utiles.
         </p>
       </header>
 
@@ -107,8 +107,7 @@ export default function APropos() {
           />
           <small>Notre mission</small>
           <strong>
-            Aider chaque étudiant à connaître ses droits, à s’informer et à garder le contrôle de
-            son budget.
+            Aider chaque étudiant à s’informer, à se préparer et à garder le contrôle de son budget.
           </strong>
         </div>
       </section>
@@ -142,7 +141,9 @@ export default function APropos() {
             <li>
               <strong>Chaque jour ou chaque semaine</strong>, des robots relisent les sources
               officielles : loyers par ville, résidences Crous, pages de Service-Public, tarifs des
-              réseaux de transport.
+              réseaux de transport. Quand le site d’une source refuse les robots (c’est le cas de
+              certains réseaux de transport), nous vérifions sa page à la main, au moins tous les 90
+              jours.
             </li>
             <li>
               <strong>Quand une page change</strong>, le site le signale. Pour les montants

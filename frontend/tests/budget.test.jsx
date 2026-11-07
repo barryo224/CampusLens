@@ -40,16 +40,16 @@ describe('Préparer mon budget', () => {
       (await screen.findByText('Droits d’inscription', { selector: 'p' })).closest('li');
     expect(await droits()).toHaveTextContent('178');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Boursier' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Étudiant boursier' }));
     await vi.waitFor(async () => expect(await droits()).toHaveTextContent('0 €'));
     expect(mock).toHaveBeenCalledWith(
       '/api/postes-rentree?profil=boursier&niveau=licence',
       expect.anything(),
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'International hors UE' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Étudiant international hors UE' }));
     await vi.waitFor(async () => expect(await droits()).toHaveTextContent('2 902'));
-    expect(screen.getByRole('button', { name: 'International hors UE' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Étudiant international hors UE' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -125,11 +125,11 @@ describe('Préparer mon budget', () => {
       (await screen.findByText('Budget de rentrée à prévoir')).closest('li');
     expect(await total()).toHaveTextContent('815');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Boursier' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Étudiant boursier' }));
     await vi.waitFor(async () => expect(await total()).toHaveTextContent('637'));
     expect(screen.getByText(/Offert avec votre bourse \(178/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'International hors UE' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Étudiant international hors UE' }));
     await vi.waitFor(async () => expect(await total()).toHaveTextContent('3 639'));
     expect(screen.getByText('Taxe de validation du visa (VLS-TS)')).toBeInTheDocument();
   });
@@ -145,7 +145,7 @@ describe('Préparer mon budget', () => {
     expect(rappel.textContent).toContain('je viens d’arriver en France');
     expect(rappel.textContent).not.toContain('en france');
     expect(rappel.textContent).toMatch(
-      /«\u00a0International hors UE, je viens d’arriver en France\u00a0»/,
+      /«\u00a0Étudiant international hors UE, je viens d’arriver en France\u00a0»/,
     );
 
     const ressources = screen.getByRole('region', { name: /À justifier pour votre visa/ });
@@ -193,7 +193,7 @@ describe('Préparer mon budget', () => {
     ).toBeInTheDocument();
 
     // International en master : droits différenciés du master.
-    await userEvent.click(screen.getByRole('button', { name: 'International hors UE' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Étudiant international hors UE' }));
     await vi.waitFor(async () => expect(await droits()).toHaveTextContent('3 950'));
   });
 
@@ -215,11 +215,11 @@ describe('Préparer mon budget', () => {
     );
 
     // L'exonération n'existe que pour le profil international.
-    await userEvent.click(screen.getByRole('button', { name: 'Boursier' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Étudiant boursier' }));
     expect(screen.queryByRole('checkbox', { name: /exonéré/ })).not.toBeInTheDocument();
 
     // Revenir au profil international : l'exonération ne s'est pas cochée toute seule.
-    await userEvent.click(screen.getByRole('button', { name: 'International hors UE' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Étudiant international hors UE' }));
     expect(screen.getByRole('checkbox', { name: /exonéré/ })).not.toBeChecked();
     await vi.waitFor(async () => expect(await droits()).toHaveTextContent('3 950'));
   });

@@ -44,7 +44,7 @@ describe('Changer de page n’emmène pas sur le décompte des résultats', () =
     Element.prototype.scrollIntoView.mockClear();
     const menu = screen.getAllByRole('navigation')[0];
     await userEvent.click(within(menu).getByRole('link', { name: /aides/i }));
-    await screen.findByRole('heading', { level: 1, name: /aides auxquelles/i });
+    await screen.findByRole('heading', { level: 1, name: /Aides, entraide et villes/i });
     expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
   });
 });

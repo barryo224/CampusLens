@@ -19,7 +19,7 @@ const ETAPES = [
   {
     titre: 'Je m’informe',
     texte:
-      'Je découvre mes droits : les aides adaptées à mon profil, comment les obtenir, et les guides officiels.',
+      'Je découvre les aides adaptées à mon profil, comment les obtenir, et les guides officiels.',
     lien: { vers: '/aides', libelle: 'Découvrir les aides' },
   },
   {
@@ -102,7 +102,7 @@ export default function Accueil() {
 
       <section aria-labelledby="titre-aides">
         <h2 id="titre-aides" className="titre-section">
-          Les aides à connaître absolument
+          Les aides essentielles
           <Link to="/aides">
             Voir toutes les aides <span aria-hidden="true">→</span>
           </Link>

@@ -15,8 +15,8 @@ const SITUATIONS = [
 
 const PROFILS = [
   { code: 'fr_ue', libelle: 'Étudiant français ou UE' },
-  { code: 'boursier', libelle: 'Boursier' },
-  { code: 'intl', libelle: 'International hors UE' },
+  { code: 'boursier', libelle: 'Étudiant boursier' },
+  { code: 'intl', libelle: 'Étudiant international hors UE' },
 ];
 
 const NIVEAUX = [
@@ -230,9 +230,9 @@ export default function Budget() {
                 <p>
                   Soit {formaterEuroCentimes(ressourcesVisa.valeur * 12)} sur une année. C’est le
                   montant minimum de ressources que l’administration demande pour un visa ou un
-                  titre de séjour « étudiant ». Au renouvellement, il est apprécié selon votre
-                  situation particulière : renseignez-vous auprès de la préfecture sur la prise en
-                  compte d’un job étudiant (limité à{' '}
+                  titre de séjour « étudiant ». Ce montant est un repère : au renouvellement, la
+                  décision revient à la préfecture, selon l’ensemble de votre dossier.
+                  Renseignez-vous auprès d’elle sur la prise en compte d’un job étudiant (limité à{' '}
                   {heuresMax !== null ? `${heuresMax} heures par an` : 'un nombre d’heures annuel'}
                   ).
                 </p>

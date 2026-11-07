@@ -5,7 +5,7 @@ export default function Pied() {
     <footer className="pied">
       <div>
         <h2>CampusLens</h2>
-        <p>Comprendre ses droits, découvrir les aides, maîtriser son budget.</p>
+        <p>Les repères pour bien vivre ses études en France.</p>
       </div>
       <div>
         <h2>Liens utiles</h2>

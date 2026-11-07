@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { usePageTitre } from '../lib/usePageTitre.js';
-import { EMAIL_CONTACT } from '../lib/config.js';
 
 export default function MentionsLegales() {
   usePageTitre('Mentions légales et confidentialité');
@@ -13,8 +12,7 @@ export default function MentionsLegales() {
         <h2>Éditeur du site</h2>
         <p>
           CampusLens est un service gratuit d’information destiné aux étudiants en France.
-          Responsable de la publication : Ousmane Barry. Contact :{' '}
-          <a href={`mailto:${EMAIL_CONTACT}`}>{EMAIL_CONTACT}</a> ou la{' '}
+          Responsable de la publication : Ousmane Barry. Contact : la{' '}
           <Link to="/contact">page Contact</Link>.
         </p>
         <h2>Hébergement</h2>

@@ -3,7 +3,7 @@ import { ouvrirMenu } from './menu.js';
 
 const PAGES = [
   { lien: 'Évaluer ma situation', titre: /Évaluez votre situation/ },
-  { lien: 'Mes aides', titre: /Les aides auxquelles vous avez droit/ },
+  { lien: 'Mes aides', titre: /Aides, entraide et villes/ },
   { lien: 'Préparer mon budget', titre: /Préparez votre budget/ },
   { lien: 'Ressources', titre: /Guides et sources utiles/ },
   { lien: 'À propos', titre: 'À propos' },
