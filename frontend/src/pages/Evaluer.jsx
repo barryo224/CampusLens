@@ -157,11 +157,10 @@ export default function Evaluer() {
   async function telecharger() {
     setErreurPdf(null);
     setConfirmationPdf(false);
-    // Un bilan sans aucun montant n'aurait aucun sens : on le refuse avec un message clair
-    // et on place le curseur dans le premier champ à remplir.
+    // Un bilan sans aucun montant n'aurait aucun sens : on le refuse avec un message clair. La page ne bouge pas : la
+    // personne lit le message, puis choisit d'aller saisir (bouton dans le message).
     if (resultat.totalRevenus === 0 && resultat.totalDepenses === 0) {
       setErreurPdf('Renseignez au moins un revenu ou une dépense pour générer votre bilan.');
-      document.getElementById('rev-job')?.focus();
       return;
     }
     try {
@@ -465,9 +464,21 @@ export default function Evaluer() {
                     </p>
                   )}
                   {erreurPdf && (
-                    <p role="alert" className="message message-erreur" style={{ marginTop: 12 }}>
-                      {erreurPdf}
-                    </p>
+                    <div role="alert" className="message message-erreur" style={{ marginTop: 12 }}>
+                      <p style={{ margin: 0 }}>{erreurPdf}</p>
+                      <button
+                        type="button"
+                        className="lien-action"
+                        style={{ marginTop: 8 }}
+                        onClick={() => {
+                          const champ = document.getElementById('rev-job');
+                          champ?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+                          champ?.focus({ preventScroll: true });
+                        }}
+                      >
+                        Aller saisir mes montants
+                      </button>
+                    </div>
                   )}
                 </>
               )}

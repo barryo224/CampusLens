@@ -105,8 +105,14 @@ test('bilan PDF sans aucun montant : message d’erreur, aucun téléchargement'
   await expect(page.getByRole('alert')).toContainText(
     'Renseignez au moins un revenu ou une dépense',
   );
-  await expect(page.getByLabel('Job étudiant (net)')).toBeFocused();
-  await page.waitForTimeout(800); // laisse le temps à un éventuel téléchargement (qui ne doit pas se produire)
+  // Le message reste LISIBLE : la page ne saute pas vers un champ. La personne choisit d'aller saisir.
+  await expect(page.getByRole('alert')).toBeInViewport();
+  await expect(page.getByLabel('Job étudiant (net)')).not.toBeFocused();
+  await page.waitForTimeout(800);
+  await expect(page.getByRole('alert')).toBeInViewport();
+  await expect(page.getByLabel('Job étudiant (net)')).not.toBeFocused();
+  await page.getByRole('button', { name: 'Aller saisir mes montants' }).click();
+  await expect(page.getByLabel('Job étudiant (net)')).toBeFocused(); // laisse le temps à un éventuel téléchargement (qui ne doit pas se produire)
   expect(telecharge).toBe(false);
   // Dès qu'on saisit un montant, le message disparaît et le bilan se télécharge.
   await page.getByLabel('Alimentation').fill('150');

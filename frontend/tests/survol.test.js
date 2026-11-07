@@ -47,20 +47,25 @@ describe('Styles de survol des choix, cases, pastilles et onglets', () => {
       expect(bloc).not.toMatch(new RegExp(`\\b${interdit}\\s*:`));
   });
 
-  it('tous les liens de texte ont un survol visible (soulignement épais), réservé à la souris', () => {
-    const debutLiens = css.indexOf('/* Tous les liens de texte');
-    expect(debutLiens).toBeGreaterThan(-1);
-    const ouvertureLiens = css.lastIndexOf(
-      '@media (hover: hover) and (pointer: fine) {',
-      debutLiens,
-    );
-    expect(css.slice(ouvertureLiens, debutLiens)).not.toContain('\n}\n');
-    // (le formateur peut couper un sélecteur sur plusieurs lignes : on compare sans espaces ni retours)
-    const regleLiens = css.slice(debutLiens, css.indexOf('}', debutLiens)).replace(/\s+/g, '');
-    expect(regleLiens).toContain('text-decoration-line:underline');
-    expect(regleLiens).toContain('text-decoration-thickness:2px');
-    // Les boutons, le logo et les cartes cliquables gardent leur effet propre (pas de soulignement sur toute la carte).
-    for (const exclu of ['.bouton', '.logo', '.raccourci'])
-      expect(regleLiens).toContain(`:not(${exclu})`);
+  it('liens : un petit mouvement au survol (le trait descend, le menu glisse), jamais de soulignement dans les menus', () => {
+    const debut = css.indexOf('/* Liens dans les contenus');
+    expect(debut).toBeGreaterThan(-1);
+    const ouverture = css.lastIndexOf('@media (hover: hover) and (pointer: fine) {', debut);
+    expect(css.slice(ouverture, debut)).not.toContain('\n}\n'); // dans la requête « souris seulement »
+    const sansEspaces = (t) => t.replace(/\s+/g, '');
+    // Contenus : le trait souligné descend et s'épaissit (transition douce sur l'écart du trait).
+    const contenus = sansEspaces(css.slice(debut, css.indexOf('}', debut)));
+    expect(contenus).toContain('text-underline-offset:5px');
+    expect(contenus).toContain('text-decoration-thickness:2px');
+    expect(sansEspaces(css)).toContain('transition:color0.15sease,text-underline-offset0.18sease');
+    // Menus et pied de page : glissement vers la droite, aucun soulignement.
+    const menus = css.indexOf('/* Menus et pied de page');
+    const regleMenus = sansEspaces(css.slice(menus, css.indexOf('}', menus)));
+    expect(regleMenus).toContain('.nava:hover,.admin-nava:hover,.pieda:hover'); // (sans espaces)
+    expect(regleMenus).toContain('transform:translateX(4px)');
+    expect(regleMenus).toContain('text-decoration:none');
+    expect(regleMenus).not.toContain('underline');
+    // Les boutons, le logo et les cartes cliquables gardent leur effet propre.
+    for (const exclu of ['.bouton', '.raccourci']) expect(contenus).toContain(`:not(${exclu})`);
   });
 });

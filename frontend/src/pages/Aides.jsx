@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MessageErreur from '../components/MessageErreur.jsx';
 import TableauAdaptatif from '../components/TableauAdaptatif.jsx';
+import RechercheCollante from '../components/RechercheCollante.jsx';
+import { useRemonterSurResultats } from '../lib/useRemonterSurResultats.js';
 import Fraicheur from '../components/Fraicheur.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
@@ -171,7 +173,8 @@ function Villes() {
   const { data, erreur, chargement, recharger } = useApi('/villes');
   const [recherche, setRecherche] = useState('');
   const [choix, setChoix] = useState(null); // ville touchée dans les suggestions : on n'affiche qu'elle
-  const [visibles, setVisibles] = useState(PAQUET_VILLES); // la liste s'allonge par paquets : la page ne devient pas interminable
+  const [visibles, setVisibles] = useState(PAQUET_VILLES);
+  useRemonterSurResultats('resultats-villes', recherche, choix); // une nouvelle recherche ramène au début des résultats // la liste s'allonge par paquets : la page ne devient pas interminable
   if (erreur) return <MessageErreur erreur={erreur} surReessayer={recharger} />;
   if (chargement || !data)
     return (
@@ -193,21 +196,23 @@ function Villes() {
   const nombre = (n) => (n === null || n === undefined ? '—' : formaterEuro(n));
   return (
     <div>
-      <ChampVille
-        villes={data}
-        valeur={recherche}
-        idResultats="resultats-villes"
-        surChangement={(texte) => {
-          setRecherche(texte);
-          setChoix(null);
-          setVisibles(PAQUET_VILLES);
-        }}
-        surChoix={(ville) => {
-          setRecherche(ville.nom);
-          setChoix(ville.id);
-          setVisibles(PAQUET_VILLES);
-        }}
-      />
+      <RechercheCollante>
+        <ChampVille
+          villes={data}
+          valeur={recherche}
+          idResultats="resultats-villes"
+          surChangement={(texte) => {
+            setRecherche(texte);
+            setChoix(null);
+            setVisibles(PAQUET_VILLES);
+          }}
+          surChoix={(ville) => {
+            setRecherche(ville.nom);
+            setChoix(ville.id);
+            setVisibles(PAQUET_VILLES);
+          }}
+        />
+      </RechercheCollante>
       <p className="aide-organisme" id="note-villes">
         {data.length} villes. Le loyer du studio est une estimation : loyer d’annonce au m² pour les
         appartements de 1 ou 2 pièces (carte des loyers officielle), multiplié par la surface type

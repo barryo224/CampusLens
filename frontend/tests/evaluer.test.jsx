@@ -365,7 +365,7 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(document.cookie).not.toMatch(/Marie|Confidentielle/);
   });
 
-  it('bilan PDF sans aucun montant : refusé avec un message clair, rien n’est téléchargé, le curseur va au 1er champ', async () => {
+  it('bilan PDF sans aucun montant : refusé avec un message lisible, rien n’est téléchargé, la page ne saute pas vers un champ', async () => {
     await ouvrir();
     const bouton = screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' });
     await userEvent.click(bouton);
@@ -374,6 +374,10 @@ describe('Simulateur — Évaluer ma situation', () => {
     );
     expect(pdf.sauvegardes).toEqual([]);
     expect(pdf.textes).toEqual([]);
+    // Le focus ne part PAS vers un champ : la personne a le temps de lire. Elle choisit d'aller saisir.
+    expect(screen.getByLabelText('Job étudiant (net)')).not.toHaveFocus();
+    expect(bouton).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', { name: 'Aller saisir mes montants' }));
     expect(screen.getByLabelText('Job étudiant (net)')).toHaveFocus();
     // Un prénom et un profil ne suffisent pas : il faut au moins un montant.
     await saisir('Prénom (facultatif)', 'Zoé');

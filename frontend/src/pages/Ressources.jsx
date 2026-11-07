@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import MessageErreur from '../components/MessageErreur.jsx';
 import TableauAdaptatif from '../components/TableauAdaptatif.jsx';
+import RechercheCollante from '../components/RechercheCollante.jsx';
+import { useRemonterSurResultats } from '../lib/useRemonterSurResultats.js';
 import Icone from '../components/Icone.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
@@ -32,6 +34,7 @@ export default function Ressources() {
   const { data, erreur, chargement, recharger } = useApi('/ressources');
   const [recherche, setRecherche] = useState('');
   const [categorie, setCategorie] = useState('');
+  useRemonterSurResultats('resultats-ressources', recherche, categorie);
   const [choix, setChoix] = useState(null); // ressource touchée dans les suggestions : on n'affiche qu'elle
 
   const categories = useMemo(
@@ -82,26 +85,26 @@ export default function Ressources() {
 
         {data && (
           <section className="carte" aria-label="Liste des ressources">
+            <RechercheCollante>
+              <ChampSuggestions
+                libelle="Rechercher une ressource, un rapport"
+                placeholder="Titre, organisme ou thème"
+                aide="Exemples : « visale », « ameli », « bourse », « logement ». Touchez une suggestion pour aller droit au résultat."
+                libelleListe="Ressources proposées"
+                suggestions={suggestions}
+                valeur={recherche}
+                idResultats="resultats-ressources"
+                surChangement={(texte) => {
+                  setRecherche(texte);
+                  setChoix(null);
+                }}
+                surChoix={(r) => {
+                  setRecherche(r.titre);
+                  setChoix(r.id);
+                }}
+              />
+            </RechercheCollante>
             <div className="barre-recherche">
-              <div style={{ flex: 1, minWidth: 220 }}>
-                <ChampSuggestions
-                  libelle="Rechercher une ressource, un rapport"
-                  placeholder="Titre, organisme ou thème"
-                  aide="Exemples : « visale », « ameli », « bourse », « logement ». Touchez une suggestion pour aller droit au résultat."
-                  libelleListe="Ressources proposées"
-                  suggestions={suggestions}
-                  valeur={recherche}
-                  idResultats="resultats-ressources"
-                  surChangement={(texte) => {
-                    setRecherche(texte);
-                    setChoix(null);
-                  }}
-                  surChoix={(r) => {
-                    setRecherche(r.titre);
-                    setChoix(r.id);
-                  }}
-                />
-              </div>
               <div className="pastilles" role="group" aria-label="Catégorie" style={{ margin: 0 }}>
                 <button
                   type="button"

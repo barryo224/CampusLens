@@ -882,25 +882,34 @@ a {
 }
 /* Liens : on sent toujours qu'on est dessus (souris seulement ; au clavier, le cadre de focus s'en charge). */
 a {
-  transition: color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    text-underline-offset 0.18s ease,
+    text-decoration-thickness 0.18s ease,
+    transform 0.15s ease;
+}
+.contenu a,
+.admin-contenu a {
+  text-underline-offset: 2px; /* point de départ du mouvement du trait au survol */
 }
 @media (hover: hover) and (pointer: fine) {
-  /* Tous les liens de texte (menus, pied de page, liens dans les phrases, tableaux…) : trait souligné bien visible.
-     Les boutons, le logo et les cartes cliquables ont leur propre effet. */
-  a:not(.bouton):not(.bouton-secondaire):not(.bouton-clair):not(.logo):not(.admin-marque):not(
-      .raccourci
-    ):not(.lien-evitement):hover {
-    text-decoration-line: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 3px;
-  }
-  /* Dans les contenus : la couleur s'assombrit aussi. (Menus et pied de page, sur fond foncé, gardent leur blanc.) */
+  /* Liens dans les contenus (phrases, tableaux, cartes) : le trait souligné « descend » et s'épaissit, la couleur
+     s'assombrit. Aucun changement de taille ni de position du texte. */
   .contenu
     a:not(.bouton):not(.bouton-secondaire):not(.bouton-clair):not(.raccourci):not(
       [class*='badge']
     ):hover,
   .admin-contenu a:not(.bouton):not(.bouton-secondaire):not(.bouton-clair):hover {
     color: #0a3540;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 5px;
+  }
+  /* Menus et pied de page : jamais de soulignement ; le lien glisse légèrement vers la droite. */
+  .nav a:hover,
+  .admin-nav a:hover,
+  .pied a:hover {
+    transform: translateX(4px);
+    text-decoration: none;
   }
   /* Cartes de choix (profil, statut, niveau) : la carte « s'éveille », sauf celle déjà choisie. */
   .choix:not(.choix-actif):hover {
@@ -2158,4 +2167,64 @@ button.lien-action {
 .plus-de-villes .fraicheur {
   flex-basis: 100%;
   margin: 0;
+}
+
+/* ───── Recherche collée en haut pendant le défilement d'une longue liste ───── */
+.sentinelle-collante {
+  height: 1px;
+  margin-bottom: -1px;
+  pointer-events: none;
+}
+.recherche-collante {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--fond-collant, var(--fond));
+  padding: 8px 0 10px;
+  transition: box-shadow 0.15s ease;
+}
+.carte .recherche-collante {
+  --fond-collant: var(--carte);
+}
+.recherche-collante .champ {
+  margin-bottom: 0;
+}
+@media (max-width: 900px) {
+  .recherche-collante {
+    top: var(--hauteur-barre); /* sous la barre verte */
+  }
+}
+/* Collée : plus compacte (le titre et l'aide ne s'affichent plus, mais restent lus par les lecteurs d'écran). */
+.recherche-collante.collee {
+  box-shadow: 0 8px 14px -10px rgba(8, 28, 36, 0.45);
+}
+.recherche-collante.collee .champ > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.recherche-collante.collee .champ > .fraicheur {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* Début des résultats : quand on y remonte, il se place juste SOUS la barre de recherche collée (et sous la barre verte
+   sur téléphone et tablette), jamais caché derrière. */
+.resultats-villes,
+#resultats-ressources {
+  scroll-margin-top: 84px;
+}
+@media (max-width: 900px) {
+  .resultats-villes,
+  #resultats-ressources {
+    scroll-margin-top: calc(var(--hauteur-barre) + 84px);
+  }
 }
