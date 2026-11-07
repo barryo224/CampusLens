@@ -21,6 +21,7 @@
   --rayon: 16px;
   --largeur-sidebar: 260px;
   --hauteur-barre: 64px; /* barre verte repliée (téléphone et tablette) */
+  --haut-fixe: 0px; /* hauteur de ce qui reste collé en haut de l'écran (rien sur ordinateur) */
   /* Opacité de la photo derrière la mission : assez faible pour garantir un texte lisible (testé). */
   --mission-image-opacite: 0.2;
 }
@@ -2042,6 +2043,9 @@ button.lien-action {
 }
 
 @media (max-width: 900px) {
+  :root {
+    --haut-fixe: var(--hauteur-barre); /* la barre verte collée en haut */
+  }
   .contenu .bouton,
   .admin-contenu .bouton {
     max-width: 100%;
@@ -2118,7 +2122,7 @@ button.lien-action {
    Elle reste donc collée sous la barre verte, visible où que l'on soit dans la page, sans rien faire défiler. */
 .admin-contenu > .message:not(.rappel-2fa) {
   position: sticky;
-  top: calc(var(--hauteur-barre) + 10px);
+  top: calc(var(--haut-fixe) + 10px);
   z-index: 24;
   box-shadow: 0 6px 16px rgba(16, 36, 43, 0.16);
 }
@@ -2129,7 +2133,17 @@ button.lien-action {
    valeur. Plus de défilement latéral : tout se voit en faisant défiler la page. */
 .tableau-adaptatif {
   position: relative;
-  overflow-x: auto; /* seulement si, exceptionnellement, un tableau déborde ; sinon aucune barre n'apparaît */
+  /* Aucun cadre défilant : un tableau qui ne tient pas passe en cartes (voir le composant). */
+}
+/* Titres des colonnes : collés en haut de l'écran pendant que la page défile (sous la barre de recherche collée s'il y en
+   a une), pour toujours savoir de quelle colonne vient une valeur. */
+.tableau-adaptatif:not(.en-cartes) .tableau thead th {
+  position: sticky;
+  top: var(--haut-fixe);
+  z-index: 6;
+}
+.tableau-adaptatif.sous-recherche:not(.en-cartes) .tableau thead th {
+  top: calc(var(--haut-fixe) + var(--hauteur-recherche, 66px));
 }
 .tableau-adaptatif .tableau {
   overflow-wrap: break-word;
@@ -2280,4 +2294,43 @@ button.lien-action {
   text-align: left;
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+/* ───── Page « À valider » : cartes plus compactes (les espaces s'additionnaient) ───── */
+.changement {
+  gap: 8px;
+  padding: 18px 20px;
+}
+.changement h3 {
+  margin: 0;
+}
+.changement p {
+  margin: 0;
+}
+.changement .groupe {
+  margin: 0;
+}
+.changement .champ {
+  margin-bottom: 0;
+}
+/* Large : nom, valeur et précision sur une ligne. Petit écran (≤ 900 px) : empilés (règle de .champ-ligne plus haut). */
+@media (min-width: 901px) {
+  .changement .champ-ligne {
+    grid-template-columns: minmax(150px, 230px) 130px minmax(0, 1fr);
+  }
+}
+.changement .resultat-actions {
+  margin-top: 4px;
+}
+
+/* ───── Rappel des sources bloquées : une simple note, jamais collée en haut de l'écran ───── */
+.rappel-sites {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--bordure);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  background: var(--carte);
+  color: var(--texte-doux);
+  font-size: 0.9375rem;
 }

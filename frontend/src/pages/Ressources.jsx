@@ -144,7 +144,7 @@ export default function Ressources() {
                   Aucune ressource ne correspond à votre recherche.
                 </p>
               ) : (
-                <TableauAdaptatif libelle="Tableau des ressources" seuil={860}>
+                <TableauAdaptatif libelle="Tableau des ressources" seuil={860} sousRecherche>
                   <table className="tableau">
                     <caption className="sr-only">Démarches et documents officiels</caption>
                     <thead>

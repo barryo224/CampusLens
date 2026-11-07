@@ -221,7 +221,7 @@ function Villes() {
         : pas encore relevé).
       </p>
       <div id="resultats-villes" className="resultats-villes">
-        <TableauAdaptatif libelle="Tableau du comparateur de villes" seuil={900}>
+        <TableauAdaptatif libelle="Tableau du comparateur de villes" seuil={900} sousRecherche>
           <table className="tableau">
             <caption className="sr-only">Comparateur de villes</caption>
             <thead>

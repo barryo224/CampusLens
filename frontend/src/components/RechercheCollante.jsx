@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
  */
 export default function RechercheCollante({ children }) {
   const sentinelle = useRef(null);
+  const boite = useRef(null);
   const [collee, setCollee] = useState(false);
 
   useEffect(() => {
@@ -23,10 +24,30 @@ export default function RechercheCollante({ children }) {
     return () => observateur.disconnect();
   }, []);
 
+  // Hauteur de la barre (collée, compacte) : les titres du tableau se collent juste sous elle.
+  useEffect(() => {
+    const el = boite.current;
+    if (!el) return undefined;
+    const racine = document.documentElement;
+    const mesurer = () =>
+      racine.style.setProperty('--hauteur-recherche', `${Math.round(el.offsetHeight)}px`);
+    mesurer();
+    if (typeof ResizeObserver === 'undefined')
+      return () => racine.style.removeProperty('--hauteur-recherche');
+    const observateur = new ResizeObserver(mesurer);
+    observateur.observe(el);
+    return () => {
+      observateur.disconnect();
+      racine.style.removeProperty('--hauteur-recherche');
+    };
+  }, []);
+
   return (
     <>
       <div ref={sentinelle} className="sentinelle-collante" aria-hidden="true" />
-      <div className={`recherche-collante${collee ? ' collee' : ''}`}>{children}</div>
+      <div ref={boite} className={`recherche-collante${collee ? ' collee' : ''}`}>
+        {children}
+      </div>
     </>
   );
 }

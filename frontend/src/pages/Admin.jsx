@@ -34,7 +34,7 @@ function RappelSitesBloques({ sources }) {
   const bloquees = sources.filter(siteBloque);
   if (bloquees.length === 0) return null;
   return (
-    <div className="message" role="note" data-testid="rappel-sites-bloques">
+    <div className="rappel-sites" role="note" data-testid="rappel-sites-bloques">
       <strong>
         {bloquees.length} source{bloquees.length > 1 ? 's sont bloquées' : ' est bloquée'} par leur
         site.
@@ -1492,6 +1492,20 @@ export default function AdminLayout() {
   // sous la fenêtre de reconnexion, donc rien de ce qui était saisi n'est perdu.
   const [expiree, setExpiree] = useState(null);
   const [motif, setMotif] = useState(null); // 'expiree' : avertissement jaune affiché après une déconnexion automatique
+  const racineAdmin = useRef(null);
+  // La barre du haut est collée : sa hauteur (variable selon l'écran) sert à coller les titres des tableaux juste dessous.
+  useEffect(() => {
+    const racine = racineAdmin.current;
+    const barre = racine?.querySelector('.admin-barre');
+    if (!racine || !barre) return undefined;
+    const mesurer = () =>
+      racine.style.setProperty('--haut-fixe', `${Math.round(barre.offsetHeight)}px`);
+    mesurer();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observateur = new ResizeObserver(mesurer);
+    observateur.observe(barre);
+    return () => observateur.disconnect();
+  }, [admin]);
   const navigate = useNavigate();
   const [dernierEmail, setDernierEmail] = useState(''); // pour préremplir l'adresse après « Session expirée »
   const emailRef = useRef('');
@@ -1663,7 +1677,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="admin-app">
+    <div className="admin-app" ref={racineAdmin}>
       <a className="lien-evitement" href="#contenu-admin">
         Aller au contenu
       </a>
