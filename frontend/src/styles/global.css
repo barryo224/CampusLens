@@ -865,6 +865,44 @@ a {
   }
 }
 
+/* ───── Survol (souris seulement) ─────
+   Discret : seule la couleur du fond ou de la bordure change, jamais la taille ni la position (le responsive n'est pas
+   touché). Réservé aux appareils avec souris : sur téléphone, un survol « collerait » après un toucher. Les animations
+   sont coupées pour qui a demandé moins de mouvement (règle plus haut). */
+.choix,
+.case,
+.pastille,
+.onglets [role='tab'],
+.nav a,
+.admin-nav a {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  /* Cartes de choix (profil, statut, niveau) : la carte « s'éveille », sauf celle déjà choisie. */
+  .choix:not(.choix-actif):hover {
+    border-color: var(--primaire);
+    background: #f1f7f8;
+  }
+  /* Cases à cocher : le libellé se teinte, la case garde sa couleur. */
+  .case:hover {
+    color: var(--primaire);
+    cursor: pointer;
+  }
+  /* Filtres en pastilles : bordure et fond légers, sauf le filtre actif. */
+  .pastille:not(.pastille-active):hover {
+    border-color: var(--primaire);
+    background: #f1f7f8;
+  }
+  /* Onglets : le texte se teinte et un filet discret apparaît sous l'onglet non choisi. */
+  .onglets [role='tab']:not([aria-selected='true']):hover {
+    color: var(--primaire);
+    border-bottom-color: #b9c4c9;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
