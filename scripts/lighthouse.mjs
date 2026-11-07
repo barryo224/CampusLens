@@ -85,8 +85,12 @@ try {
       lcp.padEnd(8),
       cls,
     );
-    for (const [cat, seuil] of Object.entries(SEUILS))
+    for (const [cat, seuil] of Object.entries(SEUILS)) {
+      // Seule la page d'accueil est destinée à Google : les pages intérieures sont volontairement en « noindex »
+      // (voir frontend/vercel.json), ce qui fait baisser leur note SEO (~63) par choix, pas par défaut.
+      if (cat === 'seo' && page !== '/') continue;
       if (note(cat) < seuil) echecs.push(`${page} : ${cat} = ${note(cat)} (< ${seuil})`);
+    }
   }
 } finally {
   serveur.kill();
@@ -96,5 +100,5 @@ if (echecs.length) {
   process.exit(1);
 }
 console.log(
-  '\n✅ Tous les seuils Lighthouse sont atteints (performance ≥ 90, accessibilité ≥ 95).',
+  '\n✅ Tous les seuils Lighthouse sont atteints (performance ≥ 90, accessibilité ≥ 95 ; SEO ≥ 90 pour l’accueil, seule page indexée).',
 );

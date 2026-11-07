@@ -408,7 +408,7 @@ export const SOURCES = {
   transportAix: {
     nom: 'Tarifs Pays d’Aix Mobilité (Aix-en-Provence)',
     organisme: 'Pays d’Aix Mobilité',
-    url: 'https://www.lepilote.com/fr/tarifs/7/Fare/abonnement-annuel-26ans-jeune/122?PartnerId=5&Frequency=THM_FARE_6',
+    url: 'https://www.aixenbus.fr/fr/jGQ-Abonnement-C389tudiant.html',
     type: 'page_web',
     frequenceHeures: 24 * 90,
   },
@@ -447,7 +447,7 @@ export const SOURCES = {
   associations: {
     nom: 'Sites des associations d’entraide',
     organisme: 'Associations',
-    url: 'https://www.agoraes.fr',
+    url: 'https://fage.org/projet/agorae/',
     type: 'page_web',
     frequenceHeures: 24 * 90,
   },
@@ -793,7 +793,7 @@ export const ASSOCIATIONS = [
   {
     nom: 'AGORAé',
     description: 'Épiceries solidaires gérées par et pour les étudiants.',
-    lien: 'https://www.agoraes.fr',
+    lien: 'https://fage.org/projet/agorae/',
   },
   {
     nom: 'Cop1 – Solidarités Étudiantes',
@@ -1506,9 +1506,9 @@ export const TARIFS_TRANSPORT = [
     montantAnnuel: 100,
     montantMensuel: null,
     conditions:
-      'Moins de 26 ans : 100 € par an (septembre à août), 80 € ou 50 € selon situation. Pass Métropole étudiant : 30,40 € par mois. Page du portail lepilote, à confirmer.',
+      'Moins de 26 ans : 100 € par an (septembre à août), 80 € ou 50 € selon situation. Pass Métropole étudiant : 30,40 € par mois. Voir la page officielle d’Aixenbus ; prix à confirmer.',
     urlTarifs:
-      'https://www.lepilote.com/fr/tarifs/7/Fare/abonnement-annuel-26ans-jeune/122?PartnerId=5&Frequency=THM_FARE_6',
+      'https://www.aixenbus.fr/fr/jGQ-Abonnement-C389tudiant.html',
   },
 ];
 

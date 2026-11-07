@@ -234,3 +234,14 @@ describe('Base de données et seed', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('Liens des données de départ', () => {
+  it('aucune adresse connue pour être morte (domaine disparu ou certificat invalide)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const texte = readFileSync(new URL('../src/seed/donnees.js', import.meta.url), 'utf8');
+    // Vérifiés le 8 novembre 2026 : « agoraes.fr » n'existe plus (AGORAé est portée par la FAGE) et « lepilote.com » présente
+    // un certificat invalide.
+    expect(texte).not.toMatch(/agoraes\.fr|lepilote\.com/);
+    expect(texte).toContain('https://fage.org/projet/agorae/');
+  });
+});
