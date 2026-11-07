@@ -2,9 +2,11 @@ import { useEffect, useId, useRef, useState } from 'react';
 
 /**
  * Champ de recherche avec suggestions pendant la frappe (liste déroulante accessible : combobox + listbox), commun aux
- * villes et aux ressources. Pensé pour le téléphone : à la sélection du champ, la page le remonte sous la barre verte ;
- * la liste est courte (6 propositions) et tient au-dessus du clavier ; dès qu'on touche une suggestion, le clavier se
- * ferme et la page descend sur le résultat.
+ * villes et aux ressources. Pensé pour le téléphone : la liste est courte (6 propositions) et tient au-dessus du clavier ;
+ * dès qu'on touche une suggestion, le clavier se ferme et la page descend sur le résultat.
+ *
+ * La page ne bouge JAMAIS quand on clique dans le champ (ordinateur) : on la déplace une seule fois, en douceur, et
+ * seulement sur un écran tactile quand le clavier vient de s'ouvrir ET que le champ risque d'être mal placé.
  *
  * `suggestions` : [{ cle, titre, detail, brut }] (déjà classées) ; `surChoix(brut)` reçoit l'élément choisi.
  */
@@ -31,11 +33,22 @@ export default function ChampSuggestions({
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return undefined;
+    let derniereHauteur = vv.height;
     const maj = () => {
       document.documentElement.style.setProperty('--hauteur-visible', `${Math.round(vv.height)}px`);
-      // Le clavier vient de s'ouvrir (ou de se fermer) : si le champ est en cours de saisie, on le remet en haut.
-      if (document.activeElement === champ.current)
-        bloc.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' });
+      const clavierOuvert = vv.height < derniereHauteur - 80; // le clavier vient d'apparaître
+      derniereHauteur = vv.height;
+      // Écran tactile seulement, et seulement si le champ saisi est trop bas (ou caché) : un seul déplacement, doux.
+      // Ordinateur, ou champ déjà bien placé : la page reste exactement où elle est.
+      if (
+        clavierOuvert &&
+        document.activeElement === champ.current &&
+        window.matchMedia?.('(pointer: coarse)').matches
+      ) {
+        const haut = bloc.current?.getBoundingClientRect().top ?? 0;
+        const bienPlace = haut >= 70 && haut <= vv.height * 0.4; // sous la barre verte, dans le haut de l'écran visible
+        if (!bienPlace) bloc.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+      }
     };
     maj();
     vv.addEventListener('resize', maj);
@@ -78,11 +91,7 @@ export default function ChampSuggestions({
         spellCheck={false}
         enterKeyHint="search"
         value={valeur}
-        onFocus={() => {
-          setOuvert(true);
-          // Sur téléphone, on remonte le champ en haut de l'écran avant que le clavier ne s'ouvre.
-          bloc.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' });
-        }}
+        onFocus={() => setOuvert(true)}
         onBlur={() => setOuvert(false)}
         onChange={(e) => {
           surChangement(e.target.value);
