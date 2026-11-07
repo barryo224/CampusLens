@@ -59,21 +59,24 @@ function CarteAide({ aide }) {
         </h3>
         <p>{aide.description}</p>
       </div>
-      {e && (
-        <span className={`badge ${CLASSE_STATUT[e.statut]}`}>
-          {e.precision ?? LIBELLE_STATUT[e.statut]}
-        </span>
-      )}
-      <button
-        type="button"
-        className="bouton bouton-secondaire"
-        aria-expanded={ouvert}
-        aria-controls={idPanneau}
-        onClick={() => setOuvert((o) => !o)}
-      >
-        {ouvert ? 'Masquer' : 'Comment l’obtenir'}
-        <span className="sr-only"> : {aide.nom}</span>
-      </button>
+      {/* Étiquette et bouton passent SOUS le texte : le nom et la description gardent toute la largeur. */}
+      <div className="aide-actions">
+        {e && (
+          <span className={`badge ${CLASSE_STATUT[e.statut]}`}>
+            {e.precision ?? LIBELLE_STATUT[e.statut]}
+          </span>
+        )}
+        <button
+          type="button"
+          className="bouton bouton-secondaire"
+          aria-expanded={ouvert}
+          aria-controls={idPanneau}
+          onClick={() => setOuvert((o) => !o)}
+        >
+          {ouvert ? 'Masquer' : 'Comment l’obtenir'}
+          <span className="sr-only"> : {aide.nom}</span>
+        </button>
+      </div>
       {ouvert && (
         <div id={idPanneau} className="demarche">
           <h4>Comment la demander</h4>
