@@ -273,6 +273,47 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.getByTestId('reste')).toHaveTextContent('576 €');
   });
 
+  it('un montant faux (lettres…) : champ signalé en clair, bilan refusé, bouton qui mène au champ, puis tout rentre dans l’ordre', async () => {
+    await ouvrir();
+    await saisir('Loyer charges comprises', '420');
+    await saisir('Job étudiant (net)', 'environ six cents');
+    const champ = screen.getByLabelText('Job étudiant (net)');
+    expect(champ).toHaveAttribute('aria-invalid', 'true');
+    expect(champ).toHaveAccessibleDescription(
+      /Ce n’est pas un montant\. Écrivez seulement des chiffres/,
+    );
+    expect(screen.getByTestId('montant-invalide')).toHaveTextContent(/Un montant n’est pas valide/);
+    // pas de jargon : ni « entier », ni « flottant », ni « nombre décimal »
+    expect(document.body).not.toHaveTextContent(/entier|flottant|décimal/i);
+    // le bilan n'est pas créé, et le message dit lequel corriger
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
+    const alerte = await screen.findByRole('alert');
+    expect(alerte).toHaveTextContent(/Votre bilan n’a pas été créé/);
+    expect(alerte).toHaveTextContent(/Job étudiant \(net\)/);
+    expect(pdf.sauvegardes).toEqual([]);
+    // le bouton amène au champ à corriger
+    await userEvent.click(screen.getByRole('button', { name: 'Aller au champ à corriger' }));
+    expect(champ).toHaveFocus();
+    // corrigé : plus de message, et le bilan se télécharge
+    await saisir('Job étudiant (net)', '600');
+    expect(champ).not.toHaveAttribute('aria-invalid');
+    expect(screen.queryByTestId('montant-invalide')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
+    await vi.waitFor(() => expect(pdf.sauvegardes).toHaveLength(1));
+  });
+
+  it('plusieurs montants faux : le message les nomme tous', async () => {
+    await ouvrir();
+    await saisir('Job étudiant (net)', '600');
+    await saisir('Alimentation', 'beaucoup');
+    await saisir('Transport', '??');
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
+    const alerte = await screen.findByRole('alert');
+    expect(alerte).toHaveTextContent(/2 montants ne sont pas valides/);
+    expect(alerte).toHaveTextContent(/Alimentation, Transport/);
+    expect(pdf.sauvegardes).toEqual([]);
+  });
+
   it('une phrase donne le seuil de pauvreté (repris de la base, avec sa source) et le seuil « fragile » de CampusLens', async () => {
     await ouvrir();
     const phrase = screen.getByTestId('seuil-precarite');

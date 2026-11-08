@@ -1474,6 +1474,19 @@ a {
   color: var(--texte);
 }
 
+/* Montant de départ (rien de saisi) : le message ne doit pas coller au chiffre. */
+.resultat-montant + .message {
+  margin-top: 14px;
+}
+/* Montant de départ (rien de saisi) : le message ne doit pas coller au chiffre. */
+.resultat-montant + .message {
+  margin-top: 14px;
+}
+/* Champ de montant invalide : encadré en rouge, avec son message juste dessous. */
+.champ input[aria-invalid='true'] {
+  border-color: var(--rouge);
+  box-shadow: 0 0 0 3px var(--rouge-fond);
+}
 .aide-montant {
   margin: 4px 0 0;
   font-size: 0.875rem;

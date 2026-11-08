@@ -57,8 +57,7 @@ function ChampMontant({ id, libelle, valeur, surChangement }) {
       />
       {!reconnu && (
         <p id={`${id}-aide`} className="aide-montant">
-          Montant non compris : il compte pour 0 €. Utilisez des chiffres, par exemple 450 ou
-          450,50.
+          Ce n’est pas un montant. Écrivez seulement des chiffres, par exemple 450 ou 450,50.
         </p>
       )}
     </div>
@@ -170,17 +169,24 @@ export default function Evaluer() {
   );
   const codeProfilAides = profil.boursier ? 'boursier' : profil.statut;
 
+  // Champs dont le texte n'est pas un montant (lettres, symboles…) : encadrés en rouge, et le bilan n'est pas créé.
+  const champsInvalides = [
+    ...REVENUS.map(([cle, libelle]) => ({ id: `rev-${cle}`, cle, libelle })),
+    ...DEPENSES.map(([cle, libelle]) => ({ id: `dep-${cle}`, cle, libelle })),
+  ].filter(({ cle }) => !analyserMontant(saisie[cle] ?? '').reconnu);
+
   /**
-   * « Aller saisir mes montants » : on donne le premier champ à remplir, sans perdre le contexte.
+   * « Aller saisir mes montants » (ou, si un montant est faux, « Aller au champ à corriger ») : on donne le premier champ à remplir, sans perdre le contexte.
    *  - ordinateur : la page est courte entre le haut et la saisie, on remonte tout en haut (le champ reste à l'écran) ;
    *  - téléphone : remonter tout en haut ferait sortir le champ de l'écran ; on amène donc le début du bloc « Vos revenus
    *    mensuels » (titre + premier champ) juste sous les barres.
    * Le défilement est calculé et immédiat : `scrollIntoView` doux est interrompu par Safari avec les barres collées.
    */
   function allerSaisir() {
-    const champ = document.getElementById('rev-job');
+    const champ = document.getElementById(champsInvalides[0]?.id ?? 'rev-job');
     const telephone = window.matchMedia?.('(max-width: 900px)').matches;
-    if (telephone) defilerSousLesBarres(document.getElementById('bloc-revenus'));
+    if (telephone)
+      defilerSousLesBarres(champ?.closest('section') ?? document.getElementById('bloc-revenus'));
     else window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     champ?.focus({ preventScroll: true });
   }
@@ -188,6 +194,16 @@ export default function Evaluer() {
   async function telecharger() {
     setErreurPdf(null);
     setConfirmationPdf(false);
+    // Un montant qui n'en est pas un (« abc », « environ 12 »…) fausserait tout le bilan : on ne le crée pas.
+    if (champsInvalides.length > 0) {
+      const n = champsInvalides.length;
+      setErreurPdf(
+        `Votre bilan n’a pas été créé : ${n === 1 ? 'un montant n’est pas valide' : `${n} montants ne sont pas valides`} ` +
+          `(${champsInvalides.map((c) => c.libelle).join(', ')} : ${n === 1 ? 'champ encadré' : 'champs encadrés'} en rouge). ` +
+          `Corrigez-${n === 1 ? 'le' : 'les'}, puis téléchargez de nouveau.`,
+      );
+      return;
+    }
     // Un bilan sans aucun montant n'aurait aucun sens : on le refuse avec un message clair. La page ne bouge pas : la
     // personne lit le message, puis choisit d'aller saisir (bouton dans le message).
     if (resultat.totalRevenus === 0 && resultat.totalDepenses === 0) {
@@ -441,6 +457,13 @@ export default function Evaluer() {
                   >
                     {formaterEuro(resultat.resteAVivre).replace('-', '− ')}
                   </p>
+                  {champsInvalides.length > 0 && (
+                    <p className="message message-avertissement" data-testid="montant-invalide">
+                      {champsInvalides.length === 1
+                        ? 'Un montant n’est pas valide (champ en rouge) : il n’est pas compté dans ce résultat.'
+                        : `${champsInvalides.length} montants ne sont pas valides (champs en rouge) : ils ne sont pas comptés dans ce résultat.`}
+                    </p>
+                  )}
                   {rienSaisi ? (
                     <p className="message" data-testid="reste-vide">
                       Montant de départ : vos droits d’inscription et la CVEC, lissés sur 12 mois,
@@ -542,7 +565,9 @@ export default function Evaluer() {
                         style={{ marginTop: 8 }}
                         onClick={allerSaisir}
                       >
-                        Aller saisir mes montants
+                        {champsInvalides.length > 0
+                          ? 'Aller au champ à corriger'
+                          : 'Aller saisir mes montants'}
                       </button>
                     </div>
                   )}

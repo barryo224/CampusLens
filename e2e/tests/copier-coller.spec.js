@@ -33,7 +33,7 @@ test.describe('Évaluer ma situation', () => {
     await coller(page, loyer, '420 euros');
     await expect(page.getByTestId('total-revenus')).toContainText(/1\s?251\s?€/);
     await expect(page.getByTestId('total-depenses')).toContainText(/444\s?€/); // 420 + 24 de frais lissés
-    await expect(page.getByText('Montant non compris')).toHaveCount(0);
+    await expect(page.getByText('Ce n’est pas un montant')).toHaveCount(0);
     for (const [texte, attendu] of [
       ['1.250,50', /1\s?251\s?€/],
       ['1,250.50', /1\s?251\s?€/],
@@ -50,10 +50,38 @@ test.describe('Évaluer ma situation', () => {
     await page.goto('/evaluer');
     const job = page.getByLabel('Job étudiant (net)');
     await coller(page, job, 'environ six cents');
-    await expect(page.getByText('Montant non compris')).toBeVisible();
+    await expect(page.getByText('Ce n’est pas un montant')).toBeVisible();
     await expect(job).toHaveAttribute('aria-invalid', 'true');
     await coller(page, job, '600');
-    await expect(page.getByText('Montant non compris')).toHaveCount(0);
+    await expect(page.getByText('Ce n’est pas un montant')).toHaveCount(0);
+  });
+
+  test('montant faux : champ encadré en rouge, message simple, et le bilan n’est pas créé', async ({
+    page,
+  }) => {
+    await page.goto('/evaluer');
+    let telecharge = false;
+    page.on('download', () => (telecharge = true));
+    const job = page.getByLabel('Job étudiant (net)');
+    await page.getByLabel('Loyer charges comprises').fill('420');
+    await coller(page, job, 'abc 12 euros environ');
+    await expect(
+      page.getByText('Écrivez seulement des chiffres, par exemple 450 ou 450,50'),
+    ).toBeVisible();
+    const bordure = await job.evaluate((el) => getComputedStyle(el).borderColor);
+    expect(bordure).toBe('rgb(180, 35, 24)'); // rouge
+    await page.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }).click();
+    await expect(page.getByRole('alert')).toContainText('Votre bilan n’a pas été créé');
+    await page.waitForTimeout(800);
+    expect(telecharge).toBe(false);
+    await page.getByRole('button', { name: 'Aller au champ à corriger' }).click();
+    await expect(job).toBeFocused();
+    await expect(job).toBeInViewport();
+    await job.fill('600');
+    await expect(job).not.toHaveAttribute('aria-invalid', 'true');
+    const telechargement = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }).click();
+    await telechargement;
   });
 
   test('prénom et nom collés (accents, tirets) : gardés tels quels', async ({ page }) => {
