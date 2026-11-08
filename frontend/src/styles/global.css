@@ -1161,7 +1161,7 @@ a {
   min-width: 0;
   overflow-wrap: break-word;
 }
-/* Étiquette (« Vous y avez droit »…) et bouton : sous le texte, côte à côte, à la ligne si la place manque. */
+/* Étiquette (« Sous conditions »…) et bouton : sous le texte, côte à côte, à la ligne si la place manque. */
 .aide-actions {
   grid-column: 2;
   display: flex;

@@ -50,10 +50,11 @@ describe('Performance : compression et cache', () => {
     expect(inconnue.headers['cache-control']).toBe('no-store');
   });
 
-  it('l’administration et l’estimation ne sont jamais mises en cache', async () => {
+  it('l’administration n’est jamais mise en cache', async () => {
     expect((await lire('/api/admin/me')).headers['cache-control']).toBe('no-store'); // même non connecté (401)
-    const estimation = await request(app).post('/api/simulation/aides-estimees').send({});
-    expect(estimation.headers['cache-control']).toBe('no-store');
+  });
+  it('l’ancienne route d’estimation n’existe plus', async () => {
+    expect((await request(app).post('/api/simulation/aides-estimees').send({})).status).toBe(404);
   });
 
   it('les réponses sont compressées (gzip) : la liste des villes pèse environ 10 fois moins sur le réseau', async () => {

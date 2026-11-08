@@ -31,7 +31,7 @@ const ONGLETS = [
 ];
 const CLASSE_STATUT = { oui: 'badge-vert', sous_conditions: 'badge-orange', non: 'badge-gris' };
 const LIBELLE_STATUT = {
-  oui: 'Vous y avez droit',
+  oui: 'Accessible à votre profil',
   sous_conditions: 'Sous conditions',
   non: 'Non concerné',
 };

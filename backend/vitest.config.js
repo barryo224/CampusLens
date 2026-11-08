@@ -23,7 +23,6 @@ export default defineConfig({
         lines: 90,
         'src/sync/**': { lines: 90, statements: 90 }, // robots et moteur de synchronisation : ≥ 90 %
         'src/routes/**': { lines: 80, statements: 80 }, // API : ≥ 80 %
-        'src/openfisca/**': { lines: 90, statements: 90 },
       },
     },
   },

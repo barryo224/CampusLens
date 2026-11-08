@@ -7,7 +7,6 @@ import rateLimit from 'express-rate-limit';
 import { routesPubliques } from './routes/publiques.js';
 import { routeContact } from './routes/contact.js';
 import { routeAvis } from './routes/avis.js';
-import { routeSimulation } from './routes/simulation.js';
 import { notificateurDepuisEnv } from './notifications/courriel.js';
 import { envoyeurCodeDepuisEnv } from './admin/code-courriel.js';
 import { routesAdmin, INACTIVITE_MAX_MS } from './routes/admin.js';
@@ -25,10 +24,8 @@ import { chiffreurDepuisEnv } from './lib/chiffrement.js';
 export function createApp({
   prisma,
   fetchImpl = fetch,
-  maintenant = () => new Date(),
   notificateur = notificateurDepuisEnv(prisma),
   envoyeurCode = envoyeurCodeDepuisEnv(),
-  urlOpenfisca = process.env.OPENFISCA_URL,
   corsOrigin = process.env.CORS_ORIGIN,
   sessionSecret = process.env.SESSION_SECRET,
   production = process.env.NODE_ENV === 'production',
@@ -149,10 +146,6 @@ export function createApp({
   );
 
   app.use('/api', routesPubliques(prisma));
-  app.use(
-    '/api',
-    routeSimulation(prisma, { fetchImpl, maintenant, ...(urlOpenfisca && { urlOpenfisca }) }),
-  );
   app.use('/api', routeAvis(prisma, { moisConservation: moisConservationAvis, chiffreur }));
   app.use(
     '/api',

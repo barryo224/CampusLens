@@ -2,7 +2,6 @@ import { robotLoyers } from './loyers.js';
 import { robotLogementsCrous } from './logementsCrous.js';
 import { robotDroits, robotCvec } from './pagesOfficielles.js';
 import { robotLiensRessources } from './liensRessources.js';
-import { robotOpenfisca } from './openfisca.js';
 import { ROBOTS_VEILLE } from './veilleVerification.js';
 import { ROBOTS_TRANSPORT } from './veilleTransport.js';
 
@@ -13,7 +12,6 @@ export const ROBOTS = {
   droits: robotDroits,
   cvec: robotCvec,
   liens_ressources: robotLiensRessources,
-  openfisca: robotOpenfisca,
   ...ROBOTS_VEILLE,
   ...ROBOTS_TRANSPORT,
 };

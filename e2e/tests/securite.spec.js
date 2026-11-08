@@ -127,9 +127,7 @@ test('le bilan PDF (bibliothèque chargée au clic, fichier « blob: ») fonctio
   expect(violations).toEqual([]);
 });
 
-test('formulaire de contact et administration : aucune violation de la CSP', async ({
-  page,
-}) => {
+test('formulaire de contact et administration : aucune violation de la CSP', async ({ page }) => {
   const violations = surveillerCsp(page);
   await page.route('**/api/contact', (r) => r.fulfill({ status: 201, json: { message: 'ok' } }));
   await page.goto('/contact');

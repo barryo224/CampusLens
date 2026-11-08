@@ -41,9 +41,7 @@ for (const [nom, chemin] of PAGES_PUBLIQUES) {
   });
 }
 
-test('axe-core : simulateur rempli, résultat négatif', async ({
-  page,
-}) => {
+test('axe-core : simulateur rempli, résultat négatif', async ({ page }) => {
   await page.goto('/evaluer');
   for (const [l, v] of Object.entries({
     'Job étudiant (net)': '600',

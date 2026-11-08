@@ -22,7 +22,6 @@ import {
   pageDroits,
   pageCvec,
   residence,
-  variableAideLogement,
 } from '../helpers/sources.js';
 
 const HEURE = 3_600_000;
@@ -240,7 +239,6 @@ describe('Maintenance et planification', () => {
         fr_crous_logement: (u) => crous(u),
         'actualites/A14725': () => pageHtml(pageDroits()),
         'cvec.etudiant.gouv.fr': () => pageHtml(pageCvec()),
-        'api.fr.openfisca.org': () => variableAideLogement(),
         // pages officielles sous veille (aides vérifiées à la main)
         'service-public.': () => pageHtml(`<main><p>${'Contenu officiel. '.repeat(40)}</p></main>`),
         'campusfrance.org': () =>
@@ -258,7 +256,7 @@ describe('Maintenance et planification', () => {
       expect(par.logements_crous).toBe('succes');
       expect(par.droits).toBe('en_attente_validation');
       expect(par.cvec).toBe('en_attente_validation');
-      expect(par.openfisca).toBe('succes');
+      expect(par.openfisca).toBeUndefined(); // plus de robot OpenFisca
       expect(par.liens_ressources).toBeDefined();
       expect(par.veille_apl).toBe('aucun_changement'); // première lecture = référence
       expect(journal.log).toHaveBeenCalled();

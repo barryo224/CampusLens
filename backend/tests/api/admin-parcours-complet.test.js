@@ -114,10 +114,10 @@ describe('Parcours d’administration COMPLET : plus rien ne reste bloqué en «
     const veille = sources.filter((s) => s.veille);
     expect(veille.length).toBeGreaterThan(30);
     expect(veille.every((s) => s.robot && s.verificationManuelle)).toBe(true);
-    // Seuls droits, CVEC, loyers, Crous, liens et OpenFisca sont de vrais robots de données.
+    // Seuls droits, CVEC, loyers, Crous et liens sont de vrais robots de données.
     const vraisRobots = sources.filter((s) => s.robot && !s.veille);
     expect(vraisRobots.map((s) => s.cle).sort()).toEqual(
-      ['cvec', 'droits', 'liens_ressources', 'logements_crous', 'loyers', 'openfisca'].sort(),
+      ['cvec', 'droits', 'liens_ressources', 'logements_crous', 'loyers'].sort(),
     );
     expect(vraisRobots.every((s) => s.verificationManuelle === false)).toBe(true);
 

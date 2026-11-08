@@ -165,7 +165,6 @@ model Aide {
   frequence       String // mensuelle, ponctuelle…
   commentDemander String        @map("comment_demander")
   lienDemarche    String?       @map("lien_demarche")
-  codeOpenfisca   String?       @map("code_openfisca") // si calculable par OpenFisca
   sourceId        Int           @map("source_id")
   verifieLe       DateTime?     @map("verifie_le")
   active          Boolean       @default(true)

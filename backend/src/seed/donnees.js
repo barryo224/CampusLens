@@ -468,15 +468,6 @@ export const SOURCES = {
     frequenceHeures: 24 * 7,
     licence: 'Licence Ouverte 2.0',
   },
-  openfisca: {
-    cle: 'openfisca',
-    nom: 'Calcul des aides (OpenFisca France)',
-    organisme: 'OpenFisca',
-    url: 'https://api.fr.openfisca.org/latest',
-    type: 'moteur_calcul',
-    frequenceHeures: 24,
-    licence: 'AGPL-3.0',
-  },
   logementsCrous: {
     cle: 'logements_crous',
     nom: 'Logements proposés par les CROUS',
@@ -622,10 +613,9 @@ export const AIDES = [
     frequence: 'mensuelle',
     commentDemander: 'Faites votre demande en ligne sur caf.fr dès la signature de votre bail.',
     lienDemarche: 'https://www.caf.fr',
-    codeOpenfisca: 'aide_logement',
     elig: [
-      ['oui', 'Vous y avez droit'],
-      ['oui', 'Vous y avez droit'],
+      ['oui', 'Selon votre loyer et vos revenus'],
+      ['oui', 'Selon votre loyer et vos revenus'],
       ['sous_conditions', 'Depuis juillet 2026 : boursier, salarié ou apprenti'],
     ],
   },
@@ -1507,8 +1497,7 @@ export const TARIFS_TRANSPORT = [
     montantMensuel: null,
     conditions:
       'Moins de 26 ans : 100 € par an (septembre à août), 80 € ou 50 € selon situation. Pass Métropole étudiant : 30,40 € par mois. Voir la page officielle d’Aixenbus ; prix à confirmer.',
-    urlTarifs:
-      'https://www.aixenbus.fr/fr/jGQ-Abonnement-C389tudiant.html',
+    urlTarifs: 'https://www.aixenbus.fr/fr/jGQ-Abonnement-C389tudiant.html',
   },
 ];
 

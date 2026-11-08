@@ -136,7 +136,6 @@ export function routesPubliques(prisma) {
             commentDemander: a.commentDemander,
             lienDemarche: a.lienDemarche,
             miseEnAvant: a.miseEnAvant,
-            calculableOpenfisca: Boolean(a.codeOpenfisca),
             // Avec ?profil= : l'éligibilité de CE profil ; sinon les trois.
             ...(profil ? { eligibilite: eligibilites[0] ?? null } : { eligibilites }),
             verifieLe: a.verifieLe,
