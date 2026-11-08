@@ -158,6 +158,9 @@ describe('API admin : sources, changements, historique', () => {
       ancienneValeur: '255',
       nouvelleValeur: '256',
     });
+    // Lisible : le nom de la donnée et du champ, pas « parametre #12 · valeur ».
+    expect(histo[0].donnee).toBe('Droits d’inscription (master)');
+    expect(histo[0].champLibelle).toBe('valeur');
 
     const interdit = await relecteur.post(`/api/admin/historique/${histo[0].id}/annuler`).send({});
     expect(interdit.status).toBe(403);
@@ -174,6 +177,61 @@ describe('API admin : sources, changements, historique', () => {
     expect((await admin.post(`/api/admin/historique/${histo[0].id}/annuler`).send({})).status).toBe(
       409,
     );
+  });
+
+  it('historique lisible : nom du tarif, de la ville ou de la ressource ; ligne supprimée signalée sans planter', async () => {
+    const tarif = await prisma.tarifTransport.findFirstOrThrow({ include: { ville: true } });
+    const ressource = await prisma.ressource.findFirstOrThrow();
+    const maintenant = new Date();
+    await prisma.historiqueValeur.createMany({
+      data: [
+        {
+          tableCible: 'tarif_transport',
+          ligneId: String(tarif.id),
+          champ: 'montantMensuel',
+          ancienneValeur: '26',
+          nouvelleValeur: '12',
+          changeLe: maintenant,
+        },
+        {
+          tableCible: 'ressource',
+          ligneId: String(ressource.id),
+          champ: 'statutLien',
+          ancienneValeur: 'ok',
+          nouvelleValeur: 'deplace',
+          changeLe: maintenant,
+        },
+        {
+          tableCible: 'aide',
+          ligneId: '999999',
+          champ: 'verifieLe',
+          ancienneValeur: null,
+          nouvelleValeur: maintenant.toISOString(),
+          changeLe: maintenant,
+        },
+        {
+          tableCible: 'table_inconnue',
+          ligneId: 'a-b',
+          champ: 'bidule',
+          ancienneValeur: '1',
+          nouvelleValeur: '2',
+          changeLe: maintenant,
+        },
+      ],
+    });
+    const histo = (await admin.get('/api/admin/historique')).body;
+    const parChamp = (champ) => histo.find((h) => h.champ === champ);
+    expect(parChamp('montantMensuel').donnee).toBe(
+      `${tarif.ville.nom} — ${tarif.reseau} : ${tarif.libelle}`,
+    );
+    expect(parChamp('montantMensuel').champLibelle).toBe('pass mensuel');
+    expect(parChamp('statutLien').donnee).toBe(ressource.titre);
+    expect(parChamp('statutLien').champLibelle).toBe('état du lien');
+    expect(parChamp('verifieLe').donnee).toBe('aide n° 999999 (supprimée)');
+    expect(parChamp('bidule')).toMatchObject({
+      donnee: 'table_inconnue n° a-b (supprimée)',
+      champLibelle: 'bidule',
+    });
   });
 
   it('lancer un robot à la main : admin seulement, source sans robot refusée', async () => {

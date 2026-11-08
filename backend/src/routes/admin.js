@@ -1,3 +1,4 @@
+import { enrichirHistorique } from '../admin/historique.js';
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
@@ -444,7 +445,7 @@ export function routesAdmin(
   // Dernières modifications de données (pour afficher « mis à jour le… » et annuler une erreur).
   r.get('/historique', async (_req, res) => {
     const lignes = await prisma.historiqueValeur.findMany({ orderBy: { id: 'desc' }, take: 50 });
-    res.json(lignes);
+    res.json(await enrichirHistorique(prisma, lignes));
   });
 
   r.post('/historique/:id/annuler', exigerRoleAdmin, async (req, res) => {

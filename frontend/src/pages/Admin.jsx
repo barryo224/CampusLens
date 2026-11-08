@@ -48,6 +48,15 @@ function RappelSitesBloques({ sources }) {
   );
 }
 
+const ETATS_LIEN = { ok: 'fonctionne', deplace: 'adresse modifiée', casse: 'lien cassé' };
+/** Valeur d'une ligne d'historique, lisible : dates en toutes lettres, états du lien en français, « — » si vide. */
+function valeurHistorique(champ, valeur) {
+  if (valeur === null || valeur === undefined || valeur === '') return '—';
+  if (champ === 'verifieLe' && /^\d{4}-\d{2}-\d{2}T/.test(valeur)) return formaterDate(valeur);
+  if (champ === 'statutLien') return ETATS_LIEN[valeur] ?? valeur;
+  return valeur;
+}
+
 const LIBELLE_STATUT_SOURCE = { ok: 'À jour', a_verifier: 'À vérifier', erreur: 'En erreur' };
 const CLASSE_STATUT_SOURCE = {
   ok: 'badge-vert',
@@ -655,10 +664,13 @@ function Historique({ role }) {
               <tr key={h.id}>
                 <td>{formaterDateHeure(h.changeLe)}</td>
                 <th scope="row">
-                  {h.tableCible} #{h.ligneId} · {h.champ}
+                  {h.donnee ?? `${h.tableCible} n° ${h.ligneId}`}
+                  <span className="fraicheur" style={{ display: 'block', fontWeight: 400 }}>
+                    {h.champLibelle ?? h.champ}
+                  </span>
                 </th>
-                <td>{h.ancienneValeur ?? '—'}</td>
-                <td>{h.nouvelleValeur ?? '—'}</td>
+                <td>{valeurHistorique(h.champ, h.ancienneValeur)}</td>
+                <td>{valeurHistorique(h.champ, h.nouvelleValeur)}</td>
                 <td>{h.synchronisationId ? `Robot (passage ${h.synchronisationId})` : 'Manuel'}</td>
                 <td>
                   {role === 'admin' ? (

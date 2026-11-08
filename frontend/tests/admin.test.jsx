@@ -112,6 +112,32 @@ const HISTORIQUE = [
     nouvelleValeur: '255',
     synchronisationId: 3,
     changeLe: '2026-11-05T10:00:00Z',
+    donnee: 'Droits d’inscription (master)',
+    champLibelle: 'valeur',
+  },
+  {
+    id: 8,
+    tableCible: 'ressource',
+    ligneId: '4',
+    champ: 'statutLien',
+    ancienneValeur: 'ok',
+    nouvelleValeur: 'deplace',
+    synchronisationId: 2,
+    changeLe: '2026-11-05T09:00:00Z',
+    donnee: 'Demander une caution Visale',
+    champLibelle: 'état du lien',
+  },
+  {
+    id: 7,
+    tableCible: 'aide',
+    ligneId: '3',
+    champ: 'verifieLe',
+    ancienneValeur: null,
+    nouvelleValeur: '2026-11-01T08:30:00.000Z',
+    synchronisationId: null,
+    changeLe: '2026-11-01T08:30:00Z',
+    donnee: 'Avance Loca-Pass',
+    champLibelle: 'date de vérification',
   },
 ];
 
@@ -701,7 +727,15 @@ describe('Espace administration', () => {
     });
     expect(within(tableau).getByText('254')).toBeInTheDocument();
     expect(within(tableau).getByText('Robot (passage 3)')).toBeInTheDocument();
-    await userEvent.click(within(tableau).getByRole('button', { name: /Annuler/ }));
+    // Lisible : le nom de la donnée, pas « parametre #12 », et des valeurs en français.
+    expect(within(tableau).getByText('Droits d’inscription (master)')).toBeInTheDocument();
+    expect(within(tableau).getByText('Demander une caution Visale')).toBeInTheDocument();
+    expect(within(tableau).getByText('adresse modifiée')).toBeInTheDocument();
+    expect(within(tableau).getByText('1er novembre 2026')).toBeInTheDocument();
+    expect(tableau).not.toHaveTextContent(/parametre #|tarif_transport|montantMensuel/);
+    await userEvent.click(
+      within(tableau).getByRole('button', { name: /Annuler\s*la modification 9/ }),
+    );
     expect(await screen.findByRole('status')).toHaveTextContent('Valeur restaurée : 254.');
     expect(mock.mock.calls.some(([u]) => u === '/api/admin/historique/9/annuler')).toBe(true);
   });
