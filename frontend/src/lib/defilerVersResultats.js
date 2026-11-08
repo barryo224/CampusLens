@@ -9,17 +9,23 @@
  *    la page se recale tout en bas, la barre est repoussée hors de l'écran, mais une fois qu'on aura défilé elle sera de
  *    nouveau collée, avec cette hauteur compacte.
  */
+/**
+ * Distance, depuis le haut de l'écran, jusqu'au bas de la barre de recherche collée (dans sa hauteur compacte), ou jusqu'au
+ * bas de la barre verte du téléphone s'il n'y a pas de barre collée : en dessous commence la zone réellement visible.
+ */
+export function hauteurSousBarreRecherche() {
+  const barre = document.querySelector('.recherche-collante');
+  if (!barre) return 0;
+  const style = getComputedStyle(barre);
+  const decalage = parseFloat(style.top) || 0; // 0 sur ordinateur, hauteur de la barre verte sinon
+  const marges = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+  const champ = barre.querySelector('input');
+  return decalage + marges + (champ ? champ.offsetHeight : barre.offsetHeight);
+}
+
 export function defilerVersResultats(zone) {
   if (!zone) return;
-  const barre = document.querySelector('.recherche-collante');
-  let dessous = 0;
-  if (barre) {
-    const style = getComputedStyle(barre);
-    const decalage = parseFloat(style.top) || 0; // 0 sur ordinateur, hauteur de la barre verte sinon
-    const marges = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
-    const champ = barre.querySelector('input');
-    dessous = decalage + marges + (champ ? champ.offsetHeight : barre.offsetHeight);
-  }
+  const dessous = hauteurSousBarreRecherche();
   const cible = zone.getBoundingClientRect().top + window.scrollY - dessous - 8;
   window.scrollTo({ top: Math.max(0, cible), left: 0, behavior: 'auto' });
 }

@@ -286,7 +286,7 @@ test.describe('Espace administration : état des sources', () => {
     const ligne = tableau.getByRole('row').filter({ hasText: 'Travailler pendant ses études' });
     await ligne.getByRole('button', { name: /^Lancer/ }).click();
     await expect(page.getByRole('status')).toContainText(
-      /Travailler pendant ses études.* : (Réussie|Aucun changement|En attente de validation|Échec)/,
+      /Travailler pendant ses études.* : (Réussie|Aucun changement|En attente de validation|Échec|Bloquée par le site)/, // le résultat dépend de la réponse réelle du site officiel (qui peut refuser le robot)
     );
   });
 });

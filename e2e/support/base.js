@@ -169,7 +169,7 @@ export async function preparerAdminCompte() {
         await prisma.sessionAdmin.deleteMany({
           where: { donnees: { path: ['adminId'], equals: admin.id } },
         });
-        await prisma.administrateur.delete({ where: { id: admin.id } });
+        await prisma.administrateur.deleteMany({ where: { id: admin.id } }); // idempotent : un autre navigateur a pu le supprimer avant
       }
       await prisma.$disconnect();
     },

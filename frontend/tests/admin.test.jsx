@@ -718,6 +718,25 @@ describe('Espace administration', () => {
     expect(screen.queryByRole('button', { name: /Annuler/ })).not.toBeInTheDocument();
   });
 
+  it('chaque section a son propre sous-titre (plus « Validez les changements » partout)', async () => {
+    connecte('admin');
+    rendreApp('/admin/messages');
+    expect(
+      await screen.findByText('Messages reçus par le formulaire de contact.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Validez les changements détectés/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', { name: 'Historique' }));
+    expect(
+      await screen.findByText(/Les dernières modifications de données : vous pouvez annuler/),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', { name: 'Mon compte' }));
+    expect(
+      await screen.findByText('Votre mot de passe et la sécurité de votre compte.'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', { name: 'À valider' }));
+    expect(await screen.findByText(/Validez les changements détectés/)).toBeInTheDocument();
+  });
+
   it('historique : annuler une modification (admin) restaure la valeur', async () => {
     const mock = connecte('admin', { '/admin/historique/9/annuler': { restauree: '254' } });
     rendreApp('/admin');

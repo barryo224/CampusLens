@@ -1466,6 +1466,25 @@ function Verification() {
 
 // Sections de l'administration : chacune a sa propre adresse (/admin/sources…), donc elle est conservée
 // quand on recharge la page ou qu'on revient en arrière.
+/** Sous-titre de la page : il dit à quoi sert la section ouverte (et non toujours « validez les changements »). */
+const SOUS_TITRES = {
+  sources: 'Surveillez l’état des robots et lancez une vérification quand il le faut.',
+  verification:
+    'Comparez chaque donnée à sa source officielle, puis confirmez qu’elle est vérifiée.',
+  historique: 'Les dernières modifications de données : vous pouvez annuler une erreur.',
+  messages: 'Messages reçus par le formulaire de contact.',
+  avis: 'Avis laissés par les visiteurs du site.',
+  compte: 'Votre mot de passe et la sécurité de votre compte.',
+};
+function sousTitreAdmin(pathname, connecte) {
+  if (!connecte) return 'Accès réservé : connectez-vous pour gérer les données de CampusLens.';
+  const section = pathname.replace(/^\/admin\/?/, '').split('/')[0];
+  return (
+    SOUS_TITRES[section] ??
+    'Validez les changements détectés sur les sources officielles et surveillez l’état des robots.'
+  );
+}
+
 const SECTIONS = [
   { chemin: 'changements', libelle: 'À valider' },
   { chemin: 'sources', libelle: 'État des sources' },
@@ -1764,10 +1783,7 @@ export default function AdminLayout() {
         {/* Connexion et « Mon compte » sont des cartes étroites centrées : leur titre l'est aussi. Les autres pages (tableaux larges) gardent l'alignement à gauche. */}
         <header className="page-titre">
           <h1>Espace administration</h1>
-          <p>
-            Validez les changements détectés sur les sources officielles et surveillez l’état des
-            robots.
-          </p>
+          <p>{sousTitreAdmin(pathname, Boolean(admin))}</p>
         </header>
         {admin === undefined && (
           <p className="message" role="status">
