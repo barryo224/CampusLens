@@ -31,14 +31,6 @@ export default function MentionsLegales() {
           ni partagés. Il n’y a ni compte, ni cookie de suivi, ni outil de mesure d’audience.
         </p>
         <p>
-          <strong>Estimation de l’aide au logement (facultative).</strong> Si, et seulement si, vous
-          cliquez sur « Estimer mon aide au logement », votre âge, votre ville, votre loyer, votre
-          type de logement et votre revenu du mois sont envoyés à notre serveur, qui interroge le
-          moteur de calcul public OpenFisca (api.fr.openfisca.org) pour estimer l’aide. Ces
-          informations ne sont ni enregistrées, ni conservées, ni mises en cache, et ne sont
-          associées à aucune identité. Si vous ne cliquez pas, rien n’est envoyé.
-        </p>
-        <p>
           <strong>Formulaire de contact.</strong> Si vous nous écrivez, nous conservons votre objet,
           votre message et votre adresse e-mail pour vous répondre. Ces informations sont supprimées
           automatiquement 6 mois après l’envoi. Base légale : votre consentement (vous envoyez le

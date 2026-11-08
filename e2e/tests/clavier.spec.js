@@ -169,13 +169,6 @@ test('E2E-07 : lien d’évitement, puis un budget complet saisi au clavier jusq
   await page.keyboard.press('Space');
   await expect(page.getByLabel('Je suis boursier CROUS')).toBeChecked();
 
-  // 4. La section d'estimation se déplie avec Entrée (élément <summary>).
-  await page.locator('summary', { hasText: 'Estimer mon aide au logement' }).focus();
-  await page.keyboard.press('Enter');
-  await expect(page.getByRole('form', { name: 'Estimation de l’aide au logement' })).toBeVisible();
-  await page.keyboard.press('Enter'); // referme
-  await expect(page.getByRole('form', { name: 'Estimation de l’aide au logement' })).toHaveCount(0);
-
   // 5. Télécharger le bilan avec Entrée.
   const telechargement = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }).focus();

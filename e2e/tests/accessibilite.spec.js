@@ -41,7 +41,7 @@ for (const [nom, chemin] of PAGES_PUBLIQUES) {
   });
 }
 
-test('axe-core : simulateur rempli, résultat négatif, estimation OpenFisca ouverte', async ({
+test('axe-core : simulateur rempli, résultat négatif', async ({
   page,
 }) => {
   await page.goto('/evaluer');
@@ -54,8 +54,6 @@ test('axe-core : simulateur rempli, résultat négatif, estimation OpenFisca ouv
     await page.getByLabel(l).fill(v);
   }
   await page.getByText('Étudiant international hors UE').click();
-  await page.getByText('Estimer mon aide au logement').first().click();
-  await expect(page.getByRole('form', { name: 'Estimation de l’aide au logement' })).toBeVisible();
   expect(resume((await analyser(page)).violations)).toEqual([]);
 });
 

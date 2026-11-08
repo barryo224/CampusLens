@@ -10,6 +10,8 @@ import { trouverParametre } from './simulation.js';
  */
 export function choisirRecommandations({ profil, resultat, parametres }) {
   const liste = [];
+  // Les liens vers « Mes aides » portent le profil choisi ici : sinon la page des aides repart de « Français ou UE ».
+  const codeProfil = profil.boursier ? 'boursier' : profil.statut === 'intl' ? 'intl' : 'fr_ue';
 
   const etranger = profil.statut === 'intl';
 
@@ -62,7 +64,10 @@ export function choisirRecommandations({ profil, resultat, parametres }) {
       titre: 'Aide d’urgence',
       texte:
         'Le CROUS et votre université ont des aides ponctuelles, sur rendez-vous avec une assistante sociale.',
-      lien: { vers: '/aides?besoin=urgence', libelle: 'Voir les aides d’urgence' },
+      lien: {
+        vers: `/aides?profil=${codeProfil}&besoin=urgence`,
+        libelle: 'Voir les aides d’urgence',
+      },
     });
     liste.push({
       id: 'courses',

@@ -46,7 +46,7 @@ describe('Page À propos', () => {
     rendreApp('/a-propos');
     const sources = screen.getByRole('region', { name: 'D’où viennent les informations' });
     const liens = within(sources).getAllByRole('link');
-    expect(liens.length).toBeGreaterThanOrEqual(6);
+    expect(liens.length).toBeGreaterThanOrEqual(5);
     for (const lien of liens) {
       expect(lien.getAttribute('href')).toMatch(/^https:\/\//);
       expect(lien).toHaveAttribute('target', '_blank');

@@ -5,6 +5,10 @@ import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 // Position de défilement de chaque page visitée, pour que « Retour » ramène là où l'on était.
 const positions = new Map();
 
+// Pages dont les saisies sont perdues quand on les quitte : au retour, le formulaire est vide et la page plus courte.
+// Retrouver l'ancienne position ferait « sauter » la page : on revient en haut.
+const PAGES_A_FORMULAIRE = new Set(['/evaluer', '/budget', '/contact', '/avis']);
+
 /**
  * Changer de page ramène EN HAUT de la nouvelle page (sinon, après un clic dans le pied de page, on reste en bas et l'on
  * croit que rien ne s'est passé). Le bouton « Retour » du navigateur retrouve sa position ; changer d'onglet ou de filtre
@@ -34,7 +38,7 @@ export function ScrollEnHaut() {
       ancre.scrollIntoView();
       return;
     }
-    if (type === 'POP' && positions.has(key)) {
+    if (type === 'POP' && positions.has(key) && !PAGES_A_FORMULAIRE.has(pathname)) {
       window.scrollTo(0, positions.get(key));
       return;
     }
@@ -75,7 +79,10 @@ export function ResultatsVisibles() {
       const r = el.getBoundingClientRect();
       const bas = window.visualViewport?.height ?? window.innerHeight; // clavier exclu
       if (r.top >= 70 && r.bottom <= bas) return; // déjà visible, sous la barre verte
-      el.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+      // Défilement calculé et immédiat : Safari interrompt (et fait « vibrer ») un défilement doux quand un élément
+      // collant est présent.
+      const cible = window.scrollY + r.top - (bas - r.height) / 2;
+      window.scrollTo({ top: Math.max(0, cible), behavior: 'auto' });
     };
     const observateur = new MutationObserver((mutations) => {
       for (const m of mutations) {

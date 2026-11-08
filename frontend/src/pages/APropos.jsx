@@ -51,11 +51,6 @@ const SOURCES = [
     url: 'https://www.data.gouv.fr/datasets/carte-des-loyers-indicateurs-de-loyers-dannonce-par-commune-en-2025',
   },
   {
-    sujet: 'Estimation facultative de l’aide au logement',
-    organisme: 'OpenFisca, moteur de calcul public',
-    url: 'https://openfisca.org/fr',
-  },
-  {
     sujet: 'Travail et études des étudiants étrangers',
     organisme: 'Campus France',
     url: 'https://www.campusfrance.org/fr',
@@ -187,11 +182,6 @@ export default function APropos() {
             <li>
               <strong>Pas de compte, pas de suivi.</strong> Aucun cookie n’est déposé aux visiteurs
               et aucun outil de suivi publicitaire n’est utilisé.
-            </li>
-            <li>
-              <strong>L’estimation de l’aide au logement est facultative.</strong> Si vous la
-              demandez, vos informations passent par notre serveur jusqu’au moteur de calcul public,
-              sans être enregistrées ni conservées.
             </li>
             <li>
               <strong>Vos avis sont anonymes</strong> (ni nom, ni e-mail, ni adresse IP) ; un

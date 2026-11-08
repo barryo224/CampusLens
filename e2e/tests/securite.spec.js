@@ -127,47 +127,17 @@ test('le bilan PDF (bibliothèque chargée au clic, fichier « blob: ») fonctio
   expect(violations).toEqual([]);
 });
 
-test('formulaire de contact, estimation OpenFisca et administration : aucune violation de la CSP', async ({
+test('formulaire de contact et administration : aucune violation de la CSP', async ({
   page,
 }) => {
   const violations = surveillerCsp(page);
   await page.route('**/api/contact', (r) => r.fulfill({ status: 201, json: { message: 'ok' } }));
-  await page.route('**/api/simulation/aides-estimees', (r) =>
-    r.fulfill({
-      json: {
-        periode: '2026-11',
-        aides: [
-          {
-            slug: 'a',
-            nom: 'Aide',
-            codeOpenfisca: 'aide_logement',
-            montantMensuel: 100,
-            details: { apl: 0, als: 100 },
-          },
-        ],
-        moteur: { nom: 'OpenFisca France', version: '1' },
-        source: null,
-        verifieLe: '2026-11-05T10:00:00Z',
-        aVerifier: false,
-        avertissement: 'x',
-      },
-    }),
-  );
   await page.goto('/contact');
   await page.getByLabel('Objet').fill('Test');
   await page.getByLabel('Votre adresse e-mail').fill('a@b.fr');
   await page.getByLabel('Message').fill('Bonjour');
   await page.getByRole('button', { name: 'Envoyer' }).click();
   await expect(page.getByRole('status')).toContainText('Message envoyé');
-
-  await page.goto('/evaluer');
-  await page.getByLabel('Loyer charges comprises').fill('500');
-  await page.getByText('Estimer mon aide au logement').first().click();
-  const formulaire = page.getByRole('form', { name: 'Estimation de l’aide au logement' });
-  await formulaire.getByLabel('Ville où vous étudiez').selectOption({ label: 'Rennes' });
-  await formulaire.getByLabel('Votre âge').fill('20');
-  await formulaire.getByRole('button', { name: 'Estimer mon aide au logement' }).click();
-  await expect(formulaire.getByText(/≈\s100\s€/)).toBeVisible();
 
   await page.goto('/admin'); // page d'administration chargée à la demande (code séparé) : doit aussi respecter la CSP
   await expect(page.getByRole('heading', { name: 'Connexion' })).toBeVisible();

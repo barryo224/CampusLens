@@ -37,7 +37,7 @@ describe('Changer de page remonte en haut', () => {
     window.scrollTo.mockClear();
     await userEvent.click(screen.getByRole('tab', { name: 'Associations & entraide' }));
     await screen.findByRole('tabpanel');
-    expect(window.scrollTo).not.toHaveBeenCalled();
+    expect(window.scrollTo).not.toHaveBeenCalledWith(0, 0); // pas de retour en haut de page
   });
 });
 
@@ -70,12 +70,13 @@ describe('Le résultat d’une action est toujours visible', () => {
     horsEcran();
     await userEvent.click(document.body);
     ajouter('<p role="status">Message envoyé. Merci.</p>');
+    // Défilement calculé et immédiat (pas de « scrollIntoView » doux, que Safari interrompt avec un élément collant).
     await waitFor(() =>
-      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
-        block: 'center',
-        behavior: 'smooth',
-      }),
+      expect(window.scrollTo).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: 'auto', top: expect.any(Number) }),
+      ),
     );
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
   });
 
   it('une erreur (role alert) est traitée de la même façon', async () => {
@@ -83,7 +84,7 @@ describe('Le résultat d’une action est toujours visible', () => {
     horsEcran();
     await userEvent.click(document.body);
     ajouter('<p role="alert">Une erreur est survenue.</p>');
-    await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+    await waitFor(() => expect(window.scrollTo).toHaveBeenCalled());
   });
 
   it('un message déjà visible ne fait rien bouger', async () => {
@@ -92,7 +93,7 @@ describe('Le résultat d’une action est toujours visible', () => {
     await userEvent.click(document.body);
     ajouter('<p role="status">Enregistré.</p>');
     await new Promise((r) => setTimeout(r, 30));
-    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+    expect(window.scrollTo).not.toHaveBeenCalled();
   });
 
   it('les textes réservés aux lecteurs d’écran et les messages sans geste préalable sont ignorés', async () => {
@@ -101,11 +102,11 @@ describe('Le résultat d’une action est toujours visible', () => {
     // pas de geste : rien
     ajouter('<p role="status">Apparu tout seul.</p>');
     await new Promise((r) => setTimeout(r, 30));
-    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+    expect(window.scrollTo).not.toHaveBeenCalled();
     // geste, mais texte « sr-only »
     await userEvent.click(document.body);
     ajouter('<p role="status" class="sr-only">3 villes affichées</p>');
     await new Promise((r) => setTimeout(r, 30));
-    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+    expect(window.scrollTo).not.toHaveBeenCalled();
   });
 });

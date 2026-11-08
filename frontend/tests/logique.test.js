@@ -31,6 +31,18 @@ const ids = (profil, saisie, params = PARAMS) =>
   }).map((r) => r.id);
 
 describe('choisirRecommandations', () => {
+  it('le lien d’urgence garde le profil choisi (la page des aides ne repart pas de « Français ou UE »)', () => {
+    const lienUrgence = (profil) =>
+      choisirRecommandations({
+        profil,
+        resultat: calcul(profil, BUDGET),
+        parametres: PARAMS,
+      }).find((r) => r.id === 'urgence').lien.vers;
+    expect(lienUrgence(FR)).toBe('/aides?profil=fr_ue&besoin=urgence');
+    expect(lienUrgence({ ...FR, boursier: true })).toBe('/aides?profil=boursier&besoin=urgence');
+    expect(lienUrgence({ ...FR, statut: 'intl' })).toBe('/aides?profil=intl&besoin=urgence');
+  });
+
   it('budget en difficulté, loyer lourd, non boursier : bourse, loyer, urgence, courses', () => {
     expect(ids(FR, BUDGET)).toEqual(['bourse', 'loyer', 'urgence', 'courses']);
   });

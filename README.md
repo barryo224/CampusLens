@@ -44,7 +44,7 @@ pas sur les liens avec Tab (réglage du navigateur) : les tests de clavier y uti
 - L'API relayée par Vercel (`/api/*` → serveur de l'API, voir `vercel.json`) garde un seul domaine : le cookie de
   l'administration reste `HttpOnly` et `SameSite=Strict`.
 - Limites : `API_LIMITE_PAR_MINUTE` (par défaut 600 en production : un réseau d'université partage souvent une IP),
-  5 messages de contact par 10 min, 5 échecs de connexion par 15 min, 10 estimations OpenFisca par minute.
+  5 messages de contact par 10 min, 5 échecs de connexion par 15 min.
 
 ## Les données et les robots
 
@@ -67,18 +67,13 @@ et une maintenance quotidienne (préparation de l'année universitaire suivante,
 bascule seul : les anciens montants s'affichent avec « vérification en cours », les robots proposent les nouveaux dans
 « À valider » (droits, CVEC) et vous corrigez/validez le reste dans « Données à vérifier ».
 
-## Estimation de l'aide au logement (OpenFisca)
+## Estimation de l'aide au logement (OpenFisca) : retirée de l'interface
 
-Fonction **facultative** de la page « Évaluer ma situation » : l'étudiant clique sur « Estimer mon aide au logement ».
-C'est le seul cas où des informations quittent le navigateur : âge, ville, loyer, type de logement et revenu du mois
-partent vers `POST /api/simulation/aides-estimees`, qui interroge le moteur public
-[OpenFisca France](https://api.fr.openfisca.org). Rien n'est enregistré, journalisé ni mis en cache ; les champs sont
-validés strictement (tout champ en plus est refusé) et limités à 10 demandes par minute et par IP.
-
-- Moteur configurable : `OPENFISCA_URL` (par défaut l'API publique ; prévoir sa propre instance si le trafic augmente).
-- Un robot (`backend/src/sync/robots/openfisca.js`) vérifie chaque jour que le moteur répond et que la variable
-  `aide_logement` a la forme attendue, et note la version du moteur dans l'historique.
-- Test en ligne (hors CI) : `E2E_LIVE=1 npx playwright test --project=chromium estimation`.
+Le bouton « Estimer mon aide au logement » a été retiré de la page « Évaluer ma situation » le 8 novembre 2026 : il
+était lent (jusqu'à 30 secondes quand le moteur public tarde) et c'était la seule fonction qui envoyait des
+informations hors du navigateur. **Plus aucune donnée saisie ne quitte l'appareil.** La route
+`POST /api/simulation/aides-estimees`, son client et son robot de veille existent encore côté serveur, sans être
+appelés par le site : à retirer avec la source « OpenFisca » de la base (décision à prendre).
 
 ## Vérification des données
 
@@ -103,7 +98,7 @@ Mesures du 5 novembre 2026 (un seul processus Node, base locale, ordinateur port
   de façon linéaire (médiane 8 ms à 10 visiteurs, 240 ms à 300, 760 ms à 1 000), sans erreur ni blocage.
 - **Mémoire stable** : 126 Mo au repos, 360 à 390 Mo après plusieurs charges successives (pas de fuite).
 - **Compression** : la liste des villes passe de 202 Ko à 16 Ko. **Cache** : les données publiques portent
-  `s-maxage=120` (un CDN les sert sans solliciter l'API), le navigateur revérifie toujours (`max-age=0, must-revalidate` + ETag, jamais de donnée périmée) ; erreurs, estimation et
+  `s-maxage=120` (un CDN les sert sans solliciter l'API), le navigateur revérifie toujours (`max-age=0, must-revalidate` + ETag, jamais de donnée périmée) ; erreurs et
   administration ne sont jamais mises en cache.
 - **Limite de débit** : au-delà de 600 requêtes par minute et par adresse IP, réponse 429 avec le délai d'attente
   (`API_LIMITE_PAR_MINUTE` pour l'ajuster ; `/api/health` n'est pas limité).
