@@ -150,6 +150,21 @@ export default function Evaluer() {
   );
   const codeProfilAides = profil.boursier ? 'boursier' : profil.statut;
 
+  /**
+   * « Aller saisir mes montants » : on donne le premier champ à remplir, sans perdre le contexte.
+   *  - ordinateur : la page est courte entre le haut et la saisie, on remonte tout en haut (le champ reste à l'écran) ;
+   *  - téléphone : remonter tout en haut ferait sortir le champ de l'écran ; on amène donc le début du bloc « Vos revenus
+   *    mensuels » (titre + premier champ) juste sous les barres.
+   * Le défilement est calculé et immédiat : `scrollIntoView` doux est interrompu par Safari avec les barres collées.
+   */
+  function allerSaisir() {
+    const champ = document.getElementById('rev-job');
+    const telephone = window.matchMedia?.('(max-width: 900px)').matches;
+    if (telephone) defilerSousLesBarres(document.getElementById('bloc-revenus'));
+    else window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    champ?.focus({ preventScroll: true });
+  }
+
   async function telecharger() {
     setErreurPdf(null);
     setConfirmationPdf(false);
@@ -322,7 +337,7 @@ export default function Evaluer() {
                 )}
               </section>
 
-              <section className="carte" aria-labelledby="titre-revenus">
+              <section className="carte" id="bloc-revenus" aria-labelledby="titre-revenus">
                 <h2 id="titre-revenus" className="titre-carte">
                   Vos revenus mensuels
                 </h2>
@@ -390,10 +405,21 @@ export default function Evaluer() {
                 <>
                   <p className="resultat-etiquette">Reste-à-vivre mensuel</p>
                   {rienSaisi ? (
-                    <p className="message" data-testid="reste-vide">
-                      Renseignez au moins un revenu ou une dépense : votre reste-à-vivre et votre
-                      situation s’afficheront ici.
-                    </p>
+                    <>
+                      {/* Le cadran est là dès le début (on voit le dispositif de mesure), sans aiguille ni verdict. */}
+                      <Jauge
+                        vide
+                        seuilFragile={calcul.seuil}
+                        libelle="Jauge du reste-à-vivre : en attente de vos montants"
+                      />
+                      <p className="resultat-montant" data-testid="reste-vide-montant">
+                        — €
+                      </p>
+                      <p className="message" data-testid="reste-vide">
+                        Renseignez au moins un revenu ou une dépense : votre reste-à-vivre et votre
+                        situation s’afficheront ici.
+                      </p>
+                    </>
                   ) : (
                     <>
                       <Jauge
@@ -477,11 +503,7 @@ export default function Evaluer() {
                         type="button"
                         className="lien-action"
                         style={{ marginTop: 8 }}
-                        onClick={() => {
-                          const champ = document.getElementById('rev-job');
-                          defilerSousLesBarres(champ);
-                          champ?.focus({ preventScroll: true });
-                        }}
+                        onClick={allerSaisir}
                       >
                         Aller saisir mes montants
                       </button>
