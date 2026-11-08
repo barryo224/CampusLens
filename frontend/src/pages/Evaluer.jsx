@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Jauge from '../components/Jauge.jsx';
-import MessageErreur from '../components/MessageErreur.jsx';
 import Fraicheur from '../components/Fraicheur.jsx';
+import MessageErreur from '../components/MessageErreur.jsx';
 import { useApi } from '../lib/useApi.js';
 import { usePageTitre } from '../lib/usePageTitre.js';
-import { calculerResteAVivre, trouverParametre, LIBELLES_TARIF } from '../lib/simulation.js';
+import {
+  analyserMontant,
+  calculerResteAVivre,
+  trouverParametre,
+  LIBELLES_TARIF,
+} from '../lib/simulation.js';
 import { choisirRecommandations } from '../lib/recommandations.js';
 import { telechargerBilan } from '../lib/bilan.js';
 import { defilerSousLesBarres } from '../lib/defilerVersResultats.js';
@@ -34,6 +39,8 @@ const MESSAGES_NIVEAU = {
 const CLASSE_NIVEAU = { en_difficulte: 'rouge', fragile: 'orange', equilibre: 'vert' };
 
 function ChampMontant({ id, libelle, valeur, surChangement }) {
+  // Un texte collé qui n'est pas un montant (lettres, négatif…) compterait 0 € sans rien dire : on le signale.
+  const { reconnu } = analyserMontant(valeur ?? '');
   return (
     <div className="champ">
       <label htmlFor={id}>{libelle}</label>
@@ -44,8 +51,16 @@ function ChampMontant({ id, libelle, valeur, surChangement }) {
         autoComplete="off"
         placeholder="0"
         value={valeur}
+        aria-invalid={reconnu ? undefined : true}
+        aria-describedby={reconnu ? undefined : `${id}-aide`}
         onChange={(e) => surChangement(e.target.value)}
       />
+      {!reconnu && (
+        <p id={`${id}-aide`} className="aide-montant">
+          Montant non compris : il compte pour 0 €. Utilisez des chiffres, par exemple 450 ou
+          450,50.
+        </p>
+      )}
     </div>
   );
 }
@@ -141,6 +156,11 @@ export default function Evaluer() {
   }, [parametres]);
 
   const resultat = calcul?.resultat;
+  // Seuil de pauvreté (Insee) : repris de la base, donc mis à jour avec la source (robot + validation). Absent : on n'invente rien.
+  const seuilPauvrete = useMemo(
+    () => parametres?.find((p) => p.cle === 'seuil_pauvrete') ?? null,
+    [parametres],
+  );
   // Rien de saisi : aucune conclusion (ni « en difficulté », ni conseils d'urgence) tant que l'on n'a rien renseigné.
   const rienSaisi =
     Boolean(resultat) && resultat.totalRevenus === 0 && resultat.totalDepenses === 0;
@@ -220,9 +240,9 @@ export default function Evaluer() {
           <>
             {resultat && (
               <BarreResultat
-                montant={rienSaisi ? '—' : formaterEuro(resultat.resteAVivre).replace('-', '− ')}
+                montant={formaterEuro(resultat.resteAVivre).replace('-', '− ')}
                 classe={rienSaisi ? 'neutre' : CLASSE_NIVEAU[resultat.niveau]}
-                niveau={rienSaisi ? 'à calculer' : resultat.libelleNiveau}
+                niveau={rienSaisi ? 'montant de départ' : resultat.libelleNiveau}
               />
             )}
             <div className="grille grille-3 simulateur">
@@ -404,39 +424,33 @@ export default function Evaluer() {
               {resultat && (
                 <>
                   <p className="resultat-etiquette">Reste-à-vivre mensuel</p>
+                  {/* Dès l'ouverture, le cadran montre le montant de base : droits d'inscription et CVEC, lissés sur 12 mois,
+                      sont dus dès la rentrée. Tant que rien n'est saisi, aucun verdict n'est donné. */}
+                  <Jauge
+                    resteAVivre={resultat.resteAVivre}
+                    seuilFragile={calcul.seuil}
+                    libelle={
+                      rienSaisi
+                        ? `Reste-à-vivre : ${formaterEuroCentimes(resultat.resteAVivre)}, montant de départ (rien n’est encore saisi)`
+                        : `Reste-à-vivre : ${formaterEuroCentimes(resultat.resteAVivre)}, situation ${resultat.libelleNiveau}`
+                    }
+                  />
+                  <p
+                    className={`resultat-montant${rienSaisi ? '' : ` texte-${CLASSE_NIVEAU[resultat.niveau]}`}`}
+                    data-testid="reste"
+                  >
+                    {formaterEuro(resultat.resteAVivre).replace('-', '− ')}
+                  </p>
                   {rienSaisi ? (
-                    <>
-                      {/* Le cadran est là dès le début (on voit le dispositif de mesure), sans aiguille ni verdict. */}
-                      <Jauge
-                        vide
-                        seuilFragile={calcul.seuil}
-                        libelle="Jauge du reste-à-vivre : en attente de vos montants"
-                      />
-                      <p className="resultat-montant" data-testid="reste-vide-montant">
-                        — €
-                      </p>
-                      <p className="message" data-testid="reste-vide">
-                        Renseignez au moins un revenu ou une dépense : votre reste-à-vivre et votre
-                        situation s’afficheront ici.
-                      </p>
-                    </>
+                    <p className="message" data-testid="reste-vide">
+                      Montant de départ : vos droits d’inscription et la CVEC, lissés sur 12 mois,
+                      sont dus dès la rentrée (rien si vous êtes boursier). Renseignez vos revenus
+                      et vos dépenses : votre situation s’affichera ici.
+                    </p>
                   ) : (
-                    <>
-                      <Jauge
-                        resteAVivre={resultat.resteAVivre}
-                        seuilFragile={calcul.seuil}
-                        libelle={`Reste-à-vivre : ${formaterEuroCentimes(resultat.resteAVivre)}, situation ${resultat.libelleNiveau}`}
-                      />
-                      <p
-                        className={`resultat-montant texte-${CLASSE_NIVEAU[resultat.niveau]}`}
-                        data-testid="reste"
-                      >
-                        {formaterEuro(resultat.resteAVivre).replace('-', '− ')}
-                      </p>
-                      <p className={`resultat-niveau texte-${CLASSE_NIVEAU[resultat.niveau]}`}>
-                        {MESSAGES_NIVEAU[resultat.niveau]}
-                      </p>
-                    </>
+                    <p className={`resultat-niveau texte-${CLASSE_NIVEAU[resultat.niveau]}`}>
+                      {MESSAGES_NIVEAU[resultat.niveau]}
+                    </p>
                   )}
                   <div className="explication-tarif" data-testid="explication-tarif">
                     <p>
@@ -473,6 +487,29 @@ export default function Evaluer() {
                         Une exonération des droits différenciés est possible : demandez-la à votre
                         université, puis cochez « exonéré » ci-dessus pour voir la différence.
                       </p>
+                    )}
+                  </div>
+                  <div className="seuils" data-testid="seuil-precarite">
+                    <p>
+                      <strong>Pour vous repérer.</strong>{' '}
+                      {seuilPauvrete && (
+                        <>
+                          Le seuil de pauvreté en France est de{' '}
+                          <strong>{formaterEuro(Number(seuilPauvrete.valeur))} par mois</strong>{' '}
+                          pour une personne seule : c’est un revenu à comparer à l’ensemble de vos
+                          ressources.{' '}
+                        </>
+                      )}
+                      Votre reste-à-vivre, lui, se calcule après vos dépenses : CampusLens parle de
+                      situation fragile en dessous de <strong>{formaterEuro(calcul.seuil)}</strong>{' '}
+                      par mois.
+                    </p>
+                    {seuilPauvrete && (
+                      <Fraicheur
+                        source={seuilPauvrete.source}
+                        verifieLe={seuilPauvrete.verifieLe}
+                        aVerifier={seuilPauvrete.aVerifier}
+                      />
                     )}
                   </div>
                   <p className="fraicheur" style={{ marginBottom: 12 }}>

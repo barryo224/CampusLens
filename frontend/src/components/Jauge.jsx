@@ -15,33 +15,27 @@ const arc = (t1, t2) => {
   return `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${R} ${R} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
 };
 
-/**
- * Jauge en demi-cercle : rouge (en difficulté) · orange (fragile) · vert (équilibré).
- * `vide` : rien n'est encore saisi. Le cadran est affiché (on voit le dispositif de mesure), mais sans aiguille : elle
- * donnerait une conclusion qui n'existe pas encore.
- */
-export default function Jauge({ resteAVivre, seuilFragile, libelle, vide = false }) {
-  const angle = positionJauge(resteAVivre ?? 0, seuilFragile) * 180;
+/** Jauge en demi-cercle : rouge (en difficulté) · orange (fragile) · vert (équilibré). */
+export default function Jauge({ resteAVivre, seuilFragile, libelle }) {
+  const angle = positionJauge(resteAVivre, seuilFragile) * 180;
   const [bx, by] = point(angle, 78);
   return (
     <svg viewBox="0 0 260 150" className="jauge" role="img" aria-label={libelle}>
       <path d={arc(2, 58)} stroke="#e5484d" strokeWidth="22" fill="none" />
       <path d={arc(62, 118)} stroke="#f59e0b" strokeWidth="22" fill="none" />
       <path d={arc(122, 178)} stroke="#2a9d6a" strokeWidth="22" fill="none" />
-      {!vide && (
-        <line
-          data-testid="aiguille"
-          data-angle={angle.toFixed(1)}
-          x1={CX}
-          y1={CY}
-          x2={bx}
-          y2={by}
-          stroke="#10242b"
-          strokeWidth="5"
-          strokeLinecap="round"
-          style={{ transition: 'all .3s ease' }}
-        />
-      )}
+      <line
+        data-testid="aiguille"
+        data-angle={angle.toFixed(1)}
+        x1={CX}
+        y1={CY}
+        x2={bx}
+        y2={by}
+        stroke="#10242b"
+        strokeWidth="5"
+        strokeLinecap="round"
+        style={{ transition: 'all .3s ease' }}
+      />
       <circle cx={CX} cy={CY} r="9" fill="#10242b" />
     </svg>
   );

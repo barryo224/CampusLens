@@ -22,18 +22,62 @@ const STATUTS = ['fr_ue', 'intl'];
 const NIVEAUX = ['licence', 'master'];
 
 /**
- * Convertit une saisie en nombre. Vide, négatif, non numérique ou infini → 0.
- * Accepte la virgule française : « 12,5 » vaut 12.5.
+ * Lit un montant tel qu'une personne le tape OU le colle (relevé de banque, site, message) :
+ * « 600 », « 12,5 », « 1 250,50 € », « 1.250,50 », « 1,250.50 », « 600 euros », « 1 200 » (espace insécable ou fine).
+ * Renvoie `{ valeur, reconnu }` : `reconnu` est faux quand le texte n'est pas un montant (lettres, négatif…), pour que
+ * l'écran puisse le dire au lieu de compter silencieusement 0 €. Un champ vide est « reconnu » et vaut 0.
+ *
+ * Séparateurs : si un point ET une virgule sont présents, le dernier est la décimale et l'autre sépare les milliers ;
+ * avec un seul séparateur suivi d'exactement 3 chiffres (« 1.200 », « 1,200 »), c'est un séparateur de milliers (aucun
+ * montant en euros n'a trois décimales) ; sinon c'est la décimale (« 12,5 », « 12.5 »).
  */
-export function nombreSaisi(valeur) {
-  if (typeof valeur === 'number') {
-    return Number.isFinite(valeur) && valeur > 0 ? valeur : 0;
+export function analyserMontant(brut) {
+  if (typeof brut === 'number') {
+    return {
+      valeur: Number.isFinite(brut) && brut > 0 ? brut : 0,
+      reconnu: Number.isFinite(brut) && brut >= 0,
+    };
   }
-  if (typeof valeur !== 'string') return 0;
-  const texte = valeur.trim().replace(/\s/g, '').replace(',', '.');
-  if (texte === '' || !/^\d*\.?\d*$/.test(texte)) return 0;
-  const n = Number(texte);
-  return Number.isFinite(n) && n > 0 ? n : 0;
+  if (typeof brut !== 'string') return { valeur: 0, reconnu: true };
+  let t = brut
+    .trim()
+    .replace(/\b(euros?|eur)\b/gi, '')
+    .replace(/€/g, '')
+    .replace(/[\s\u00a0\u202f']/g, '');
+  if (t === '') return { valeur: 0, reconnu: true };
+  if (!/^[\d.,]+$/.test(t) || !/\d/.test(t)) return { valeur: 0, reconnu: false };
+  const point = t.lastIndexOf('.');
+  const virgule = t.lastIndexOf(',');
+  let entier = t;
+  let decimales = '';
+  if (point >= 0 && virgule >= 0) {
+    const sep = Math.max(point, virgule);
+    entier = t.slice(0, sep).replace(/[.,]/g, '');
+    decimales = t.slice(sep + 1);
+  } else if (point >= 0 || virgule >= 0) {
+    const caractere = point >= 0 ? '.' : ',';
+    const morceaux = t.split(caractere);
+    if (morceaux.length > 2) {
+      if (!morceaux.slice(1).every((m) => m.length === 3)) return { valeur: 0, reconnu: false };
+      entier = morceaux.join('');
+    } else {
+      const [avant, apres] = morceaux;
+      if (apres.length === 3 && avant.length >= 1 && avant.length <= 3 && avant !== '0') {
+        entier = avant + apres;
+      } else {
+        entier = avant;
+        decimales = apres;
+      }
+    }
+  }
+  const n = Number(`${entier || '0'}${decimales ? `.${decimales}` : ''}`);
+  if (!Number.isFinite(n)) return { valeur: 0, reconnu: false };
+  return { valeur: n > 0 ? n : 0, reconnu: true };
+}
+
+/** Convertit une saisie en nombre (voir `analyserMontant`). Vide, négatif, non numérique ou infini → 0. */
+export function nombreSaisi(valeur) {
+  return analyserMontant(valeur).valeur;
 }
 
 /**

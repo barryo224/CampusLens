@@ -55,6 +55,14 @@ export const SOURCES = {
     type: 'pdf',
     frequenceHeures: 24 * 30,
   },
+  seuilPauvrete: {
+    cle: 'seuil_pauvrete',
+    nom: 'Seuil de pauvreté (Insee)',
+    organisme: 'Insee',
+    url: 'https://www.insee.fr/fr/statistiques/5759045',
+    type: 'page_web',
+    frequenceHeures: 24 * 7,
+  },
   reglages: {
     // Choix éditoriaux de CampusLens (seuils, surface type d'un studio…) : ce ne sont pas des faits à vérifier
     // auprès d'une source externe, ils sont validés par l'éditeur et ne « périment » pas.
@@ -524,6 +532,15 @@ export const PARAMETRES = [
     source: 'droits',
   },
   { cle: 'cvec', niveau: 'aucun', profil: null, valeur: 105, unite: '€ / an', source: 'cvec' },
+  // Seuil de pauvreté pour une personne seule (60 % du niveau de vie médian), publié chaque année par l'Insee.
+  {
+    cle: 'seuil_pauvrete',
+    niveau: 'aucun',
+    profil: null,
+    valeur: 1337,
+    unite: '€ / mois',
+    source: 'seuilPauvrete',
+  },
   {
     cle: 'seuil_fragile',
     niveau: 'aucun',

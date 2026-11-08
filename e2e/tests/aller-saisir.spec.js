@@ -3,17 +3,21 @@ import { test, expect } from '@playwright/test';
 // Télécharger sans rien saisir : le message demande de saisir, et « Aller saisir mes montants » donne le premier champ
 // sans perdre le contexte (ordinateur : tout en haut de la page ; téléphone : le début du bloc « Vos revenus mensuels »).
 
-test('le cadran de la jauge est visible dès le début, sans aiguille ni verdict, puis l’aiguille apparaît à la saisie', async ({
+test('la jauge montre dès le début le montant de base (droits et CVEC lissés), sans verdict, puis la situation à la saisie', async ({
   page,
 }) => {
   await page.goto('/evaluer');
   await expect(page.locator('svg.jauge')).toBeVisible();
-  await expect(page.getByTestId('aiguille')).toHaveCount(0);
+  await expect(page.getByTestId('aiguille')).toHaveCount(1);
+  await expect(page.getByTestId('reste')).toHaveText(/−\s?24\s?€/);
   await expect(page.getByTestId('reste-vide')).toBeVisible();
   await expect(page.getByText('Budget en difficulté')).toHaveCount(0);
+  await expect(page.getByTestId('seuil-precarite')).toContainText(
+    'situation fragile en dessous de',
+  );
   await page.getByLabel('Job étudiant (net)').fill('600');
-  await expect(page.getByTestId('aiguille')).toHaveCount(1);
   await expect(page.getByTestId('reste-vide')).toHaveCount(0);
+  await expect(page.getByTestId('reste')).toHaveText(/576\s?€/);
 });
 
 test('« Aller saisir mes montants » : premier champ à l’écran, bloc des revenus visible, jamais un champ caché', async ({

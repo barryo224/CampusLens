@@ -65,6 +65,15 @@ export const PARAMETRES_API = {
     p('droits_inscription', 'master', 'intl', 3950),
     p('cvec', 'aucun', null, 105),
     p('seuil_fragile', 'aucun', null, 150, '€'),
+    {
+      ...p('seuil_pauvrete', 'aucun', null, 1337, '€ / mois'),
+      source: {
+        id: 11,
+        organisme: 'Insee',
+        url: 'https://www.insee.fr/fr/statistiques/5759045',
+        statut: 'ok',
+      },
+    },
     p('seuil_part_loyer', 'aucun', null, 40, '%'),
     p('heures_travail_max', 'aucun', 'intl', 964, 'heures / an'),
     p('ressources_mensuelles_visa', 'aucun', 'intl', 877.5, '€ / mois'),

@@ -257,18 +257,50 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('formulaire vide : aucune conclusion (ni « en difficulté », ni aiguille, ni conseils d’urgence)', async () => {
+  it('formulaire vide : le montant de base est dans la jauge, mais aucun verdict (ni « en difficulté », ni conseils d’urgence)', async () => {
     await ouvrir();
-    expect(screen.getByTestId('reste-vide')).toHaveTextContent(/Renseignez au moins un revenu/);
-    expect(screen.queryByTestId('reste')).not.toBeInTheDocument();
+    // Droits d'inscription + CVEC lissés sur 12 mois, dus dès la rentrée : 24 € par mois.
+    expect(screen.getByTestId('reste')).toHaveTextContent('− 24 €');
+    expect(screen.getByTestId('aiguille')).toBeInTheDocument();
+    expect(screen.getByTestId('reste-vide')).toHaveTextContent(/Montant de départ/);
     expect(screen.queryByText(/Budget en difficulté/)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('region', { name: 'Les aides et astuces pour vous' }),
     ).not.toBeInTheDocument();
-    // dès qu'un montant est saisi, le résultat apparaît
+    // dès qu'un montant est saisi, la situation apparaît
     await saisir('Job étudiant (net)', '600');
-    expect(screen.getByTestId('reste')).toBeInTheDocument();
     expect(screen.queryByTestId('reste-vide')).not.toBeInTheDocument();
+    expect(screen.getByTestId('reste')).toHaveTextContent('576 €');
+  });
+
+  it('une phrase donne le seuil de pauvreté (repris de la base, avec sa source) et le seuil « fragile » de CampusLens', async () => {
+    await ouvrir();
+    const phrase = screen.getByTestId('seuil-precarite');
+    expect(phrase).toHaveTextContent(/seuil de pauvreté en France est de 1\s?337 € par mois/);
+    expect(phrase).toHaveTextContent(/pour une personne seule/);
+    expect(phrase).toHaveTextContent(/situation fragile en dessous de 150 € par mois/);
+    // la source est affichée, et tant que l'administrateur ne l'a pas vérifiée à la main, « vérification en cours »
+    expect(phrase).toHaveTextContent('Source : Insee');
+    expect(phrase).toHaveTextContent('vérification en cours');
+  });
+
+  it('sans seuil de pauvreté dans la base, la phrase ne garde que le seuil « fragile » (rien n’est inventé)', async () => {
+    const sans = {
+      ...PARAMETRES_API,
+      parametres: PARAMETRES_API.parametres.filter((x) => x.cle !== 'seuil_pauvrete'),
+    };
+    simulerApi({ '/parametres?annee=en_cours': sans });
+    rendreApp('/evaluer');
+    const phrase = await screen.findByTestId('seuil-precarite');
+    expect(phrase).not.toHaveTextContent(/seuil de pauvreté/);
+    expect(phrase).toHaveTextContent(/situation fragile en dessous de 150 €/);
+  });
+
+  it('boursier : le montant de base est 0 € (droits et CVEC offerts)', async () => {
+    await ouvrir();
+    await userEvent.click(screen.getByLabelText('Je suis boursier CROUS'));
+    expect(screen.getByTestId('reste')).toHaveTextContent('0 €');
+    expect(screen.getByTestId('reste-vide')).toBeInTheDocument();
   });
 
   it('affiche des recommandations selon le profil et le résultat', async () => {

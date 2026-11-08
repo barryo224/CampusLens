@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { calculerResteAVivre, nombreSaisi, trouverParametre } from '../src/lib/simulation.js';
+import {
+  analyserMontant,
+  calculerResteAVivre,
+  nombreSaisi,
+  trouverParametre,
+} from '../src/lib/simulation.js';
 
 // Paramètres de test FIXES (même forme que GET /api/parametres).
 const PARAMS = [
@@ -224,6 +229,48 @@ describe('nombreSaisi', () => {
     expect(nombreSaisi('')).toBe(0);
     expect(nombreSaisi('.')).toBe(0);
     expect(nombreSaisi(true)).toBe(0);
+  });
+});
+
+describe('montants collés (relevé de banque, site, message)', () => {
+  it.each([
+    ['600', 600],
+    ['600 €', 600],
+    ['600€', 600],
+    ['€600', 600],
+    ['600 euros', 600],
+    ['600 EUR', 600],
+    ['1 250,50 €', 1250.5],
+    ['1\u00a0250,50\u202f€', 1250.5],
+    ['1250,5', 1250.5],
+    ['1.250,50', 1250.5],
+    ['1,250.50', 1250.5],
+    ['1.250', 1250],
+    ['1,250', 1250],
+    ['1 250 300', 1250300],
+    ['1.250.300', 1250300],
+    ["1'250", 1250],
+    ['12.5', 12.5],
+    ['12,5', 12.5],
+    ['0,250', 0.25],
+    ['  450  ', 450],
+  ])('« %s » vaut %s', (texte, attendu) => {
+    expect(analyserMontant(texte)).toEqual({ valeur: attendu, reconnu: true });
+    expect(nombreSaisi(texte)).toBe(attendu);
+  });
+
+  it.each(['abc', '12 abc', '-5', '−50', '1,2,3', '1.2.3', '12..5', '.', ',', 'un euro'])(
+    '« %s » n’est pas un montant : 0 € et le signalement',
+    (texte) => {
+      expect(analyserMontant(texte)).toEqual({ valeur: 0, reconnu: false });
+      expect(nombreSaisi(texte)).toBe(0);
+    },
+  );
+
+  it('un champ vide est reconnu et vaut 0', () => {
+    expect(analyserMontant('')).toEqual({ valeur: 0, reconnu: true });
+    expect(analyserMontant('   ')).toEqual({ valeur: 0, reconnu: true });
+    expect(analyserMontant(undefined)).toEqual({ valeur: 0, reconnu: true });
   });
 });
 

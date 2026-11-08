@@ -1474,6 +1474,22 @@ a {
   color: var(--texte);
 }
 
+.aide-montant {
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  color: var(--rouge);
+}
+.seuils {
+  max-width: 62ch;
+  margin: 12px auto 0;
+  display: grid;
+  gap: 4px;
+  text-align: center;
+  font-size: 0.9375rem;
+}
+.seuils p {
+  margin: 0;
+}
 .explication-tarif {
   max-width: 62ch;
   margin: 8px auto 0;
