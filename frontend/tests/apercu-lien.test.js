@@ -17,6 +17,14 @@ describe('Aperçu du lien partagé (WhatsApp, iMessage, Facebook, LinkedIn, X…
     expect(meta('twitter:card')).toBe('summary_large_image');
   });
 
+  it('déclare l’adresse canonique de l’accueil, identique à og:url et au plan du site', () => {
+    const canonique = html.match(/<link\s+rel="canonical"\s+href="([^"]*)"/s)?.[1];
+    expect(canonique).toMatch(/^https:\/\/[^/]+\/$/);
+    expect(canonique).toBe(meta('og:url'));
+    const plan = readFileSync(resolve(racine, 'public', 'sitemap.xml'), 'utf8');
+    expect(plan).toContain(`<loc>${canonique}</loc>`);
+  });
+
   it('l’image est une adresse complète (obligatoire pour les réseaux sociaux) vers un fichier qui existe', () => {
     const image = meta('og:image');
     expect(image).toMatch(/^https:\/\/[^/]+\/og-image\.jpg(\?v=\d+)?$/); // « ?v=N » : change quand l'image change (les messageries gardent l'ancienne en cache)
