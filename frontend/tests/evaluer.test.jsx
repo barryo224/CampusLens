@@ -257,31 +257,50 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('formulaire vide : le montant de base est dans la jauge, avec un texte court, mais aucun verdict', async () => {
+  it('formulaire vide : la jauge montre le montant de base (− 24 €), sans verdict ni texte en plus', async () => {
     await ouvrir();
     // Droits d'inscription + CVEC lissés sur 12 mois, dus dès la rentrée : 24 € par mois.
     expect(screen.getByTestId('reste')).toHaveTextContent('− 24 €');
     expect(screen.getByTestId('aiguille')).toBeInTheDocument();
-    const depart = screen.getByTestId('reste-vide');
-    expect(depart).toHaveTextContent('Déjà 24 € par mois');
-    expect(depart).toHaveTextContent(/droits d’inscription et CVEC, étalés sur l’année/);
-    expect(depart).not.toHaveTextContent(/Ajoutez vos montants/); // pas de phrase d'aide en plus
-    expect(depart.textContent.length).toBeLessThan(80); // court : c'est un site, pas un document
+    // aucun texte d'accompagnement : la jauge et le montant se suffisent
+    expect(screen.queryByText(/Déjà 24 € par mois/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/étalés sur l’année/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ajoutez vos montants/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Budget en difficulté/)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('region', { name: 'Les aides et astuces pour vous' }),
     ).not.toBeInTheDocument();
     // dès qu'un montant est saisi, la situation apparaît
     await saisir('Job étudiant (net)', '600');
-    expect(screen.queryByTestId('reste-vide')).not.toBeInTheDocument();
     expect(screen.getByTestId('reste')).toHaveTextContent('576 €');
+    expect(screen.getByText(/Budget (fragile|équilibré|en difficulté)/)).toBeInTheDocument();
   });
 
-  it('boursier : le montant de base est 0 € (droits et CVEC offerts)', async () => {
+  it('la ligne « Inscription + CVEC (÷ 12) » reste à 24 € : seul le total des dépenses augmente', async () => {
+    await ouvrir();
+    const ligne = () => screen.getByText('Inscription + CVEC (÷ 12)').parentElement;
+    expect(ligne()).toHaveTextContent('24 €');
+    expect(screen.getByTestId('total-depenses')).toHaveTextContent('24 €');
+    for (const [champ, valeur] of [
+      ['Loyer charges comprises', '420'],
+      ['Alimentation', '200'],
+      ['Transport', '30'],
+    ])
+      await saisir(champ, valeur);
+    expect(ligne()).toHaveTextContent('24 €'); // inchangée
+    expect(ligne()).not.toHaveTextContent('444');
+    expect(screen.getByTestId('total-depenses')).toHaveTextContent('674 €'); // 24 + 420 + 200 + 30
+    // même avec un montant faux, la ligne ne bouge pas
+    await saisir('Alimentation', 'abc');
+    expect(ligne()).toHaveTextContent('24 €');
+    expect(screen.getByTestId('total-depenses')).toHaveTextContent('474 €');
+  });
+
+  it('boursier : le montant de base est 0 € (droits et CVEC offerts), sans texte en plus', async () => {
     await ouvrir();
     await userEvent.click(screen.getByLabelText('Je suis boursier CROUS'));
     expect(screen.getByTestId('reste')).toHaveTextContent('0 €');
-    expect(screen.getByTestId('reste-vide')).toHaveTextContent('Boursier : 0 € de départ');
+    expect(screen.queryByText(/Boursier : 0 € de départ/)).not.toBeInTheDocument();
   });
 
   it('un montant faux : l’outil de mesure reste intact (le message rouge est déjà sur le champ), sans conseils', async () => {
@@ -330,13 +349,6 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.queryByText(/Pour vous repérer/)).not.toBeInTheDocument();
     expect(screen.queryByText(/seuil de pauvreté/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId('seuil-precarite')).not.toBeInTheDocument();
-  });
-
-  it('boursier : le montant de base est 0 € (droits et CVEC offerts)', async () => {
-    await ouvrir();
-    await userEvent.click(screen.getByLabelText('Je suis boursier CROUS'));
-    expect(screen.getByTestId('reste')).toHaveTextContent('0 €');
-    expect(screen.getByTestId('reste-vide')).toBeInTheDocument();
   });
 
   it('affiche des recommandations selon le profil et le résultat', async () => {

@@ -1474,21 +1474,6 @@ a {
   color: var(--texte);
 }
 
-.depart {
-  display: grid;
-  gap: 2px;
-  margin: 14px auto 0;
-  max-width: 46ch;
-  text-align: center;
-  color: var(--texte);
-}
-.depart-info {
-  color: var(--texte);
-}
-/* Montant de départ (rien de saisi) : le message ne doit pas coller au chiffre. */
-.resultat-montant + .message {
-  margin-top: 14px;
-}
 /* Montant de départ (rien de saisi) : le message ne doit pas coller au chiffre. */
 .resultat-montant + .message {
   margin-top: 14px;

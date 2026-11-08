@@ -10,13 +10,13 @@ test('la jauge montre dès le début le montant de base (droits et CVEC lissés)
   await expect(page.locator('svg.jauge')).toBeVisible();
   await expect(page.getByTestId('aiguille')).toHaveCount(1);
   await expect(page.getByTestId('reste')).toHaveText(/−\s?24\s?€/);
-  await expect(page.getByTestId('reste-vide')).toBeVisible();
+  await expect(page.getByText(/Déjà 24/)).toHaveCount(0); // aucun texte en plus de la jauge et du montant
   await expect(page.getByText('Budget en difficulté')).toHaveCount(0);
   // L'outil de mesure reste intact, sans texte d'aide ni paragraphe sur les seuils en plus.
   await expect(page.getByText('Ajoutez vos montants')).toHaveCount(0);
   await expect(page.getByText(/seuil de pauvreté/i)).toHaveCount(0);
   await page.getByLabel('Job étudiant (net)').fill('600');
-  await expect(page.getByTestId('reste-vide')).toHaveCount(0);
+  await expect(page.getByText(/Budget équilibré/)).toBeVisible(); // 576 € de reste-à-vivre
   await expect(page.getByTestId('reste')).toHaveText(/576\s?€/);
 });
 

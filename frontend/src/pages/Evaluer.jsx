@@ -460,21 +460,8 @@ export default function Evaluer() {
                   >
                     {formaterEuro(resultat.resteAVivre).replace('-', '− ')}
                   </p>
-                  {rienSaisi ? (
-                    <p className="depart" data-testid="reste-vide">
-                      {resultat.fraisMensuels > 0 ? (
-                        <span className="depart-info">
-                          <strong>Déjà {formaterEuro(resultat.fraisMensuels)} par mois</strong> :
-                          droits d’inscription et CVEC, étalés sur l’année.
-                        </span>
-                      ) : (
-                        <span className="depart-info">
-                          <strong>Boursier : 0 € de départ</strong>, droits d’inscription et CVEC
-                          offerts.
-                        </span>
-                      )}
-                    </p>
-                  ) : (
+                  {/* Rien de saisi : la jauge et le montant de départ se suffisent, aucun texte en plus. */}
+                  {!rienSaisi && (
                     <p className={`resultat-niveau texte-${CLASSE_NIVEAU[resultat.niveau]}`}>
                       {MESSAGES_NIVEAU[resultat.niveau]}
                     </p>
