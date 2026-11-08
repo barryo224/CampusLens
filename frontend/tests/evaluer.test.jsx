@@ -276,25 +276,44 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.getByText(/Budget (fragile|équilibré|en difficulté)/)).toBeInTheDocument();
   });
 
-  it('la ligne « Inscription + CVEC (÷ 12) » reste à 24 € : seul le total des dépenses augmente', async () => {
-    await ouvrir();
-    const ligne = () => screen.getByText('Inscription + CVEC (÷ 12)').parentElement;
-    expect(ligne()).toHaveTextContent('24 €');
-    expect(screen.getByTestId('total-depenses')).toHaveTextContent('24 €');
-    for (const [champ, valeur] of [
-      ['Loyer charges comprises', '420'],
-      ['Alimentation', '200'],
-      ['Transport', '30'],
-    ])
-      await saisir(champ, valeur);
-    expect(ligne()).toHaveTextContent('24 €'); // inchangée
-    expect(ligne()).not.toHaveTextContent('444');
-    expect(screen.getByTestId('total-depenses')).toHaveTextContent('674 €'); // 24 + 420 + 200 + 30
-    // même avec un montant faux, la ligne ne bouge pas
-    await saisir('Alimentation', 'abc');
-    expect(ligne()).toHaveTextContent('24 €');
-    expect(screen.getByTestId('total-depenses')).toHaveTextContent('474 €');
-  });
+  // « Inscription + CVEC (÷ 12) » est une donnée fixe du profil : taper une dépense ne la change jamais, seul le total
+  // des dépenses (et donc le reste-à-vivre) augmente. Valable pour tous les profils.
+  it.each([
+    ['Français/UE · licence', [], '24 €'], // (178 + 105) ÷ 12
+    ['Français/UE · master', ['Master'], '30 €'], // (254 + 105) ÷ 12
+    ['Français/UE · boursier', ['Je suis boursier CROUS'], '0 €'],
+    ['Hors UE · licence', ['Étudiant international hors UE'], '251 €'], // (2 902 + 105) ÷ 12
+    ['Hors UE · master', ['Étudiant international hors UE', 'Master'], '338 €'], // (3 950 + 105) ÷ 12
+    ['Hors UE · exonéré', ['Étudiant international hors UE', /exonéré/i], '24 €'],
+    ['Hors UE · boursier', ['Étudiant international hors UE', 'Je suis boursier CROUS'], '0 €'],
+  ])(
+    'la ligne « Inscription + CVEC » reste fixe (%s) : seul le total des dépenses augmente',
+    async (_nom, clics, fixe) => {
+      await ouvrir();
+      for (const c of clics) await userEvent.click(screen.getByLabelText(c));
+      const ligne = () => screen.getByText('Inscription + CVEC (÷ 12)').parentElement;
+      expect(ligne()).toHaveTextContent(fixe);
+      const total = () => screen.getByTestId('total-depenses');
+      const valeur = (el) => Number(el.textContent.replace(/[^\d,.-]/g, '').replace(',', '.'));
+      const depart = valeur(total());
+      let attendu = depart;
+      for (const [champ, v] of [
+        ['Loyer charges comprises', 420],
+        ['Alimentation', 200],
+        ['Transport', 30],
+      ]) {
+        await saisir(champ, String(v));
+        attendu += v;
+        expect(ligne()).toHaveTextContent(fixe); // la ligne ne bouge pas
+        expect(valeur(total())).toBe(attendu); // le total, lui, augmente
+      }
+      // revenus et montant faux : la ligne reste fixe aussi, le total ne compte pas le montant faux
+      await saisir('Job étudiant (net)', '600');
+      await saisir('Alimentation', 'abc');
+      expect(ligne()).toHaveTextContent(fixe);
+      expect(valeur(total())).toBe(attendu - 200);
+    },
+  );
 
   it('boursier : le montant de base est 0 € (droits et CVEC offerts), sans texte en plus', async () => {
     await ouvrir();
