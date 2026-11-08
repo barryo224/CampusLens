@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { defilerVersResultats } from '../lib/defilerVersResultats.js';
+import { defilerVersResultatsApresMiseEnPage } from '../lib/defilerVersResultats.js';
 
 /**
  * Champ de recherche avec suggestions pendant la frappe (liste déroulante accessible : combobox + listbox), commun aux
@@ -61,7 +61,7 @@ export default function ChampSuggestions({
 
   const descendreSurResultats = () => {
     champ.current?.blur(); // ferme le clavier : le résultat n'est plus caché dessous
-    window.setTimeout(() => defilerVersResultats(document.getElementById(idResultats)), 60);
+    defilerVersResultatsApresMiseEnPage(idResultats);
   };
   const choisir = (s) => {
     surChoix(s.brut);

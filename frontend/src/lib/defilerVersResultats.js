@@ -31,6 +31,32 @@ export function defilerVersResultats(zone) {
 }
 
 /**
+ * Défile vers les résultats en PLUSIEURS passes. Juste après un choix (suggestion touchée, filtre changé), le contenu change
+ * de hauteur : la liste raccourcit, le tableau se remesure, le navigateur recale la page. Un seul passage à 60 ms laissait la
+ * page trop bas et le premier résultat à moitié caché derrière la barre collée (mesuré : 60 px cachés sur iPhone et sur un
+ * ordinateur de 720 px de haut). Les passages suivants ne font rien si le début des résultats est déjà bien placé.
+ *
+ * @param seulementSiCache  ne défile que si le début des résultats est caché derrière la barre (cas du simple changement
+ *   de recherche : on ne bouge pas une page déjà bien placée).
+ */
+export function defilerVersResultatsApresMiseEnPage(
+  idResultats,
+  { seulementSiCache = false } = {},
+) {
+  for (const delai of [60, 260, 650]) {
+    window.setTimeout(() => {
+      const zone = document.getElementById(idResultats);
+      if (!zone) return;
+      const dessous = hauteurSousBarreRecherche();
+      const haut = zone.getBoundingClientRect().top;
+      const place = Math.abs(haut - (dessous + 8)) <= 4;
+      if (seulementSiCache ? haut >= dessous : place) return;
+      defilerVersResultats(zone);
+    }, delai);
+  }
+}
+
+/**
  * Même principe pour un élément placé sous les barres du haut (barre verte du téléphone et barre « reste-à-vivre ») :
  * défilement calculé et immédiat, jamais `scrollIntoView` doux, que Safari interrompt avec un élément collant.
  */
