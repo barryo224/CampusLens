@@ -255,7 +255,7 @@ describe('montants collés (relevé de banque, site, message)', () => {
     ['0,250', 0.25],
     ['  450  ', 450],
   ])('« %s » vaut %s', (texte, attendu) => {
-    expect(analyserMontant(texte)).toEqual({ valeur: attendu, reconnu: true });
+    expect(analyserMontant(texte)).toMatchObject({ valeur: attendu, reconnu: true });
     expect(nombreSaisi(texte)).toBe(attendu);
   });
 
@@ -266,6 +266,23 @@ describe('montants collés (relevé de banque, site, message)', () => {
       expect(nombreSaisi(texte)).toBe(0);
     },
   );
+
+  it.each([
+    ['1.9', '1,9'],
+    ['1,9', '1,9'],
+    ['12.5', '12,5'],
+    ['450.50', '450,50'],
+    ['450,50', '450,50'],
+    ['600 €', '600'],
+    ['600 euros', '600'],
+    ['1 250,50 €', '1250,50'],
+    ['1.250,50', '1250,50'],
+    ['1,250.50', '1250,50'],
+    ['1,250', '1250'],
+    ['0,250', '0,250'],
+  ])('« %s » s’écrit « %s » (virgule, comme le bilan)', (texte, ecrit) => {
+    expect(analyserMontant(texte).ecrit).toBe(ecrit);
+  });
 
   it('un champ vide est reconnu et vaut 0', () => {
     expect(analyserMontant('')).toEqual({ valeur: 0, reconnu: true });

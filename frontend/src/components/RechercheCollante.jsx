@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 /**
  * Barre de recherche qui reste collée en haut de l'écran pendant qu'on fait défiler une longue liste (« Afficher plus »,
@@ -24,13 +24,32 @@ export default function RechercheCollante({ children }) {
     return () => observateur.disconnect();
   }, []);
 
+  // Une fois collée, la barre perd son titre et son aide : sa hauteur diminue. Sans précaution, tout ce qui est dessous
+  // remonterait d'un coup (saut de 70 à 90 px au moment où elle se colle). On garde donc la place perdue sous forme de marge :
+  // la hauteur de la page ne change pas, la barre seule se raccourcit.
+  const hauteurPleine = useRef(0);
+  useLayoutEffect(() => {
+    const el = boite.current;
+    if (!el) return;
+    if (collee) {
+      const perdu = hauteurPleine.current - el.offsetHeight;
+      el.style.marginBottom = perdu > 0 ? `${perdu}px` : '';
+    } else {
+      el.style.marginBottom = '';
+      hauteurPleine.current = el.offsetHeight;
+    }
+  }, [collee]);
+
   // Hauteur de la barre (collée, compacte) : les titres du tableau se collent juste sous elle.
   useEffect(() => {
     const el = boite.current;
     if (!el) return undefined;
     const racine = document.documentElement;
-    const mesurer = () =>
+    const mesurer = () => {
       racine.style.setProperty('--hauteur-recherche', `${Math.round(el.offsetHeight)}px`);
+      // Pas encore collée : sa hauteur actuelle est sa hauteur pleine (elle peut changer : rotation, texte qui passe à la ligne).
+      if (!el.classList.contains('collee')) hauteurPleine.current = el.offsetHeight;
+    };
     mesurer();
     if (typeof ResizeObserver === 'undefined')
       return () => racine.style.removeProperty('--hauteur-recherche');

@@ -40,7 +40,7 @@ const CLASSE_NIVEAU = { en_difficulte: 'rouge', fragile: 'orange', equilibre: 'v
 
 function ChampMontant({ id, libelle, valeur, surChangement }) {
   // Un texte collé qui n'est pas un montant (lettres, négatif…) compterait 0 € sans rien dire : on le signale.
-  const { reconnu } = analyserMontant(valeur ?? '');
+  const { reconnu, ecrit } = analyserMontant(valeur ?? '');
   return (
     <div className="champ">
       <label htmlFor={id}>{libelle}</label>
@@ -54,6 +54,11 @@ function ChampMontant({ id, libelle, valeur, surChangement }) {
         aria-invalid={reconnu ? undefined : true}
         aria-describedby={reconnu ? undefined : `${id}-aide`}
         onChange={(e) => surChangement(e.target.value)}
+        // En quittant le champ, un montant compris s'écrit à la française (« 1.9 » → « 1,9 », « 600 € » → « 600 ») : ce que
+        // l'on voit est ce que le bilan affichera.
+        onBlur={() => {
+          if (reconnu && ecrit && ecrit !== valeur) surChangement(ecrit);
+        }}
       />
       {!reconnu && (
         <p id={`${id}-aide`} className="aide-montant">
@@ -163,17 +168,20 @@ export default function Evaluer() {
   // Rien de saisi : aucune conclusion (ni « en difficulté », ni conseils d'urgence) tant que l'on n'a rien renseigné.
   const rienSaisi =
     Boolean(resultat) && resultat.totalRevenus === 0 && resultat.totalDepenses === 0;
-  const recommandations = useMemo(
-    () => (resultat && !rienSaisi ? choisirRecommandations({ profil, resultat, parametres }) : []),
-    [resultat, rienSaisi, profil, parametres],
-  );
-  const codeProfilAides = profil.boursier ? 'boursier' : profil.statut;
-
   // Champs dont le texte n'est pas un montant (lettres, symboles…) : encadrés en rouge, et le bilan n'est pas créé.
   const champsInvalides = [
     ...REVENUS.map(([cle, libelle]) => ({ id: `rev-${cle}`, cle, libelle })),
     ...DEPENSES.map(([cle, libelle]) => ({ id: `dep-${cle}`, cle, libelle })),
   ].filter(({ cle }) => !analyserMontant(saisie[cle] ?? '').reconnu);
+
+  const recommandations = useMemo(
+    () =>
+      resultat && !rienSaisi && champsInvalides.length === 0
+        ? choisirRecommandations({ profil, resultat, parametres })
+        : [],
+    [resultat, rienSaisi, champsInvalides.length, profil, parametres],
+  );
+  const codeProfilAides = profil.boursier ? 'boursier' : profil.statut;
 
   /**
    * « Aller saisir mes montants » (ou, si un montant est faux, « Aller au champ à corriger ») : on donne le premier champ à remplir, sans perdre le contexte.
@@ -256,9 +264,23 @@ export default function Evaluer() {
           <>
             {resultat && (
               <BarreResultat
-                montant={formaterEuro(resultat.resteAVivre).replace('-', '− ')}
-                classe={rienSaisi ? 'neutre' : CLASSE_NIVEAU[resultat.niveau]}
-                niveau={rienSaisi ? 'montant de départ' : resultat.libelleNiveau}
+                montant={
+                  champsInvalides.length > 0
+                    ? '—'
+                    : formaterEuro(resultat.resteAVivre).replace('-', '− ')
+                }
+                classe={
+                  rienSaisi || champsInvalides.length > 0
+                    ? 'neutre'
+                    : CLASSE_NIVEAU[resultat.niveau]
+                }
+                niveau={
+                  champsInvalides.length > 0
+                    ? 'montant à corriger'
+                    : rienSaisi
+                      ? 'montant de départ'
+                      : resultat.libelleNiveau
+                }
               />
             )}
             <div className="grille grille-3 simulateur">
@@ -440,101 +462,121 @@ export default function Evaluer() {
               {resultat && (
                 <>
                   <p className="resultat-etiquette">Reste-à-vivre mensuel</p>
-                  {/* Dès l'ouverture, le cadran montre le montant de base : droits d'inscription et CVEC, lissés sur 12 mois,
-                      sont dus dès la rentrée. Tant que rien n'est saisi, aucun verdict n'est donné. */}
-                  <Jauge
-                    resteAVivre={resultat.resteAVivre}
-                    seuilFragile={calcul.seuil}
-                    libelle={
-                      rienSaisi
-                        ? `Reste-à-vivre : ${formaterEuroCentimes(resultat.resteAVivre)}, montant de départ (rien n’est encore saisi)`
-                        : `Reste-à-vivre : ${formaterEuroCentimes(resultat.resteAVivre)}, situation ${resultat.libelleNiveau}`
-                    }
-                  />
-                  <p
-                    className={`resultat-montant${rienSaisi ? '' : ` texte-${CLASSE_NIVEAU[resultat.niveau]}`}`}
-                    data-testid="reste"
-                  >
-                    {formaterEuro(resultat.resteAVivre).replace('-', '− ')}
-                  </p>
-                  {champsInvalides.length > 0 && (
+                  {champsInvalides.length > 0 ? (
+                    // Un montant faux : aucun verdict ni conseil (ils seraient calculés avec un 0 qui n'est pas le vrai montant).
                     <p className="message message-avertissement" data-testid="montant-invalide">
                       {champsInvalides.length === 1
-                        ? 'Un montant n’est pas valide (champ en rouge) : il n’est pas compté dans ce résultat.'
-                        : `${champsInvalides.length} montants ne sont pas valides (champs en rouge) : ils ne sont pas comptés dans ce résultat.`}
-                    </p>
-                  )}
-                  {rienSaisi ? (
-                    <p className="message" data-testid="reste-vide">
-                      Montant de départ : vos droits d’inscription et la CVEC, lissés sur 12 mois,
-                      sont dus dès la rentrée (rien si vous êtes boursier). Renseignez vos revenus
-                      et vos dépenses : votre situation s’affichera ici.
+                        ? 'Un montant saisi est incorrect.'
+                        : `${champsInvalides.length} montants saisis sont incorrects.`}{' '}
+                      Corrigez-{champsInvalides.length === 1 ? 'le' : 'les'} (en rouge) pour voir
+                      votre résultat.
                     </p>
                   ) : (
-                    <p className={`resultat-niveau texte-${CLASSE_NIVEAU[resultat.niveau]}`}>
-                      {MESSAGES_NIVEAU[resultat.niveau]}
-                    </p>
-                  )}
-                  <div className="explication-tarif" data-testid="explication-tarif">
-                    <p>
-                      <strong>{LIBELLES_TARIF[resultat.tarif]}</strong>
-                      {resultat.tarif === 'boursier' ? (
-                        ' (0 €).'
-                      ) : (
-                        <>
-                          {' '}
-                          ({profil.niveau === 'master' ? 'master' : 'licence'}) : droits
-                          d’inscription de {formaterEuro(resultat.droitsInscription)} et CVEC de{' '}
-                          {formaterEuro(resultat.cvec)}, lissés sur 12 mois, soit{' '}
-                          {formaterEuro(resultat.fraisMensuels)} par mois inclus dans vos dépenses.
-                        </>
-                      )}
-                    </p>
-                    {resultat.ressourcesVisa && (
-                      <p data-testid="ressources-visa">
-                        <strong>Visa et titre de séjour.</strong> L’administration demande{' '}
-                        {formaterEuroCentimes(resultat.ressourcesVisa.exigees)} de ressources par
-                        mois. Vous déclarez{' '}
-                        {formaterEuroCentimes(resultat.ressourcesVisa.declarees)} (job, famille et
-                        bourse, hors aide au logement) :{' '}
-                        {resultat.ressourcesVisa.suffisantes
-                          ? 'ce montant atteint le seuil.'
-                          : 'ce montant est en dessous du seuil.'}{' '}
-                        Ce seuil est un repère. La décision revient à la préfecture, selon
-                        l’ensemble de votre dossier. À l’arrivée s’ajoute une taxe de validation du
-                        visa : voir <Link to="/budget?profil=intl">le budget de rentrée</Link>.
-                      </p>
-                    )}
-                    {resultat.tarif === 'international' && (
-                      <p>
-                        Une exonération des droits différenciés est possible : demandez-la à votre
-                        université, puis cochez « exonéré » ci-dessus pour voir la différence.
-                      </p>
-                    )}
-                  </div>
-                  <div className="seuils" data-testid="seuil-precarite">
-                    <p>
-                      <strong>Pour vous repérer.</strong>{' '}
-                      {seuilPauvrete && (
-                        <>
-                          Le seuil de pauvreté en France est de{' '}
-                          <strong>{formaterEuro(Number(seuilPauvrete.valeur))} par mois</strong>{' '}
-                          pour une personne seule : c’est un revenu à comparer à l’ensemble de vos
-                          ressources.{' '}
-                        </>
-                      )}
-                      Votre reste-à-vivre, lui, se calcule après vos dépenses : CampusLens parle de
-                      situation fragile en dessous de <strong>{formaterEuro(calcul.seuil)}</strong>{' '}
-                      par mois.
-                    </p>
-                    {seuilPauvrete && (
-                      <Fraicheur
-                        source={seuilPauvrete.source}
-                        verifieLe={seuilPauvrete.verifieLe}
-                        aVerifier={seuilPauvrete.aVerifier}
+                    <>
+                      {/* Dès l'ouverture, le cadran montre le montant de base : droits d'inscription et CVEC, lissés sur 12 mois,
+                      sont dus dès la rentrée. Tant que rien n'est saisi, aucun verdict n'est donné. */}
+                      <Jauge
+                        resteAVivre={resultat.resteAVivre}
+                        seuilFragile={calcul.seuil}
+                        libelle={
+                          rienSaisi
+                            ? `Reste-à-vivre : ${formaterEuroCentimes(resultat.resteAVivre)}, montant de départ (rien n’est encore saisi)`
+                            : `Reste-à-vivre : ${formaterEuroCentimes(resultat.resteAVivre)}, situation ${resultat.libelleNiveau}`
+                        }
                       />
-                    )}
-                  </div>
+                      <p
+                        className={`resultat-montant${rienSaisi ? '' : ` texte-${CLASSE_NIVEAU[resultat.niveau]}`}`}
+                        data-testid="reste"
+                      >
+                        {formaterEuro(resultat.resteAVivre).replace('-', '− ')}
+                      </p>
+                      {rienSaisi ? (
+                        <p className="depart" data-testid="reste-vide">
+                          {resultat.fraisMensuels > 0 ? (
+                            <span className="depart-info">
+                              <strong>Déjà {formaterEuro(resultat.fraisMensuels)} par mois</strong>{' '}
+                              : droits d’inscription et CVEC, étalés sur l’année.
+                            </span>
+                          ) : (
+                            <span className="depart-info">
+                              <strong>Boursier : 0 € de départ</strong>, droits d’inscription et
+                              CVEC offerts.
+                            </span>
+                          )}
+                          <span className="depart-aide">
+                            Ajoutez vos montants pour voir où vous en êtes.
+                          </span>
+                        </p>
+                      ) : (
+                        <p className={`resultat-niveau texte-${CLASSE_NIVEAU[resultat.niveau]}`}>
+                          {MESSAGES_NIVEAU[resultat.niveau]}
+                        </p>
+                      )}
+                      <div className="explication-tarif" data-testid="explication-tarif">
+                        <p>
+                          <strong>{LIBELLES_TARIF[resultat.tarif]}</strong>
+                          {resultat.tarif === 'boursier' ? (
+                            ' (0 €).'
+                          ) : (
+                            <>
+                              {' '}
+                              ({profil.niveau === 'master' ? 'master' : 'licence'}) : droits
+                              d’inscription de {formaterEuro(resultat.droitsInscription)} et CVEC de{' '}
+                              {formaterEuro(resultat.cvec)}, lissés sur 12 mois, soit{' '}
+                              {formaterEuro(resultat.fraisMensuels)} par mois inclus dans vos
+                              dépenses.
+                            </>
+                          )}
+                        </p>
+                        {resultat.ressourcesVisa && (
+                          <p data-testid="ressources-visa">
+                            <strong>Visa et titre de séjour.</strong> L’administration demande{' '}
+                            {formaterEuroCentimes(resultat.ressourcesVisa.exigees)} de ressources
+                            par mois. Vous déclarez{' '}
+                            {formaterEuroCentimes(resultat.ressourcesVisa.declarees)} (job, famille
+                            et bourse, hors aide au logement) :{' '}
+                            {resultat.ressourcesVisa.suffisantes
+                              ? 'ce montant atteint le seuil.'
+                              : 'ce montant est en dessous du seuil.'}{' '}
+                            Ce seuil est un repère. La décision revient à la préfecture, selon
+                            l’ensemble de votre dossier. À l’arrivée s’ajoute une taxe de validation
+                            du visa : voir{' '}
+                            <Link to="/budget?profil=intl">le budget de rentrée</Link>.
+                          </p>
+                        )}
+                        {resultat.tarif === 'international' && (
+                          <p>
+                            Une exonération des droits différenciés est possible : demandez-la à
+                            votre université, puis cochez « exonéré » ci-dessus pour voir la
+                            différence.
+                          </p>
+                        )}
+                      </div>
+                      <div className="seuils" data-testid="seuil-precarite">
+                        <p>
+                          <strong>Pour vous repérer.</strong>{' '}
+                          {seuilPauvrete && (
+                            <>
+                              Le seuil de pauvreté en France est de{' '}
+                              <strong>{formaterEuro(Number(seuilPauvrete.valeur))} par mois</strong>{' '}
+                              pour une personne seule : c’est un revenu à comparer à l’ensemble de
+                              vos ressources.{' '}
+                            </>
+                          )}
+                          Votre reste-à-vivre, lui, se calcule après vos dépenses : CampusLens parle
+                          de situation fragile en dessous de{' '}
+                          <strong>{formaterEuro(calcul.seuil)}</strong> par mois.
+                        </p>
+                        {seuilPauvrete && (
+                          <Fraicheur
+                            source={seuilPauvrete.source}
+                            verifieLe={seuilPauvrete.verifieLe}
+                            aVerifier={seuilPauvrete.aVerifier}
+                          />
+                        )}
+                      </div>
+                    </>
+                  )}
                   <p className="fraicheur" style={{ marginBottom: 12 }}>
                     Ce résultat vous a aidé ?{' '}
                     <Link to="/avis?page=evaluer">Donnez votre avis sur le site</Link>.

@@ -72,7 +72,12 @@ export function analyserMontant(brut) {
   }
   const n = Number(`${entier || '0'}${decimales ? `.${decimales}` : ''}`);
   if (!Number.isFinite(n)) return { valeur: 0, reconnu: false };
-  return { valeur: n > 0 ? n : 0, reconnu: true };
+  // `ecrit` : le même montant écrit à la française (« 1250,50 »), sans € ni espaces : c'est ce que montre le bilan.
+  return {
+    valeur: n > 0 ? n : 0,
+    reconnu: true,
+    ecrit: `${entier || '0'}${decimales ? `,${decimales}` : ''}`,
+  };
 }
 
 /** Convertit une saisie en nombre (voir `analyserMontant`). Vide, négatif, non numérique ou infini → 0. */

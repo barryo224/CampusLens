@@ -1474,6 +1474,21 @@ a {
   color: var(--texte);
 }
 
+.depart {
+  display: grid;
+  gap: 2px;
+  margin: 14px auto 0;
+  max-width: 46ch;
+  text-align: center;
+  color: var(--texte);
+}
+.depart-info {
+  color: var(--texte);
+}
+.depart-aide {
+  font-size: 0.9375rem;
+  color: var(--texte-doux);
+}
 /* Montant de départ (rien de saisi) : le message ne doit pas coller au chiffre. */
 .resultat-montant + .message {
   margin-top: 14px;
@@ -2095,8 +2110,15 @@ button.lien-action {
     border-bottom: 1px solid var(--bordure);
     box-shadow: 0 6px 14px rgba(16, 36, 43, 0.12);
   }
+  /* Masquée SANS changer la hauteur de la page (pas de display: none) : une page qui change de hauteur pendant qu'on
+     défile saute, et au bas de la page le pied de page « tremble » (rebond du téléphone + saut de 88 px). */
   .barre-resultat-cachee {
-    display: none;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .barre-resultat {
+    transition: opacity 0.15s ease;
   }
   .barre-resultat-texte {
     display: flex;
