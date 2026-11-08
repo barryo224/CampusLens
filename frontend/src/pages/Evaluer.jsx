@@ -62,7 +62,7 @@ function ChampMontant({ id, libelle, valeur, surChangement }) {
       />
       {!reconnu && (
         <p id={`${id}-aide`} className="aide-montant">
-          Ce n’est pas un montant. Écrivez seulement des chiffres, par exemple 450 ou 450,50.
+          Montant invalide. Utilisez uniquement des chiffres (ex. : 450 ou 450,50).
         </p>
       )}
     </div>

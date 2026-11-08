@@ -307,6 +307,23 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.getByTestId('reste')).toBeInTheDocument();
   });
 
+  it.each([' 450', '450 ', '4 50', '12,5 5', ' '])(
+    'espace tapée par erreur (%j) : le message exact s’affiche et le champ est encadré',
+    async (texte) => {
+      await ouvrir();
+      const champ = screen.getByLabelText('Job étudiant (net)');
+      await userEvent.type(champ, texte);
+      expect(champ).toHaveAttribute('aria-invalid', 'true');
+      expect(
+        screen.getByText(
+          'Montant invalide. Utilisez uniquement des chiffres (ex. : 450 ou 450,50).',
+        ),
+      ).toBeInTheDocument();
+      await userEvent.tab();
+      expect(champ).toHaveValue(texte); // rien n'est effacé en silence : on voit l'espace et on corrige
+    },
+  );
+
   it('un montant en quittant le champ s’écrit à la française : « 1.9 » → « 1,9 », « 600 € » → « 600 »', async () => {
     await ouvrir();
     const champ = screen.getByLabelText('Job étudiant (net)');
@@ -314,7 +331,7 @@ describe('Simulateur — Évaluer ma situation', () => {
     await userEvent.tab();
     expect(champ).toHaveValue('1,9');
     await userEvent.clear(champ);
-    await userEvent.type(champ, '1 250,50 €');
+    await userEvent.type(champ, '1250,50€');
     await userEvent.tab();
     expect(champ).toHaveValue('1250,50');
     // un texte qui n'est pas un montant n'est pas modifié (on le laisse corriger)

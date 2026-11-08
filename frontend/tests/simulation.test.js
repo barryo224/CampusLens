@@ -170,7 +170,7 @@ describe('calculerResteAVivre', () => {
   });
 
   it('accepte la virgule française et les chaînes numériques', () => {
-    const r = calculerResteAVivre(francais, { job: '600,50', loyer: ' 637 ' }, PARAMS);
+    const r = calculerResteAVivre(francais, { job: '600,50', loyer: '637' }, PARAMS);
     expect(r.totalRevenus).toBe(600.5);
     expect(r.totalDepenses).toBe(637);
   });
@@ -223,7 +223,8 @@ describe('nombreSaisi', () => {
     expect(nombreSaisi(12)).toBe(12);
     expect(nombreSaisi('12.5')).toBe(12.5);
     expect(nombreSaisi('12,5')).toBe(12.5);
-    expect(nombreSaisi('1 200')).toBe(1200);
+    expect(nombreSaisi('1\u00a0200')).toBe(1200); // espace insécable des milliers
+    expect(nombreSaisi('1 200')).toBe(0); // espace ordinaire : invalide (jamais effacée en silence)
     expect(nombreSaisi(-5)).toBe(0);
     expect(nombreSaisi('-5')).toBe(0);
     expect(nombreSaisi('')).toBe(0);
@@ -235,25 +236,21 @@ describe('nombreSaisi', () => {
 describe('montants collés (relevé de banque, site, message)', () => {
   it.each([
     ['600', 600],
-    ['600 €', 600],
     ['600€', 600],
     ['€600', 600],
-    ['600 euros', 600],
-    ['600 EUR', 600],
-    ['1 250,50 €', 1250.5],
+    ['1\u00a0250,50€', 1250.5],
     ['1\u00a0250,50\u202f€', 1250.5],
     ['1250,5', 1250.5],
     ['1.250,50', 1250.5],
     ['1,250.50', 1250.5],
     ['1.250', 1250],
     ['1,250', 1250],
-    ['1 250 300', 1250300],
+    ['1\u00a0250\u00a0300', 1250300],
     ['1.250.300', 1250300],
     ["1'250", 1250],
     ['12.5', 12.5],
     ['12,5', 12.5],
     ['0,250', 0.25],
-    ['  450  ', 450],
   ])('« %s » vaut %s', (texte, attendu) => {
     expect(analyserMontant(texte)).toMatchObject({ valeur: attendu, reconnu: true });
     expect(nombreSaisi(texte)).toBe(attendu);
@@ -267,26 +264,30 @@ describe('montants collés (relevé de banque, site, message)', () => {
     },
   );
 
+  // Une espace tapée par erreur n'est jamais effacée en silence : on le dit.
   it.each([
-    ['1.9', '1,9'],
-    ['1,9', '1,9'],
-    ['12.5', '12,5'],
-    ['450.50', '450,50'],
-    ['450,50', '450,50'],
-    ['600 €', '600'],
-    ['600 euros', '600'],
-    ['1 250,50 €', '1250,50'],
-    ['1.250,50', '1250,50'],
-    ['1,250.50', '1250,50'],
-    ['1,250', '1250'],
-    ['0,250', '0,250'],
-  ])('« %s » s’écrit « %s » (virgule, comme le bilan)', (texte, ecrit) => {
-    expect(analyserMontant(texte).ecrit).toBe(ecrit);
+    ' 450', // espace avant le montant
+    '450 ', // espace après
+    '  450  ',
+    '4 50', // chiffre, espace, chiffre
+    '12,5 5', // virgule valide puis espace puis chiffre
+    '12, 5',
+    '12 ,5',
+    '1 250,50', // même une espace « de milliers » tapée au clavier
+    '1 250,50 €',
+    '600 €',
+    '600 euros',
+    ' ',
+    '   ',
+    '\t450',
+    '450\n',
+  ])('« %j » contient une espace ordinaire : invalide', (texte) => {
+    expect(analyserMontant(texte)).toEqual({ valeur: 0, reconnu: false });
+    expect(nombreSaisi(texte)).toBe(0);
   });
 
   it('un champ vide est reconnu et vaut 0', () => {
     expect(analyserMontant('')).toEqual({ valeur: 0, reconnu: true });
-    expect(analyserMontant('   ')).toEqual({ valeur: 0, reconnu: true });
     expect(analyserMontant(undefined)).toEqual({ valeur: 0, reconnu: true });
   });
 });

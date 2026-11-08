@@ -29,15 +29,15 @@ test.describe('Évaluer ma situation', () => {
     await page.goto('/evaluer');
     const job = page.getByLabel('Job étudiant (net)');
     const loyer = page.getByLabel('Loyer charges comprises');
-    await coller(page, job, '1 250,50 €');
-    await coller(page, loyer, '420 euros');
+    await coller(page, job, '1\u00a0250,50\u202f€'); // espaces insécables, comme sur un relevé de banque
+    await coller(page, loyer, '420€');
     await expect(page.getByTestId('total-revenus')).toContainText(/1\s?251\s?€/);
     await expect(page.getByTestId('total-depenses')).toContainText(/444\s?€/); // 420 + 24 de frais lissés
-    await expect(page.getByText('Ce n’est pas un montant')).toHaveCount(0);
+    await expect(page.getByText('Montant invalide')).toHaveCount(0);
     for (const [texte, attendu] of [
       ['1.250,50', /1\s?251\s?€/],
       ['1,250.50', /1\s?251\s?€/],
-      ['1 250 €', /1\s?250\s?€/],
+      ['1250€', /1\s?250\s?€/],
     ]) {
       await coller(page, job, texte);
       await expect(page.getByTestId('total-revenus'), texte).toContainText(attendu);
@@ -50,11 +50,33 @@ test.describe('Évaluer ma situation', () => {
     await page.goto('/evaluer');
     const job = page.getByLabel('Job étudiant (net)');
     await coller(page, job, 'environ six cents');
-    await expect(page.getByText('Ce n’est pas un montant')).toBeVisible();
+    await expect(
+      page.getByText('Montant invalide. Utilisez uniquement des chiffres (ex. : 450 ou 450,50).'),
+    ).toBeVisible();
     await expect(job).toHaveAttribute('aria-invalid', 'true');
     await coller(page, job, '600');
-    await expect(page.getByText('Ce n’est pas un montant')).toHaveCount(0);
+    await expect(page.getByText('Montant invalide')).toHaveCount(0);
   });
+
+  // Une espace tapée par erreur ne disparaît jamais en silence : le champ passe en erreur, avec le même message.
+  for (const texte of [' 450', '450 ', '4 50', '12,5 5', ' ']) {
+    test(`espace frappée par erreur (${JSON.stringify(texte)}) : message d'erreur et champ en rouge`, async ({
+      page,
+    }) => {
+      await page.goto('/evaluer');
+      const job = page.getByLabel('Job étudiant (net)');
+      await job.click();
+      await page.keyboard.insertText(texte);
+      await expect(
+        page.getByText('Montant invalide. Utilisez uniquement des chiffres (ex. : 450 ou 450,50).'),
+      ).toBeVisible();
+      await expect(job).toHaveAttribute('aria-invalid', 'true');
+      await job.blur();
+      await expect(job).toHaveValue(texte); // rien n'est effacé : on voit l'espace et on la retire
+      await job.fill(texte.replace(/ /g, '')); // on retire l'espace : plus d'erreur
+      await expect(page.getByText('Montant invalide')).toHaveCount(0);
+    });
+  }
 
   test('montant faux : champ encadré en rouge, message simple, et le bilan n’est pas créé', async ({
     page,
@@ -64,9 +86,9 @@ test.describe('Évaluer ma situation', () => {
     page.on('download', () => (telecharge = true));
     const job = page.getByLabel('Job étudiant (net)');
     await page.getByLabel('Loyer charges comprises').fill('420');
-    await coller(page, job, 'abc 12 euros environ');
+    await coller(page, job, 'abc12euros');
     await expect(
-      page.getByText('Écrivez seulement des chiffres, par exemple 450 ou 450,50'),
+      page.getByText('Montant invalide. Utilisez uniquement des chiffres (ex. : 450 ou 450,50).'),
     ).toBeVisible();
     const bordure = await job.evaluate((el) => getComputedStyle(el).borderColor);
     expect(bordure).toBe('rgb(180, 35, 24)'); // rouge

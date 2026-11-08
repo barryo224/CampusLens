@@ -287,6 +287,7 @@ test.describe('Espace administration : état des sources', () => {
     await ligne.getByRole('button', { name: /^Lancer/ }).click();
     await expect(page.getByRole('status')).toContainText(
       /Travailler pendant ses études.* : (Réussie|Aucun changement|En attente de validation|Échec|Bloquée par le site)/, // le résultat dépend de la réponse réelle du site officiel (qui peut refuser le robot)
+      { timeout: 45_000 }, // le robot lit une vraie page sur Internet : plus lent quand toute la suite tourne en parallèle
     );
   });
 });

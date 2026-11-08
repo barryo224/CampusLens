@@ -23,9 +23,14 @@ const NIVEAUX = ['licence', 'master'];
 
 /**
  * Lit un montant tel qu'une personne le tape OU le colle (relevé de banque, site, message) :
- * « 600 », « 12,5 », « 1 250,50 € », « 1.250,50 », « 1,250.50 », « 600 euros », « 1 200 » (espace insécable ou fine).
+ * « 600 », « 12,5 », « 1.250,50 », « 1,250.50 », « 600€ », et « 1 250,50 € » quand l'espace est celle des milliers
+ * (insécable ou fine, comme sur un relevé de banque).
  * Renvoie `{ valeur, reconnu }` : `reconnu` est faux quand le texte n'est pas un montant (lettres, négatif…), pour que
  * l'écran puisse le dire au lieu de compter silencieusement 0 €. Un champ vide est « reconnu » et vaut 0.
+ *
+ * Une ESPACE ORDINAIRE (début, fin ou milieu : « 450 », « 12 50 », « 12,5 5 », ou un champ qui ne contient qu'une
+ * espace) n'est jamais effacée en silence : le texte est déclaré invalide, pour qu'on sache qu'une touche a été frappée
+ * sans le vouloir. Seules les espaces insécables (milliers) restent admises.
  *
  * Séparateurs : si un point ET une virgule sont présents, le dernier est la décimale et l'autre sépare les milliers ;
  * avec un seul séparateur suivi d'exactement 3 chiffres (« 1.200 », « 1,200 »), c'est un séparateur de milliers (aucun
@@ -39,6 +44,8 @@ export function analyserMontant(brut) {
     };
   }
   if (typeof brut !== 'string') return { valeur: 0, reconnu: true };
+  // Espace ordinaire (tout espace blanc sauf les insécables U+00A0 et U+202F, qui séparent les milliers) : invalide.
+  if (/[^\S\u00a0\u202f]/.test(brut)) return { valeur: 0, reconnu: false };
   let t = brut
     .trim()
     .replace(/\b(euros?|eur)\b/gi, '')

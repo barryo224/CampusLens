@@ -244,7 +244,9 @@ test.describe('Sur téléphone, on voit toujours ce qui vient de se passer', () 
 
     await page.goBack();
     await expect(page).toHaveURL(/\/a-propos$/);
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(basDePage - 200);
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY), { timeout: 15_000 }) // marge : suite complète en parallèle
+      .toBeGreaterThan(basDePage - 200);
   });
 
   test('simulateur : le reste-à-vivre reste affiché sous la barre pendant la saisie', async ({
