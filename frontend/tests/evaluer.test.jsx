@@ -348,7 +348,7 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(contenu).toMatch(/125,58/);
     expect(contenu).toContain('Situation en difficulté');
     expect(contenu).toContain('Tarif d’inscription appliqué : Tarif national');
-    expect(contenu).toMatch(/Établi le \d{1,2} \p{L}+ \d{4}/u);
+    expect(contenu).toMatch(/Établi le \d{1,2}(er)? \p{L}+ \d{4}/u);
     expect(contenu).toContain('Service-Public.fr');
     expect(pdf.textes.filter((t) => t.startsWith('Service-Public.fr'))).toHaveLength(1); // pas de doublon de source
     expect(contenu).toContain('rien n’a été envoyé');

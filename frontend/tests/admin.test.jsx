@@ -605,6 +605,7 @@ describe('Espace administration', () => {
     expect(rappel).toHaveTextContent('août et septembre');
     expect(rappel).toHaveTextContent('Tarifs TCL (Lyon), Tarifs Tisséo (Toulouse)');
     expect(rappel).not.toHaveTextContent('Carte des loyers');
+    expect(rappel).toHaveTextContent('Revérifiez-les à la main');
     // Une vraie panne (500) reste signalée comme telle.
     expect(ligne('Carte des loyers')).toHaveTextContent('En erreur');
     expect(ligne('Carte des loyers')).toHaveTextContent('La source a répondu 500');

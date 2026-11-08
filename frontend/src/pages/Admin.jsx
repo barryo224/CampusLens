@@ -33,15 +33,17 @@ const siteBloque = (s) =>
 function RappelSitesBloques({ sources }) {
   const bloquees = sources.filter(siteBloque);
   if (bloquees.length === 0) return null;
+  const pluriel = bloquees.length > 1;
   return (
     <div className="rappel-sites" role="note" data-testid="rappel-sites-bloques">
       <strong>
-        {bloquees.length} source{bloquees.length > 1 ? 's sont bloquées' : ' est bloquée'} par leur
-        site.
+        {bloquees.length} source
+        {pluriel ? 's sont bloquées par leur site' : ' est bloquée par son site'}.
       </strong>{' '}
-      Le robot ne peut pas les lire : rien ne vous prévient si un prix change. Revérifiez-les à la
-      main tous les 90 jours, et surtout en août et septembre, quand les réseaux changent leurs
-      tarifs. Concernées : {bloquees.map((s) => s.nom).join(', ')}.
+      Le robot ne peut pas {pluriel ? 'les' : 'la'} lire : rien ne vous prévient si un prix change.
+      Revérifiez-{pluriel ? 'les' : 'la'} à la main tous les 90 jours, et surtout en août et
+      septembre, quand les réseaux changent leurs tarifs. {pluriel ? 'Concernées' : 'Concernée'} :{' '}
+      {bloquees.map((s) => s.nom).join(', ')}.
     </div>
   );
 }
