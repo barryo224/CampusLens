@@ -105,15 +105,12 @@ function BarreResultat({ montant, classe, niveau }) {
   );
 }
 
+const PROFIL_DE_DEPART = { statut: 'fr_ue', niveau: 'licence', boursier: false, exonere: false };
+
 export default function Evaluer() {
   usePageTitre('Évaluer ma situation');
   const { data, erreur, chargement, recharger } = useApi('/parametres?annee=en_cours');
-  const [profil, setProfil] = useState({
-    statut: 'fr_ue',
-    niveau: 'licence',
-    boursier: false,
-    exonere: false,
-  });
+  const [profil, setProfil] = useState(PROFIL_DE_DEPART);
   const [saisie, setSaisie] = useState({});
   // Facultatif. Reste dans le navigateur : sert uniquement à personnaliser le PDF (jamais envoyé, jamais mémorisé).
   const [identite, setIdentite] = useState({ prenom: '', nom: '' });
@@ -176,7 +173,9 @@ export default function Evaluer() {
       }
       const sources = [...parOrganisme.values()];
       await telechargerBilan({ profil, saisie, resultat, recommandations, sources, identite });
-      // Bilan téléchargé : le formulaire repart vide (les montants et le nom ne sont jamais gardés).
+      // Bilan téléchargé : le formulaire repart à son état de départ (montants, nom ET choix du profil : statut,
+      // niveau, boursier). Rien n'est gardé. Au refus du bilan (aucun montant), les choix restent en place.
+      setProfil(PROFIL_DE_DEPART);
       setSaisie({});
       setIdentite({ prenom: '', nom: '' });
       setConfirmationPdf(true);

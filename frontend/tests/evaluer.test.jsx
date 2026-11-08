@@ -296,6 +296,32 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.getByLabelText('Prénom (facultatif)')).toHaveValue('');
   });
 
+  it('après un téléchargement réussi, les choix du profil reviennent aussi à leur état de départ', async () => {
+    await ouvrir();
+    await userEvent.click(screen.getByLabelText('Master'));
+    await userEvent.click(screen.getByLabelText('Je suis boursier CROUS'));
+    await budgetDeReference();
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
+    await vi.waitFor(() => expect(pdf.sauvegardes).toHaveLength(1));
+    expect(await screen.findByText(/Le formulaire a été vidé/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Licence')).toBeChecked();
+    expect(screen.getByLabelText('Master')).not.toBeChecked();
+    expect(screen.getByLabelText('Étudiant français ou UE')).toBeChecked();
+    expect(screen.getByLabelText('Je suis boursier CROUS')).not.toBeChecked();
+  });
+
+  it('si le bilan est refusé (aucun montant), les choix du profil restent en place', async () => {
+    await ouvrir();
+    await userEvent.click(screen.getByLabelText('Master'));
+    await userEvent.click(screen.getByLabelText('Je suis boursier CROUS'));
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
+    expect(
+      await screen.findByText(/Renseignez au moins un revenu ou une dépense/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Master')).toBeChecked();
+    expect(screen.getByLabelText('Je suis boursier CROUS')).toBeChecked();
+  });
+
   it('UI-08 : « Télécharger mon bilan » génère un PDF avec profil, montants, résultat et date', async () => {
     await ouvrir();
     await budgetDeReference();
