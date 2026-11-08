@@ -186,7 +186,6 @@ describe('Base de données et seed', () => {
         'liens_ressources',
         'loyers',
         'logements_crous',
-        'seuil_pauvrete',
         'veille_apl',
         'veille_visale',
         'veille_aide_specifique',

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // Télécharger sans rien saisir : le message demande de saisir, et « Aller saisir mes montants » donne le premier champ
 // sans perdre le contexte (ordinateur : tout en haut de la page ; téléphone : le début du bloc « Vos revenus mensuels »).
 
-test('la jauge montre dès le début le montant de base (droits et CVEC lissés), sans verdict, puis la situation à la saisie', async ({
+test('la jauge montre dès le début le montant de base (droits et CVEC lissés), sans verdict ni texte d’aide, puis la situation à la saisie', async ({
   page,
 }) => {
   await page.goto('/evaluer');
@@ -12,9 +12,9 @@ test('la jauge montre dès le début le montant de base (droits et CVEC lissés)
   await expect(page.getByTestId('reste')).toHaveText(/−\s?24\s?€/);
   await expect(page.getByTestId('reste-vide')).toBeVisible();
   await expect(page.getByText('Budget en difficulté')).toHaveCount(0);
-  await expect(page.getByTestId('seuil-precarite')).toContainText(
-    'situation fragile en dessous de',
-  );
+  // L'outil de mesure reste intact, sans texte d'aide ni paragraphe sur les seuils en plus.
+  await expect(page.getByText('Ajoutez vos montants')).toHaveCount(0);
+  await expect(page.getByText(/seuil de pauvreté/i)).toHaveCount(0);
   await page.getByLabel('Job étudiant (net)').fill('600');
   await expect(page.getByTestId('reste-vide')).toHaveCount(0);
   await expect(page.getByTestId('reste')).toHaveText(/576\s?€/);

@@ -1,5 +1,4 @@
 import { creerVeillePage } from './veillePage.js';
-import { ErreurSource } from '../http.js';
 
 const nombre = (t) => Number(String(t).replace(/\s/g, '').replace(',', '.'));
 
@@ -32,44 +31,6 @@ export function extraireCvec(texte, { parametres }) {
   const param = parametres.find((p) => p.cle === 'cvec' && p.annee.libelle === m[1]);
   return param ? [{ parametreId: param.id, valeur: nombre(m[2]) }] : [];
 }
-
-/**
- * Seuil de pauvreté (Insee, « L'essentiel sur… la pauvreté ») :
- * « … Il correspond à un revenu disponible de 1 337 euros par mois pour une personne vivant seule … »
- * Le montant s'écrit avec une espace (normale, insécable ou fine) et la phrase peut être coupée par un retour à la ligne
- * (c'est le cas sur la vraie page) : tous les espacements sont acceptés.
- */
-export function extraireSeuilPauvrete(texte, { parametres }) {
-  const m = texte.match(
-    /revenu\s+disponible\s+de\s*(\d[\d\s\u00a0\u202f]*(?:[.,]\d+)?)\s*euros\s+par\s+mois\s+pour\s+une\s+personne\s+(?:vivant\s+)?seule/i,
-  );
-  if (!m) return [];
-  const param = parametres.find((p) => p.cle === 'seuil_pauvrete' && p.annee.enCours);
-  return param
-    ? [{ parametreId: param.id, valeur: nombre(m[1].replace(/[\u00a0\u202f]/g, '')) }]
-    : [];
-}
-
-/** Mots qui encadrent la phrase du seuil : la veille ne regarde que ce passage, pas les blocs mouvants de la page. */
-const REPERE_SEUIL = /revenu disponible de/i;
-
-const veilleSeuil = creerVeillePage({ cle: 'seuil_pauvrete', extraire: extraireSeuilPauvrete });
-
-/**
- * Robot du seuil de pauvreté. La page de l'Insee contient bien d'autres textes (chiffres clés, liens, articles) qui
- * changent sans rapport avec le seuil : on ne surveille donc que le passage autour de la phrase du seuil. Si cette
- * phrase disparaît (page refaite), le robot le dit au lieu de deviner : une personne revérifie à la main.
- */
-export const robotSeuilPauvrete = {
-  ...veilleSeuil,
-  async telecharger(args) {
-    const { contenu } = await veilleSeuil.telecharger(args);
-    const i = contenu.search(REPERE_SEUIL);
-    if (i < 0)
-      throw new ErreurSource('La phrase du seuil de pauvreté est introuvable : page modifiée.');
-    return { contenu: contenu.slice(Math.max(0, i - 300), i + 500) };
-  },
-};
 
 export const robotDroits = creerVeillePage({ cle: 'droits', extraire: extraireDroits });
 export const robotCvec = creerVeillePage({ cle: 'cvec', extraire: extraireCvec });

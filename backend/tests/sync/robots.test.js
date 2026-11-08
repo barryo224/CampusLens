@@ -4,12 +4,7 @@ import { seed } from '../../src/seed/index.js';
 import { synchroniser } from '../../src/sync/moteur.js';
 import { robotLoyers } from '../../src/sync/robots/loyers.js';
 import { robotLogementsCrous, extraireLoyers } from '../../src/sync/robots/logementsCrous.js';
-import {
-  robotDroits,
-  robotCvec,
-  robotSeuilPauvrete,
-  extraireSeuilPauvrete,
-} from '../../src/sync/robots/pagesOfficielles.js';
+import { robotDroits, robotCvec } from '../../src/sync/robots/pagesOfficielles.js';
 import { robotLiensRessources } from '../../src/sync/robots/liensRessources.js';
 import {
   fausseSource,
@@ -20,7 +15,6 @@ import {
   RESIDENCE_REELLE,
   pageDroits,
   pageCvec,
-  pageSeuilPauvrete,
   pageHtml,
 } from '../helpers/sources.js';
 import {
@@ -513,79 +507,6 @@ describe('Synchronisation', () => {
       const c = await prisma.changementDetecte.findFirstOrThrow();
       expect(c.valeurProposee).toBeNull();
       expect(c.resume).toMatch(/Aucune valeur n’a pu être repérée/);
-    });
-  });
-
-  describe('niveau 3 — seuil de pauvreté (Insee)', () => {
-    const fetchInsee = (opts) =>
-      fausseSource({ 'insee.fr': () => pageHtml(pageSeuilPauvrete(opts)) });
-    const seuil = async () => Number((await param('seuil_pauvrete', 'aucun')).valeur);
-
-    it('départ : 1 337 € par mois, repris de l’Insee, pas encore vérifié à la main', async () => {
-      expect(await seuil()).toBe(1337);
-      expect((await param('seuil_pauvrete', 'aucun')).verifieLe).toBeNull();
-      const src = await source('seuil_pauvrete');
-      expect(src).toMatchObject({ organisme: 'Insee', type: 'page_web' });
-      expect(src.url).toMatch(/insee\.fr/);
-    });
-
-    it('l’Insee publie un nouveau montant → changement « à valider » ; la valeur affichée ne bouge pas avant validation', async () => {
-      const r = await synchroniser(prisma, robotSeuilPauvrete, {
-        fetchImpl: fetchInsee({ montant: '1 380' }),
-      });
-      expect(r.statut).toBe('en_attente_validation');
-      const c = await prisma.changementDetecte.findFirstOrThrow();
-      const [s] = JSON.parse(c.valeurProposee);
-      expect(s).toMatchObject({ cle: 'seuil_pauvrete', valeurActuelle: 1337, valeur: 1380 });
-      expect(await seuil()).toBe(1337);
-      await validerChangement(prisma, c.id, admin.id, [
-        { parametreId: s.parametreId, valeur: 1380 },
-      ]);
-      expect(await seuil()).toBe(1380);
-    });
-
-    it('les blocs mouvants de la page (articles du jour) ne déclenchent aucune fausse alerte', async () => {
-      const premiere = await synchroniser(prisma, robotSeuilPauvrete, {
-        fetchImpl: fetchInsee({ mouvant: 'Articles du jour : A' }),
-      });
-      expect(premiere.statut).toBe('en_attente_validation'); // première lecture : le montant est proposé une fois
-      const c = await prisma.changementDetecte.findFirstOrThrow();
-      await rejeterChangement(prisma, c.id, admin.id);
-      const lendemain = await synchroniser(prisma, robotSeuilPauvrete, {
-        fetchImpl: fetchInsee({ mouvant: 'Articles du jour : B, tout autre contenu' }),
-      });
-      expect(lendemain.nbChangements).toBe(0);
-    });
-
-    it('espaces insécables et fines dans le montant : lu correctement', () => {
-      const parametres = [{ id: 7, cle: 'seuil_pauvrete', annee: { enCours: true } }];
-      for (const montant of ['1 337', '1\u00a0337', '1\u202f337', '1337']) {
-        const texte = `Il correspond à un revenu disponible de ${montant} euros par mois pour une personne vivant seule`;
-        expect(extraireSeuilPauvrete(texte, { parametres })).toEqual([
-          { parametreId: 7, valeur: 1337 },
-        ]);
-      }
-      // Sur la vraie page, la phrase est coupée par un retour à la ligne.
-      const coupee =
-        'Il correspond à un revenu disponible de 1 337 euros par mois pour une\npersonne vivant seule et de 2 807 euros';
-      expect(extraireSeuilPauvrete(coupee, { parametres })).toEqual([
-        { parametreId: 7, valeur: 1337 },
-      ]);
-      expect(extraireSeuilPauvrete('Une page sans la phrase.', { parametres })).toEqual([]);
-    });
-
-    it('phrase du seuil disparue (page refaite) : le robot le dit, il ne devine rien', async () => {
-      const r = await synchroniser(prisma, robotSeuilPauvrete, {
-        fetchImpl: fausseSource({
-          'insee.fr': () =>
-            pageHtml(
-              `<html><body><main><p>${'Autre contenu. '.repeat(60)}</p></main></body></html>`,
-            ),
-        }),
-      });
-      expect(r.statut).toBe('echec');
-      expect(await prisma.changementDetecte.count()).toBe(0);
-      expect(await seuil()).toBe(1337);
     });
   });
 

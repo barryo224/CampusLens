@@ -156,13 +156,4 @@ export function pageCvec({ montant = 105, annee = '2026-2027' } = {}) {
   <p>L'acquittement est actuellement possible pour l'ann&amp;eacute;e universitaire ${annee}. Elle est de ${montant}&nbsp;€ euros.</p></main></body></html>`;
 }
 
-/** Page Insee « L'essentiel sur… la pauvreté » : la phrase du seuil, entourée de blocs qui changent d'un jour à l'autre. */
-export function pageSeuilPauvrete({ montant = '1 337', mouvant = 'Articles du jour : 1' } = {}) {
-  return `<html><body><main><h1>L'essentiel sur... la pauvreté</h1>
-  <p>${remplissage}</p>
-  <p>Le seuil de pauvreté est fixé par convention à 60 % du niveau de vie médian de la population. Il correspond à un revenu disponible de ${montant} euros par mois pour une personne vivant seule et de 2 807 euros pour un couple avec deux enfants âgés de moins de 14 ans.</p>
-  <p>${remplissage}</p>
-  <aside><p>${mouvant}</p></aside></main></body></html>`;
-}
-
 export const pageHtml = (html) => reponse({ texte: html });

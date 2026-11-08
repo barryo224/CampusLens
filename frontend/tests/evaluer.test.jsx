@@ -265,8 +265,8 @@ describe('Simulateur — Évaluer ma situation', () => {
     const depart = screen.getByTestId('reste-vide');
     expect(depart).toHaveTextContent('Déjà 24 € par mois');
     expect(depart).toHaveTextContent(/droits d’inscription et CVEC, étalés sur l’année/);
-    expect(depart).toHaveTextContent('Ajoutez vos montants pour voir où vous en êtes');
-    expect(depart.textContent.length).toBeLessThan(140); // court : c'est un site, pas un document
+    expect(depart).not.toHaveTextContent(/Ajoutez vos montants/); // pas de phrase d'aide en plus
+    expect(depart.textContent.length).toBeLessThan(80); // court : c'est un site, pas un document
     expect(screen.queryByText(/Budget en difficulté/)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('region', { name: 'Les aides et astuces pour vous' }),
@@ -284,45 +284,28 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.getByTestId('reste-vide')).toHaveTextContent('Boursier : 0 € de départ');
   });
 
-  it('un montant faux : message court à la place du verdict, de la jauge et des conseils', async () => {
+  it('un montant faux : l’outil de mesure reste intact (le message rouge est déjà sur le champ), sans conseils', async () => {
     await ouvrir();
     await saisir('Loyer charges comprises', '420');
     await saisir('Job étudiant (net)', 'environ six cents');
-    const message = screen.getByTestId('montant-invalide');
-    expect(message).toHaveTextContent(
-      'Un montant saisi est incorrect. Corrigez-le (en rouge) pour voir votre résultat.',
-    );
-    expect(message.textContent.length).toBeLessThan(100);
-    expect(screen.queryByTestId('reste')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('aiguille')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/Budget en difficulté|Budget fragile|Budget équilibré/),
-    ).not.toBeInTheDocument();
+    // le champ dit ce qui ne va pas ; la jauge, le montant et la situation restent affichés (le montant faux compte pour 0)
+    expect(screen.getByLabelText('Job étudiant (net)')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByTestId('aiguille')).toBeInTheDocument();
+    expect(screen.getByTestId('reste')).toHaveTextContent('− 444 €');
+    expect(screen.getByText('Budget en difficulté : des aides existent')).toBeInTheDocument();
+    // aucun message en plus à la place de l'outil
+    expect(screen.queryByTestId('montant-invalide')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Un montant saisi est incorrect/)).not.toBeInTheDocument();
+    // les conseils ne sont pas donnés tant qu'un montant est faux
     expect(
       screen.queryByRole('region', { name: 'Les aides et astuces pour vous' }),
     ).not.toBeInTheDocument();
-    // corrigé : tout revient
+    // corrigé : les conseils reviennent
     await saisir('Job étudiant (net)', '600');
-    expect(screen.queryByTestId('montant-invalide')).not.toBeInTheDocument();
-    expect(screen.getByTestId('reste')).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Les aides et astuces pour vous' }),
+    ).toBeInTheDocument();
   });
-
-  it.each([' 450', '450 ', '4 50', '12,5 5', ' '])(
-    'espace tapée par erreur (%j) : le message exact s’affiche et le champ est encadré',
-    async (texte) => {
-      await ouvrir();
-      const champ = screen.getByLabelText('Job étudiant (net)');
-      await userEvent.type(champ, texte);
-      expect(champ).toHaveAttribute('aria-invalid', 'true');
-      expect(
-        screen.getByText(
-          'Montant invalide. Utilisez uniquement des chiffres (ex. : 450 ou 450,50).',
-        ),
-      ).toBeInTheDocument();
-      await userEvent.tab();
-      expect(champ).toHaveValue(texte); // rien n'est effacé en silence : on voit l'espace et on corrige
-    },
-  );
 
   it('un montant en quittant le champ s’écrit à la française : « 1.9 » → « 1,9 », « 600 € » → « 600 »', async () => {
     await ouvrir();
@@ -342,27 +325,11 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(champ).toHaveAttribute('aria-invalid', 'true');
   });
 
-  it('une phrase donne le seuil de pauvreté (repris de la base, avec sa source) et le seuil « fragile » de CampusLens', async () => {
+  it('plus de paragraphe sur le seuil de pauvreté ni sur le seuil « fragile » sous la jauge', async () => {
     await ouvrir();
-    const phrase = screen.getByTestId('seuil-precarite');
-    expect(phrase).toHaveTextContent(/seuil de pauvreté en France est de 1\s?337 € par mois/);
-    expect(phrase).toHaveTextContent(/pour une personne seule/);
-    expect(phrase).toHaveTextContent(/situation fragile en dessous de 150 € par mois/);
-    // la source est affichée, et tant que l'administrateur ne l'a pas vérifiée à la main, « vérification en cours »
-    expect(phrase).toHaveTextContent('Source : Insee');
-    expect(phrase).toHaveTextContent('vérification en cours');
-  });
-
-  it('sans seuil de pauvreté dans la base, la phrase ne garde que le seuil « fragile » (rien n’est inventé)', async () => {
-    const sans = {
-      ...PARAMETRES_API,
-      parametres: PARAMETRES_API.parametres.filter((x) => x.cle !== 'seuil_pauvrete'),
-    };
-    simulerApi({ '/parametres?annee=en_cours': sans });
-    rendreApp('/evaluer');
-    const phrase = await screen.findByTestId('seuil-precarite');
-    expect(phrase).not.toHaveTextContent(/seuil de pauvreté/);
-    expect(phrase).toHaveTextContent(/situation fragile en dessous de 150 €/);
+    expect(screen.queryByText(/Pour vous repérer/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/seuil de pauvreté/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('seuil-precarite')).not.toBeInTheDocument();
   });
 
   it('boursier : le montant de base est 0 € (droits et CVEC offerts)', async () => {

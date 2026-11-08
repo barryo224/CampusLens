@@ -21,7 +21,6 @@ import {
   pageHtml,
   pageDroits,
   pageCvec,
-  pageSeuilPauvrete,
   residence,
 } from '../helpers/sources.js';
 
@@ -240,7 +239,6 @@ describe('Maintenance et planification', () => {
         fr_crous_logement: (u) => crous(u),
         'actualites/A14725': () => pageHtml(pageDroits()),
         'cvec.etudiant.gouv.fr': () => pageHtml(pageCvec()),
-        'insee.fr': () => pageHtml(pageSeuilPauvrete()),
         // pages officielles sous veille (aides vérifiées à la main)
         'service-public.': () => pageHtml(`<main><p>${'Contenu officiel. '.repeat(40)}</p></main>`),
         'campusfrance.org': () =>
@@ -259,7 +257,6 @@ describe('Maintenance et planification', () => {
       expect(par.droits).toBe('en_attente_validation');
       expect(par.cvec).toBe('en_attente_validation');
       expect(par.openfisca).toBeUndefined(); // plus de robot OpenFisca
-      expect(par.seuil_pauvrete).toBe('en_attente_validation'); // première lecture : le montant est proposé à la validation
       expect(par.liens_ressources).toBeDefined();
       expect(par.veille_apl).toBe('aucun_changement'); // première lecture = référence
       expect(journal.log).toHaveBeenCalled();

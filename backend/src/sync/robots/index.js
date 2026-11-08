@@ -1,6 +1,6 @@
 import { robotLoyers } from './loyers.js';
 import { robotLogementsCrous } from './logementsCrous.js';
-import { robotDroits, robotCvec, robotSeuilPauvrete } from './pagesOfficielles.js';
+import { robotDroits, robotCvec } from './pagesOfficielles.js';
 import { robotLiensRessources } from './liensRessources.js';
 import { ROBOTS_VEILLE } from './veilleVerification.js';
 import { ROBOTS_TRANSPORT } from './veilleTransport.js';
@@ -11,7 +11,6 @@ export const ROBOTS = {
   logements_crous: robotLogementsCrous,
   droits: robotDroits,
   cvec: robotCvec,
-  seuil_pauvrete: robotSeuilPauvrete,
   liens_ressources: robotLiensRessources,
   ...ROBOTS_VEILLE,
   ...ROBOTS_TRANSPORT,

@@ -92,6 +92,9 @@ test.describe('Évaluer ma situation', () => {
     ).toBeVisible();
     const bordure = await job.evaluate((el) => getComputedStyle(el).borderColor);
     expect(bordure).toBe('rgb(180, 35, 24)'); // rouge
+    // L'outil de mesure reste intact : la jauge et le montant restent affichés malgré le champ en erreur.
+    await expect(page.getByTestId('aiguille')).toHaveCount(1);
+    await expect(page.getByTestId('reste')).toBeVisible();
     await page.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }).click();
     await expect(page.getByRole('alert')).toContainText('Votre bilan n’a pas été créé');
     await page.waitForTimeout(800);
