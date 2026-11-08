@@ -144,70 +144,76 @@ export default function Ressources() {
                   Aucune ressource ne correspond à votre recherche.
                 </p>
               ) : (
-                <TableauAdaptatif libelle="Tableau des ressources" seuil={860} sousRecherche>
-                  <table className="tableau">
-                    <caption className="sr-only">Démarches et documents officiels</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">Titre</th>
-                        <th scope="col">Type</th>
-                        <th scope="col">Source</th>
-                        <th scope="col">Catégorie</th>
-                        <th scope="col">Année</th>
-                        <th scope="col">Ouvrir</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibles.map((r) => (
-                        <tr key={r.id}>
-                          <th scope="row">
-                            {r.titre}
-                            {r.statutLien === 'casse' && (
-                              <span className="badge badge-rouge-clair">Lien cassé : signalé</span>
-                            )}
-                            {r.statutLien === 'deplace' && (
-                              <span className="badge badge-orange" style={{ marginLeft: 8 }}>
-                                Adresse modifiée
-                              </span>
-                            )}
-                          </th>
-                          <td>{r.type}</td>
-                          <td>
-                            {r.organisme}
-                            {r.aVerifier && (
-                              <span className="a-verifier">vérification en cours</span>
-                            )}
-                            {r.verifieLe && (
-                              <span className="fraicheur">
-                                <br />
-                                vérifié le {formaterDate(r.verifieLe)}
-                              </span>
-                            )}
-                          </td>
-                          <td>
-                            <span className="badge badge-gris">
-                              {libelleCategorie(r.categorie)}
-                            </span>
-                          </td>
-                          <td>{r.annee ?? '—'}</td>
-                          <td>
-                            {r.statutLien === 'casse' ? (
-                              <span className="fraicheur">Indisponible</span>
-                            ) : (
-                              <LienExterne
-                                href={r.url}
-                                annonce={false}
-                                aria-label={`Ouvrir : ${r.titre} (nouvel onglet)`}
-                              >
-                                <Icone nom="fleche" />
-                              </LienExterne>
-                            )}
-                          </td>
+                <div className="liste-ressources">
+                  <TableauAdaptatif libelle="Tableau des ressources" seuil={860} sousRecherche>
+                    <table className="tableau">
+                      <caption className="sr-only">Démarches et documents officiels</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Titre</th>
+                          <th scope="col">Type</th>
+                          <th scope="col">Source</th>
+                          <th scope="col">Catégorie</th>
+                          <th scope="col">Année</th>
+                          <th scope="col">Ouvrir</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </TableauAdaptatif>
+                      </thead>
+                      <tbody>
+                        {visibles.map((r) => (
+                          <tr key={r.id}>
+                            <th scope="row">
+                              {r.titre}
+                              {r.statutLien === 'casse' && (
+                                <span className="badge badge-rouge-clair">
+                                  Lien cassé : signalé
+                                </span>
+                              )}
+                              {r.statutLien === 'deplace' && (
+                                <span className="badge badge-orange" style={{ marginLeft: 8 }}>
+                                  Adresse modifiée
+                                </span>
+                              )}
+                            </th>
+                            <td>{r.type}</td>
+                            <td>
+                              {r.organisme}
+                              {r.aVerifier && (
+                                <span className="a-verifier">vérification en cours</span>
+                              )}
+                              {r.verifieLe && (
+                                <span className="fraicheur">
+                                  <br />
+                                  vérifié le {formaterDate(r.verifieLe)}
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              <span className="badge badge-gris">
+                                {libelleCategorie(r.categorie)}
+                              </span>
+                            </td>
+                            <td>{r.annee ?? '—'}</td>
+                            <td>
+                              {r.statutLien === 'casse' ? (
+                                <span className="fraicheur">Indisponible</span>
+                              ) : (
+                                <LienExterne
+                                  href={r.url}
+                                  annonce={false}
+                                  aria-label={`Ouvrir la ressource : ${r.titre} (nouvel onglet)`}
+                                >
+                                  {/* Texte visible seulement en cartes (téléphone) : un vrai bouton, pas une flèche seule. */}
+                                  <span className="lien-ressource-texte">Ouvrir la ressource</span>
+                                  <Icone nom="fleche" />
+                                </LienExterne>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TableauAdaptatif>
+                </div>
               )}
             </div>
           </section>

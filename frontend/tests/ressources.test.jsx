@@ -16,7 +16,7 @@ describe('Ressources', () => {
     expect(
       await screen.findByRole('rowheader', { name: /Demander une caution Visale/ }),
     ).toBeInTheDocument();
-    const lien = screen.getByRole('link', { name: /Ouvrir : Demander une caution Visale/ });
+    const lien = screen.getByRole('link', { name: /Ouvrir la ressource : Demander une caution Visale/ });
     expect(lien).toHaveAttribute('href', 'https://www.visale.fr');
     expect(lien).toHaveAttribute('target', '_blank');
     expect(lien).toHaveAttribute('rel', 'noopener noreferrer');

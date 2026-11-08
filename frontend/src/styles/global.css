@@ -2277,6 +2277,83 @@ button.lien-action {
   font-weight: 600;
 }
 
+/* ───── Ressources en cartes (téléphone) : compactes, au lieu de cinq lignes étiquetées par ressource ─────
+   Titre, ligne « source · vérifié le… », pastilles (type, catégorie, année), puis un vrai bouton « Ouvrir ». */
+.lien-ressource-texte {
+  display: none;
+}
+.liste-ressources .tableau-adaptatif.en-cartes .tableau tr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.liste-ressources .tableau-adaptatif.en-cartes .tableau th[scope='row'] {
+  flex: 0 0 100%;
+  order: 0;
+  margin-bottom: 0;
+  padding-bottom: 8px;
+}
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td {
+  display: inline-flex;
+  padding: 0;
+}
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td::before {
+  display: none; /* le nom de la colonne est évident ici : « Page d'information », « Logement », « 2026 »… */
+}
+/* Source : ligne complète sous le titre */
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(2) {
+  order: 1;
+  flex: 0 0 100%;
+  display: block;
+  font-size: 0.9375rem;
+}
+/* Type, catégorie, année : pastilles côte à côte */
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(1),
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(3),
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(4) {
+  width: auto; /* pastilles côte à côte : la règle de base des cartes impose 100 % */
+  flex: 0 0 auto;
+}
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(1) {
+  order: 2;
+}
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(3) {
+  order: 3;
+}
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(4) {
+  order: 4;
+}
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(1),
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(4) {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--fond);
+  font-size: 0.8125rem;
+  color: var(--texte-doux);
+}
+/* Ouvrir : bouton sur toute la largeur */
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(5) {
+  order: 5;
+  flex: 0 0 100%;
+  display: block;
+  margin-top: 4px;
+}
+.liste-ressources .tableau-adaptatif.en-cartes .tableau td:nth-of-type(5) a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid var(--bordure);
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.liste-ressources .tableau-adaptatif.en-cartes .lien-ressource-texte {
+  display: inline;
+}
+
 /* ───── Page « À valider » : cartes plus compactes (les espaces s'additionnaient) ───── */
 .changement {
   gap: 8px;
