@@ -23,3 +23,17 @@ export function defilerVersResultats(zone) {
   const cible = zone.getBoundingClientRect().top + window.scrollY - dessous - 8;
   window.scrollTo({ top: Math.max(0, cible), left: 0, behavior: 'auto' });
 }
+
+/**
+ * Même principe pour un élément placé sous les barres du haut (barre verte du téléphone et barre « reste-à-vivre ») :
+ * défilement calculé et immédiat, jamais `scrollIntoView` doux, que Safari interrompt avec un élément collant.
+ */
+export function defilerSousLesBarres(element, marge = 12) {
+  if (!element) return;
+  const haut =
+    parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--haut-fixe')) || 0;
+  const barre = document.querySelector('.barre-resultat:not(.barre-resultat-cachee)');
+  const hauteurBarre = barre ? barre.offsetHeight : 0;
+  const cible = element.getBoundingClientRect().top + window.scrollY - haut - hauteurBarre - marge;
+  window.scrollTo({ top: Math.max(0, cible), left: 0, behavior: 'auto' });
+}

@@ -125,9 +125,15 @@ function ListeAides({ profil, besoin }) {
         <p className="message">Aucune aide ne correspond à ce besoin pour le moment.</p>
       ) : (
         <ul className="liste-aides">
-          {data.map((a) => (
-            <CarteAide key={a.slug} aide={a} />
-          ))}
+          {/* Les aides qui ne concernent pas ce profil passent en dernier (l'ordre reste le même pour le reste). */}
+          {[...data]
+            .sort(
+              (x, y) =>
+                Number(x.eligibilite?.statut === 'non') - Number(y.eligibilite?.statut === 'non'),
+            )
+            .map((a) => (
+              <CarteAide key={a.slug} aide={a} />
+            ))}
         </ul>
       )}
     </div>

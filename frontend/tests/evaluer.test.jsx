@@ -257,6 +257,20 @@ describe('Simulateur — Évaluer ma situation', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('formulaire vide : aucune conclusion (ni « en difficulté », ni aiguille, ni conseils d’urgence)', async () => {
+    await ouvrir();
+    expect(screen.getByTestId('reste-vide')).toHaveTextContent(/Renseignez au moins un revenu/);
+    expect(screen.queryByTestId('reste')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Budget en difficulté/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'Les aides et astuces pour vous' }),
+    ).not.toBeInTheDocument();
+    // dès qu'un montant est saisi, le résultat apparaît
+    await saisir('Job étudiant (net)', '600');
+    expect(screen.getByTestId('reste')).toBeInTheDocument();
+    expect(screen.queryByTestId('reste-vide')).not.toBeInTheDocument();
+  });
+
   it('affiche des recommandations selon le profil et le résultat', async () => {
     await ouvrir();
     await budgetDeReference();
@@ -315,9 +329,7 @@ describe('Simulateur — Évaluer ma situation', () => {
     await userEvent.click(screen.getByLabelText('Master'));
     await userEvent.click(screen.getByLabelText('Je suis boursier CROUS'));
     await userEvent.click(screen.getByRole('button', { name: 'Télécharger mon bilan (PDF)' }));
-    expect(
-      await screen.findByText(/Renseignez au moins un revenu ou une dépense/),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.getByLabelText('Master')).toBeChecked();
     expect(screen.getByLabelText('Je suis boursier CROUS')).toBeChecked();
   });

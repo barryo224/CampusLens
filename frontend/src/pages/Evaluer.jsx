@@ -8,6 +8,7 @@ import { usePageTitre } from '../lib/usePageTitre.js';
 import { calculerResteAVivre, trouverParametre, LIBELLES_TARIF } from '../lib/simulation.js';
 import { choisirRecommandations } from '../lib/recommandations.js';
 import { telechargerBilan } from '../lib/bilan.js';
+import { defilerSousLesBarres } from '../lib/defilerVersResultats.js';
 import { formaterEuro, formaterEuroCentimes } from '../lib/format.js';
 
 const REVENUS = [
@@ -92,11 +93,7 @@ function BarreResultat({ montant, classe, niveau }) {
         type="button"
         className="bouton bouton-secondaire"
         aria-label={`Aller au détail du résultat : reste-à-vivre ${montant}, situation ${niveau}`}
-        onClick={() =>
-          document
-            .getElementById('resultat-detail')
-            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }
+        onClick={() => defilerSousLesBarres(document.getElementById('resultat-detail'))}
       >
         Détail ↓
       </button>
@@ -144,9 +141,12 @@ export default function Evaluer() {
   }, [parametres]);
 
   const resultat = calcul?.resultat;
+  // Rien de saisi : aucune conclusion (ni « en difficulté », ni conseils d'urgence) tant que l'on n'a rien renseigné.
+  const rienSaisi =
+    Boolean(resultat) && resultat.totalRevenus === 0 && resultat.totalDepenses === 0;
   const recommandations = useMemo(
-    () => (resultat ? choisirRecommandations({ profil, resultat, parametres }) : []),
-    [resultat, profil, parametres],
+    () => (resultat && !rienSaisi ? choisirRecommandations({ profil, resultat, parametres }) : []),
+    [resultat, rienSaisi, profil, parametres],
   );
   const codeProfilAides = profil.boursier ? 'boursier' : profil.statut;
 
@@ -205,9 +205,9 @@ export default function Evaluer() {
           <>
             {resultat && (
               <BarreResultat
-                montant={formaterEuro(resultat.resteAVivre).replace('-', '− ')}
-                classe={CLASSE_NIVEAU[resultat.niveau]}
-                niveau={resultat.libelleNiveau}
+                montant={rienSaisi ? '—' : formaterEuro(resultat.resteAVivre).replace('-', '− ')}
+                classe={rienSaisi ? 'neutre' : CLASSE_NIVEAU[resultat.niveau]}
+                niveau={rienSaisi ? 'à calculer' : resultat.libelleNiveau}
               />
             )}
             <div className="grille grille-3 simulateur">
@@ -389,20 +389,29 @@ export default function Evaluer() {
               {resultat && (
                 <>
                   <p className="resultat-etiquette">Reste-à-vivre mensuel</p>
-                  <Jauge
-                    resteAVivre={resultat.resteAVivre}
-                    seuilFragile={calcul.seuil}
-                    libelle={`Reste-à-vivre : ${formaterEuroCentimes(resultat.resteAVivre)}, situation ${resultat.libelleNiveau}`}
-                  />
-                  <p
-                    className={`resultat-montant texte-${CLASSE_NIVEAU[resultat.niveau]}`}
-                    data-testid="reste"
-                  >
-                    {formaterEuro(resultat.resteAVivre).replace('-', '− ')}
-                  </p>
-                  <p className={`resultat-niveau texte-${CLASSE_NIVEAU[resultat.niveau]}`}>
-                    {MESSAGES_NIVEAU[resultat.niveau]}
-                  </p>
+                  {rienSaisi ? (
+                    <p className="message" data-testid="reste-vide">
+                      Renseignez au moins un revenu ou une dépense : votre reste-à-vivre et votre
+                      situation s’afficheront ici.
+                    </p>
+                  ) : (
+                    <>
+                      <Jauge
+                        resteAVivre={resultat.resteAVivre}
+                        seuilFragile={calcul.seuil}
+                        libelle={`Reste-à-vivre : ${formaterEuroCentimes(resultat.resteAVivre)}, situation ${resultat.libelleNiveau}`}
+                      />
+                      <p
+                        className={`resultat-montant texte-${CLASSE_NIVEAU[resultat.niveau]}`}
+                        data-testid="reste"
+                      >
+                        {formaterEuro(resultat.resteAVivre).replace('-', '− ')}
+                      </p>
+                      <p className={`resultat-niveau texte-${CLASSE_NIVEAU[resultat.niveau]}`}>
+                        {MESSAGES_NIVEAU[resultat.niveau]}
+                      </p>
+                    </>
+                  )}
                   <div className="explication-tarif" data-testid="explication-tarif">
                     <p>
                       <strong>{LIBELLES_TARIF[resultat.tarif]}</strong>
@@ -470,7 +479,7 @@ export default function Evaluer() {
                         style={{ marginTop: 8 }}
                         onClick={() => {
                           const champ = document.getElementById('rev-job');
-                          champ?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+                          defilerSousLesBarres(champ);
                           champ?.focus({ preventScroll: true });
                         }}
                       >
@@ -481,7 +490,6 @@ export default function Evaluer() {
                 </>
               )}
             </section>
-
 
             {recommandations.length > 0 && (
               <section className="carte" style={{ marginTop: 16 }} aria-labelledby="titre-reco">
