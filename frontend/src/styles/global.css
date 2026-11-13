@@ -42,8 +42,6 @@ html {
     sans-serif;
   color: var(--texte);
   background: var(--fond);
-  /* Pas de rebond élastique en bout de page : sur téléphone, il faisait remonter le contenu sur la barre collée en haut. */
-  overscroll-behavior-y: none;
 }
 
 body {
@@ -710,11 +708,16 @@ a {
 /* ───── Mobile : la barre latérale passe au-dessus du contenu ───── */
 @media (max-width: 900px) {
   /* La barre verte reste en haut, intacte, pendant que le contenu défile dessous. */
+  /* « fixed » et non « sticky » : pendant le rebond élastique d'iPhone, une barre collée est entraînée et recouverte ; une barre fixe ne bouge pas. */
+  .app {
+    padding-top: var(--hauteur-barre);
+  }
   .sidebar {
-    position: sticky;
+    position: fixed;
     top: 0;
     inset-inline: 0;
     z-index: 30;
+    height: var(--hauteur-barre);
     width: auto;
     padding: 8px 16px;
     gap: 0;
