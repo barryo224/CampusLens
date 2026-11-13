@@ -42,6 +42,8 @@ html {
     sans-serif;
   color: var(--texte);
   background: var(--fond);
+  /* Pas de rebond élastique en bout de page : sur téléphone, il faisait remonter le contenu sur la barre collée en haut. */
+  overscroll-behavior-y: none;
 }
 
 body {
