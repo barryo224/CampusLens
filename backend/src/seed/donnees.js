@@ -788,7 +788,7 @@ export const ASSOCIATIONS = [
   {
     nom: 'Cop1 – Solidarités Étudiantes',
     description: 'Distributions alimentaires et accompagnement pour les étudiants.',
-    lien: 'https://www.cop1.fr',
+    lien: 'https://cop1.fr',
   },
 ];
 
@@ -983,7 +983,7 @@ export const RESSOURCES = [
     categorie: 'alimentation',
     organisme: 'Cop1',
     annee: '2026',
-    url: 'https://www.cop1.fr',
+    url: 'https://cop1.fr',
   },
   {
     titre: 'Jobaviz : les jobs étudiants du Crous',
